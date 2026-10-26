@@ -8,7 +8,7 @@
     quality: 'auto', latency: 'normal', chat: 'on', chatMode: 'overlay', chatSide: 'right', chatOpacity: '30',
     chatWidth: 'normal', chatFont: 'normal', chatHeight: 'full', lang: I18N.tvLang(), uiLang: I18N.tvLang(),
     engine: 'hls', playerType: 'site', scale: '100', preview: 'on', codec: 'auto', useAccount: 'on',
-    notify: 'on', lite: 'auto', kb: I18N.tvLang() === 'en' ? 'en' : I18N.tvLang()
+    notify: 'on', lite: 'auto', previewSound: 'on', kb: I18N.tvLang() === 'en' ? 'en' : I18N.tvLang()
   };
   var Settings = {
     data: U.store.get('settings', {}),
@@ -147,8 +147,12 @@
             var idx = 0;
             hls.levels.forEach(function (l, i) { if (l.height && l.height <= 480 && l.height >= hls.levels[idx].height) idx = i; });
             hls.currentLevel = idx;
-            video.muted = true;
-            var pr = video.play(); if (pr && pr.catch) pr.catch(function () {});
+            // со звуком, как в YouTube; если ТВ запретит автозапуск со звуком — играем без звука
+            var withSound = Settings.get('previewSound') !== 'off';
+            video.muted = !withSound;
+            video.volume = 0.7;
+            var pr = video.play();
+            if (pr && pr.catch) pr.catch(function () { video.muted = true; var p2 = video.play(); if (p2 && p2.catch) p2.catch(function () {}); });
           });
           hls.on(Hls.Events.ERROR, function (e, d) { if (d.fatal) Preview.stop(); });
           video.onplaying = function () { video.classList.add('playing'); };
@@ -181,11 +185,12 @@
     // --- баннер с живым превью (как «Рекомендуемые» на главной Twitch) ---
     var heroItems = [], heroIdx = 0;
     var heroEl = h('div.hero.focusable', null, [
-      h('div.hero-media', null, [h('img.hero-img', { alt: '' }), h('video.hero-video', { muted: 'muted', playsinline: '' }), h('div.hero-fade')]),
+      h('div.hero-media', null, [h('img.hero-img', { alt: '' }), h('video.hero-video', { playsinline: '' }), h('div.hero-fade')]),
       h('div.hero-info', null, [
         h('div.hero-chan', null, [h('img.hero-avatar', { alt: '' }), h('div', null, [h('div.hero-name'), h('div.hero-game')])]),
         h('div.hero-title'),
         h('div.hero-meta', null, [h('span.badge-inline.live', { text: tr('В ЭФИРЕ') }), h('span.hero-viewers')]),
+        h('div.hero-cta', { html: UI.icon('play') + '<span>' + U.esc(tr('Смотреть')) + '</span>' }),
         h('div.hero-hint', { text: tr('OK — смотреть • ← → — листать') }),
         h('div.hero-dots')
       ])
@@ -450,7 +455,7 @@
       var card = h('div.card.card-video.focusable', null, [
         h('div.thumb', null, [
           UI.img('thumb-img', x.thumb),
-          h('div.badge.badge-tl', { text: x.kind === 'live' ? tr('ЭФИР') : x.kind === 'vod' ? tr('ЗАПИСЬ') : tr('КЛИП') }),
+          h('div.badge.badge-tl.kind-' + x.kind, { text: x.kind === 'live' ? tr('ЭФИР') : x.kind === 'vod' ? tr('ЗАПИСЬ') : tr('КЛИП') }),
           x.length && x.kind !== 'live' ? h('div.badge.badge-br', { text: U.duration(x.length) }) : null,
           pos && x.length ? h('div.progress', null, h('div.progress-fill', { style: 'width:' + Math.min(100, pos / x.length * 100) + '%' })) : null
         ]),
@@ -496,7 +501,7 @@
       }
       buttons.push(favBtn);
       head.appendChild(h('div.channel-top', null, [
-        h('div.channel-avatar' + (u.stream ? '.is-live' : ''), null, [UI.img('ch-img', u.profileImageURL), u.stream ? h('div.ch-live', { text: 'LIVE' }) : null]),
+        h('div.channel-avatar' + (u.stream ? '.is-live' : ''), { 'data-letter': String(u.displayName || '?').charAt(0).toUpperCase() }, [UI.img('ch-img', u.profileImageURL), u.stream ? h('div.ch-live', { text: tr('В ЭФИРЕ') }) : null]),
         h('div.channel-info', null, [
           h('h1.page-title', null, [u.displayName, followed ? h('span.followed-badge', { text: tr('Вы подписаны') }) : null]),
           h('div.page-sub', { text: (u.followers ? U.num(u.followers.totalCount) + ' ' + tr('фолловеров') : '') +
@@ -578,7 +583,7 @@
       keys.innerHTML = '';
       var letters = KB[layout].slice();
       // добиваем цифрами до ровной сетки 7×5
-      var digits = '1234567890'.split('');
+      var digits = (layout === 'en' ? '1234567890-._' : '-._').split('');
       while (letters.length % 7 && layout !== 'num' && digits.length) letters.push(digits.shift());
       letters.forEach(function (ch) { key(ch, null, function () { type(ch); }); });
       keys.appendChild(h('div.kb-row'));
@@ -595,6 +600,7 @@
       query = q.slice(0, 40);
       U.$('.search-text', field).textContent = query;
       field.classList.toggle('empty', !query);
+      field.classList.toggle('typing', !!query);
       runSearch();
     }
 
@@ -846,6 +852,7 @@
 
     section(tr('Интерфейс'));
     opt(tr('Превью эфиров на главной'), 'preview', [['on', tr('Включено')], ['off', tr('Выключено')]], tr('Живое видео в баннере и карточках. Выключите, если интерфейс подтормаживает.'));
+    opt(tr('Звук в превью'), 'previewSound', [['on', tr('Включён')], ['off', tr('Выключен')]], tr('Превью в карточке играет со звуком, как в YouTube.'));
     opt(tr('Облегчённый режим'), 'lite', [['auto', tr('Авто')], ['off', tr('Выключен')], ['on', tr('Включён')]],
       tr('Без анимаций и превью — максимально плавно на слабых ТВ.'), function () { App.applyLite(); });
     opt(tr('Уведомления о начале эфиров'), 'notify', [['on', tr('Включены')], ['off', tr('Выключены')]], tr('Когда ваш канал начинает эфир — всплывает подсказка.'));

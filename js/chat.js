@@ -27,7 +27,7 @@
     Chat.list.innerHTML = '';
     Chat.retry = 0;
     Chat.emotes = {};
-    Chat.system(tr('Подключение к чату…'));
+    Chat.system(tr('Подключение к чату…'), 'chat-connecting');
     connect();
     loadThirdPartyEmotes(Chat.roomId);
   };
@@ -78,6 +78,13 @@
     return o;
   }
 
+  // Подключились — убираем «Подключение к чату…», чтобы строка не висела
+  function connected() {
+    Chat.state.textContent = '';
+    Chat.queue = Chat.queue.filter(function (m) { return m.cls !== 'chat-connecting'; });
+    U.$$('.chat-connecting', Chat.list).forEach(function (el) { el.remove(); });
+  }
+
   function handle(line) {
     if (line.indexOf('PING') === 0) { Chat.ws.send('PONG :tmi.twitch.tv'); return; }
     var tags = {};
@@ -89,6 +96,7 @@
     var m = /^:(\S+) (\S+)(?: (\S+))?(?: :([\s\S]*))?$/.exec(line);
     if (!m) return;
     var prefix = m[1], cmd = m[2], text = m[4] || '';
+    if (cmd === 'PRIVMSG' || cmd === 'ROOMSTATE' || cmd === '366') connected();
     if (cmd === 'PRIVMSG') {
       var nick = tags['display-name'] || prefix.split('!')[0];
       var action = false;

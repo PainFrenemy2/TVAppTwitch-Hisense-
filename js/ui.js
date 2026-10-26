@@ -76,8 +76,7 @@
         UI.img('avatar', b.profileImageURL),
         h('div.meta-text', null, [
           h('div.title', { text: s.title || b.displayName || '' }),
-          h('div.sub', { text: b.displayName || b.login || '' }),
-          h('div.sub', { text: gameName(s.game) })
+          h('div.sub', { text: (b.displayName || b.login || '') + (gameName(s.game) ? ' • ' + gameName(s.game) : '') })
         ])
       ])
     ]);
@@ -88,7 +87,7 @@
       if (!b.login) return;
       var thumb = U.$('.thumb', card);
       var v = U.$('video', thumb);
-      if (!v) { v = h('video.thumb-video', { muted: 'muted', playsinline: '' }); thumb.insertBefore(v, thumb.children[1] || null); }
+      if (!v) { v = h('video.thumb-video', { playsinline: '' }); thumb.insertBefore(v, thumb.children[1] || null); }
       Preview.start(v, b.login);
     };
     card._onblur = function () { Preview.stop(); };
@@ -108,8 +107,7 @@
         UI.img('avatar', o.profileImageURL),
         h('div.meta-text', null, [
           h('div.title', { text: v.title || '' }),
-          h('div.sub', { text: o.displayName || '' }),
-          h('div.sub', { text: U.views(v.viewCount) + ' • ' + U.ago(v.createdAt) })
+          h('div.sub', { text: (o.displayName ? o.displayName + ' • ' : '') + U.ago(v.createdAt) })
         ])
       ])
     ]);
@@ -136,8 +134,7 @@
         UI.img('avatar', b.profileImageURL),
         h('div.meta-text', null, [
           h('div.title', { text: c.title || '' }),
-          h('div.sub', { text: b.displayName || '' }),
-          h('div.sub', { text: U.views(c.viewCount) + ' • ' + U.ago(c.createdAt) })
+          h('div.sub', { text: (b.displayName ? b.displayName + ' • ' : '') + U.views(c.viewCount) })
         ])
       ])
     ]);
@@ -160,9 +157,9 @@
   UI.channelCard = function (u, onSelect) {
     var live = !!u.stream;
     var card = h('div.card.card-channel.focusable' + (live ? '.is-live' : ''), null, [
-      h('div.ch-avatar', null, [
+      h('div.ch-avatar', { 'data-letter': String(u.displayName || u.login || '?').charAt(0).toUpperCase() }, [
         UI.img('ch-img', u.profileImageURL),
-        live ? h('div.ch-live', { text: 'LIVE' }) : null
+        live ? h('div.ch-live', { text: tr('В ЭФИРЕ') }) : null
       ]),
       h('div.title', { text: u.displayName || u.login }),
       h('div.sub', { text: live ? (gameName(u.stream.game) || tr('В эфире')) : (u.followers ? U.num(u.followers.totalCount) + tr(' фолловеров') : tr('Не в сети')) })
@@ -256,7 +253,7 @@
   // items: [{label, sub, selected, onSelect}]
   UI.menu = function (title, items, opts) {
     opts = opts || {};
-    var list = h('div.menu-list', { 'data-group': 'free' });
+    var list = h('div.menu-list' + (items.some(function (i) { return i.selected; }) ? '' : '.no-checks'), { 'data-group': 'free' });
     var selectedEl = null;
     items.forEach(function (it) {
       var row = h('div.menu-item.focusable' + (it.selected ? '.selected' : ''), null, [

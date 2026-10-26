@@ -496,9 +496,9 @@
     if (!stay) P.osdTimer = setTimeout(hideOSD, 5000);
   }
 
-  function hideOSD() {
+  function hideOSD(force) {
     if (P.seekTarget !== null) { P.osdTimer = setTimeout(hideOSD, 2000); return; }
-    if (P.userPaused) return; // на паузе OSD остаётся, как в YouTube
+    if (P.userPaused && force !== true) return; // на паузе OSD остаётся, как в YouTube
     if (App.topLayer() && App.topLayer().el !== P.el) { P.osdTimer = setTimeout(hideOSD, 2000); return; }
     P.osdVisible = false;
     P.el.classList.remove('osd-on');
@@ -806,7 +806,11 @@
     var onBar = Nav.current && Nav.current.classList.contains('osd-bar');
     if (onBar && (k === 'LEFT' || k === 'RIGHT')) { seekStep(k === 'LEFT' ? -1 : 1); return true; }
     if (onBar && k === 'ENTER') { togglePlay(); return true; }
-    if (k === 'UP' && it.kind === 'live' && Nav.current && Nav.current.classList.contains('ctl')) return true;
+    // «Вверх», а выше ничего нет — прячем панель перемотки, как в YouTube
+    if (k === 'UP') {
+      if (!Nav.move('up')) { clearTimeout(P.osdTimer); hideOSD(true); }
+      return true;
+    }
     return false; // остальное — стандартная навигация по кнопкам
   }
 

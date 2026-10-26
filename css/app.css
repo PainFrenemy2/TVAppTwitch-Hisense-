@@ -551,7 +551,6 @@ img.broken { visibility: hidden; }
 .chat-left .chat.overlay-mode { right: auto; left: 0; background: linear-gradient(270deg, rgba(0,0,0,0), rgba(0,0,0,var(--chat-alpha, .3)) 18%); }
 .chat-left .player-stage { flex-direction: row-reverse; }
 .chat-left.chat-side .player-osd { right: 0; left: 28rem; }
-.chat.overlay-mode .chat-list { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12%); mask-image: linear-gradient(180deg, transparent 0, #000 12%); }
 .chat.overlay-mode .chat-line { text-shadow: 0 0 .25rem #000, 0 .1rem .3rem #000, 0 0 .6rem rgba(0,0,0,.8); }
 .chat.overlay-mode.ch-half { top: 50%; }
 .chat.overlay-mode.ch-third { top: 66%; }
@@ -566,3 +565,202 @@ img.broken { visibility: hidden; }
 
 .next-open .chat.overlay-mode { opacity: 0; }
 .activate, .account-card { margin-bottom: 2rem; }
+
+/* ===================== v3: полировка по ревью дизайна ===================== */
+:root { --text2: #bfbfc8; }
+
+/* фокус карточек: белое + фиолетовое кольцо и лёгкое увеличение — видно с 3 метров */
+.thumb, .box { transition: transform .15s ease-out, box-shadow .15s ease-out; }
+.card.focused { z-index: 2; }
+.card.focused .thumb, .card.focused .box {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 .3rem #fff, 0 0 0 .6rem var(--accent), 0 1.2rem 2.4rem rgba(0,0,0,.6);
+}
+.card.focused .title { color: #fff; }
+.shelf-viewport { padding-top: 1.4rem; padding-bottom: 1rem; margin-top: -1.4rem; padding-left: 1rem; margin-left: -1rem; }
+.lite .card.focused .thumb, .lite .card.focused .box { transform: none; box-shadow: 0 0 0 .3rem #fff, 0 0 0 .6rem var(--accent); }
+
+/* типографика карточек и полок */
+.card .title { font-size: 1.6rem; font-weight: 600; line-height: 1.25; max-height: 4rem; }
+.card .sub { font-size: 1.3rem; color: var(--text2); }
+.shelf-title { font-size: 2.1rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 1.2rem; }
+.shelf { margin-bottom: 3.6rem; }
+.badge { font-size: 1.25rem; padding: .25rem .65rem; letter-spacing: .02em; }
+
+/* «живая» точка как у Twitch */
+
+@keyframes liveDot { 50% { opacity: .25; } }
+
+/* мягкое затухание у правого края полос — «дальше есть ещё» */
+
+/* индикатор текущего раздела в свернутом меню */
+.side-item { position: relative; overflow: visible; }
+.side-item.active::after {
+  content: ''; position: absolute; left: -1rem; top: 1.2rem; bottom: 1.2rem; width: .4rem; border-radius: .2rem; background: var(--accent);
+}
+.side-item.active { color: #fff; }
+
+/* баннер */
+.hero-title { font-size: 2rem; font-weight: 600; }
+.hero-name { font-size: 2.6rem; }
+.hero-hint { color: #d0d0d8; font-size: 1.35rem; }
+.hero-fade { width: 16rem; }
+.hero { box-shadow: 0 1.6rem 4rem rgba(0,0,0,.45); }
+.hero.focused { box-shadow: 0 0 0 .3rem #fff, 0 0 0 .6rem var(--accent), 0 1.6rem 4rem rgba(0,0,0,.5); }
+.hero-tint { position: absolute; left: 50%; top: 0; right: 0; bottom: 0; opacity: .28; pointer-events: none; transition: background .6s; }
+
+/* плеер: гарантированно тёмная подложка под кнопками */
+.osd-bottom { padding-top: 16rem; background: linear-gradient(0deg, rgba(0,0,0,.92) 0, rgba(0,0,0,.75) 45%, rgba(0,0,0,0) 100%); }
+.osd-top { background: linear-gradient(180deg, rgba(0,0,0,.8), rgba(0,0,0,.4) 60%, transparent); }
+.ctl { background: rgba(0,0,0,.45); box-shadow: inset 0 0 0 .15rem rgba(255,255,255,.25); transition: transform .12s ease-out; }
+.ctl.focused { background: var(--accent); color: #fff; transform: scale(1.12); box-shadow: 0 0 0 .3rem #fff, 0 .6rem 1.6rem rgba(145,70,255,.6); }
+.osd-bar { height: .6rem; border-radius: .3rem; }
+.osd-bar.focused { height: 1rem; }
+.osd-bar-knob { box-shadow: 0 0 0 .4rem rgba(145,70,255,.5); }
+.is-live .osd-bar-fill { box-shadow: 0 0 .8rem rgba(235,4,0,.7); }
+.osd-on .chat.overlay-mode { opacity: 0; }
+.osd-next { max-height: 3.4rem; }
+.next-open .osd-next { max-height: 26rem; }
+
+/* чат поверх видео — читаемее */
+.chat.overlay-mode { --chat-alpha: .45; }
+.chat.overlay-mode .chat-line { font-weight: 600; }
+.chat-nick { filter: brightness(1.25); }
+
+/* меню справа */
+.menu-panel { width: 42rem; box-shadow: -2rem 0 4rem rgba(0,0,0,.6); border-left: .1rem solid #2f2f35; }
+.menu-check { width: 2.6rem; }
+.menu-title { font-size: 2.4rem; font-weight: 700; }
+.menu-item.focused { box-shadow: 0 0 0 .2rem #fff; }
+
+/* настройки */
+.settings-list { max-width: 110rem; }
+.set-row { min-height: 8.4rem; padding: 1.8rem 2.4rem; }
+.set-row.focused { box-shadow: 0 0 0 .25rem #fff; }
+.set-value { min-width: 22rem; max-width: 30rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* тост — плавающая «пилюля» */
+.toast {
+  bottom: 4rem; padding: 1.4rem 2.8rem; border-radius: 2.4rem; background: #1f1f23; color: #fff;
+  border: .2rem solid var(--accent); box-shadow: 0 1rem 3rem rgba(0,0,0,.7); animation: toastIn .25s ease-out;
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 1.5rem); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* аватары: буква на фирменном градиенте, пока картинки нет */
+.ch-avatar, .channel-avatar, .profile-avatar {
+  background: linear-gradient(135deg, #9146ff, #5c16c5); color: #fff; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.ch-avatar::before, .channel-avatar::before { content: attr(data-letter); font-size: 4.4rem; position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; }
+.ch-avatar .ch-img, .channel-avatar .ch-img { background: transparent; }
+.card-channel { text-align: left; }
+.card-channel .ch-avatar { margin: 0; }
+.card-channel .title, .card-channel .sub { text-align: center; width: 11rem; }
+
+/* история: цвет бейджа = смысл */
+.badge-tl.kind-live { background: var(--live); }
+
+/* сетка категорий без пустой колонки справа */
+.grid-game .card-game { width: 12.2rem; margin-right: 1.4rem; }
+.card-game .title { white-space: normal; -webkit-line-clamp: 2; max-height: 3.8rem; display: -webkit-box; }
+.game-box { width: 12rem; height: 16rem; }
+
+/* вход по коду */
+.activate { align-items: center; }
+.activate-qr { margin-left: 8rem; box-shadow: 0 0 0 .4rem var(--accent), 0 0 4rem rgba(145,70,255,.35); }
+.activate-code { animation: codeGlow 2.4s ease-in-out infinite alternate; }
+@keyframes codeGlow { to { box-shadow: 0 0 2.4rem rgba(145,70,255,.45); } }
+
+/* пустые состояния */
+.empty { text-align: center; padding-top: 10rem; }
+.empty::before { content: ''; display: block; width: 6rem; height: 6rem; margin: 0 auto 2rem; opacity: .35;
+  background: url(../icons/glitch.svg) center/contain no-repeat; }
+.empty .empty-sub { margin-left: auto; margin-right: auto; }
+.row > .empty { padding-top: 4rem; }
+
+/* профили: одинаковая высота подписи */
+.profile-sub { min-height: 1.8rem; }
+
+
+/* ===================== v4: скорость на ТВ + ревью UX ===================== */
+
+/* «живая» точка — только в баннере и плеере (не на сотне карточек, чтобы не грузить ТВ) */
+.osd-live-badge::before, .badge-inline.live::before {
+  content: ''; display: inline-block; width: .7rem; height: .7rem; margin-right: .6rem; border-radius: 50%;
+  background: #fff; vertical-align: .1rem; animation: liveDot 1.4s ease-in-out infinite;
+}
+.badge-live::before { content: ''; display: inline-block; width: .6rem; height: .6rem; margin-right: .5rem; border-radius: 50%; background: #fff; vertical-align: .12rem; }
+
+/* фокус карточки: один стиль везде — белое кольцо; тень без большого размытия (дёшево для ТВ) */
+.card.focused .thumb, .card.focused .box {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 .3rem #fff, 0 0 0 .55rem var(--accent);
+}
+.lite .card.focused .thumb, .lite .card.focused .box { transform: none; }
+.thumb, .box { will-change: auto; }
+
+/* затухание у правого края — простым градиентом поверх, без mask-image */
+.shelf, .chips { position: relative; }
+.shelf::after, .chips::after {
+  content: ''; position: absolute; right: 0; bottom: 0; width: 6rem; pointer-events: none;
+  background: linear-gradient(90deg, rgba(14,14,16,0), var(--bg));
+}
+.shelf::after { top: 3.4rem; }
+.chips::after { top: 0; }
+
+/* кнопки: фокус — белый, чтобы отличался от фиолетовой «основной» */
+.btn { transition: transform .12s ease-out; }
+.btn.focused, .btn.primary.focused { background: #fff; color: #0e0e10; transform: scale(1.05); }
+
+/* безопасные поля (overscan) */
+.hero { margin-right: 6rem; height: 27rem; }
+.v-content { padding-top: 4.4rem; }
+.osd-top { padding-left: 6rem; padding-right: 6rem; padding-top: 3.6rem; }
+.osd-bottom { padding-left: 6rem; padding-right: 6rem; padding-bottom: 3rem; }
+.menu-panel { width: 44rem; }
+.menu-list { padding-right: 3.6rem; }
+.settings-list, .about { max-width: none; margin-right: 6rem; }
+.login-banner { margin-right: 6rem; }
+
+/* крупнее текст для просмотра с дивана */
+.card .title { font-size: 1.7rem; -webkit-line-clamp: 1; max-height: 2.2rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .sub { font-size: 1.45rem; }
+.badge { font-size: 1.3rem; padding: .3rem .7rem; }
+.set-hint, .hero-hint { font-size: 1.45rem; }
+.chip { font-size: 1.6rem; padding: .9rem 1.8rem; }
+.chips { height: 5.6rem; }
+.shelf-title { font-size: 2.2rem; margin-bottom: 1.6rem; }
+.shelf { margin-bottom: 4rem; }
+.card-video { width: 24.5rem; }
+.grid-video .card-video { margin-right: 1.8rem; }
+
+/* баннер: кнопка «Смотреть» как у Twitch */
+.hero-cta { display: inline-flex; align-items: center; align-self: flex-start; margin-top: auto; height: 4.4rem; padding: 0 2.2rem; border-radius: .6rem;
+  background: var(--accent); font-size: 1.6rem; font-weight: 700; }
+.hero-cta .ic { font-size: 2.2rem; margin-right: .8rem; }
+.hero.focused .hero-cta { background: #fff; color: #0e0e10; }
+.hero-hint { margin-top: 1.2rem; }
+
+/* меню слева открыто — контент почти скрыт, подписи не наезжают */
+.side-open #pages { opacity: .15; }
+.sidebar::before { background: linear-gradient(90deg, #0e0e10 0, #0e0e10 28rem, rgba(14,14,16,0) 42rem); }
+.side-item.active { background: rgba(255,255,255,.08); }
+.side-item.focused { background: var(--accent); color: #fff; }
+
+/* плеер: в эфире полоса прогресса ни о чём не говорит — прячем, оставляем бейдж и время */
+.is-live .osd-bar { visibility: hidden; }
+.osd-bottom { padding-top: 22rem; background: linear-gradient(0deg, rgba(0,0,0,.9) 0, rgba(0,0,0,.6) 45%, rgba(0,0,0,0) 100%); }
+.chat.overlay-mode .chat-line { text-shadow: 0 .1rem .3rem #000; }
+
+/* меню: колонка галочки только там, где есть выбор */
+.menu-item { padding: 1.4rem 2.4rem; }
+.menu-list.no-checks .menu-check { display: none; }
+
+/* тост — сверху по центру, чтобы не закрывать строки */
+.toast { top: 4rem; bottom: auto; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -1.5rem); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* поиск */
+.search-field { font-size: 2.8rem; height: 5.6rem; }
+.search-field.typing { border-bottom: .3rem solid var(--accent); }
+.side-item.side-account { position: absolute; }
