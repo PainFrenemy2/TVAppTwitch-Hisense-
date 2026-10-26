@@ -906,3 +906,42 @@ img.broken { visibility: hidden; }
 .splash-logo::before { width: 22vw; height: 22vw; }
 .splash-word, .splash-bar { animation: none; }
 .splash-bar i { will-change: transform; }
+
+/* ===================== v8: ревью, круг 3 ===================== */
+.hero-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: none; line-height: 1.35; }
+.grid-game .card-game { width: 13.5rem; }
+.splash-logo::before { width: 28rem; height: 28rem; background: radial-gradient(circle, rgba(145,70,255,.25) 0, rgba(145,70,255,0) 62%); }
+.page-game .chips { margin-bottom: 3.2rem; }
+.game-header { margin-bottom: 1.6rem; }
+.channel-header { margin-bottom: 4rem; }
+.ctl.focused .ctl-label { font-size: 1.2rem; color: #fff; }
+.menu-panel { box-shadow: -1.6rem 0 4rem rgba(0,0,0,.5); }
+.search-results .shelf { margin-bottom: 3.2rem; }
+.card-channel:not(.is-live) .ch-avatar { color: #efeff1; }
+.activate { min-height: 60vh; align-items: center; }
+.set-section { color: #bf94ff; font-size: 1.6rem; }
+
+/* ===================== v9: ревью, круг 3 (визуал) ===================== */
+.osd-next { margin: 0 -6rem 0 -1.2rem; padding-left: 1.2rem; }
+.osd-next::after { right: 0; }
+.next-open .osd-controls { height: 9.6rem; margin-bottom: 1.2rem; }
+.next-open .ctl-label { opacity: 0; }
+.next-open .ctl.focused .ctl-label { opacity: 1; }
+.chips::after { display: none; }
+.chips.overflows::after { display: block; }
+.chat.overlay-mode .chat-line { background: rgba(0,0,0,calc(var(--chat-alpha, .45) + .3)); }
+.chat.overlay-mode .chat-system.notice { background: #5c16c5; }
+.profile.focused { transform: none; }
+.profile-avatar { transition: transform .15s ease-out; }
+.profile.focused .profile-avatar { transform: scale(1.06); }
+.toast { border-left: .4rem solid var(--accent); border-radius: 1rem; box-shadow: 0 .8rem 2rem rgba(0,0,0,.6); }
+.meta-text { min-height: 6rem; }
+.shelf { margin-bottom: 3.2rem; }
+.card-channel .ch-avatar { margin-left: .6rem; }
+.channel-avatar { margin-left: .6rem; }
+.grid-game .card-game { width: 13.6rem; margin-right: 1.8rem; }
+/* смена 1→2 строк без смены display (меньше перерасчёта текста) */
+.card .title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; white-space: normal; max-height: 2.2rem; }
+.card.focused .title { -webkit-line-clamp: 2; max-height: 4.4rem; }
+.card-next .title, .card-next.focused .title { -webkit-line-clamp: 1; max-height: 2rem; }
+.osd-next::after { top: 6.2rem; }

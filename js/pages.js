@@ -324,6 +324,7 @@
     renderMain();
     Twitch.topGames(12).then(function (p) {
       p.items.forEach(function (g) { chip(g.displayName || g.name, function () { renderGame(g); }); });
+      chips.classList.toggle('overflows', chipsInner.scrollWidth > chips.clientWidth + 4);
     }).catch(function () {});
 
     return {

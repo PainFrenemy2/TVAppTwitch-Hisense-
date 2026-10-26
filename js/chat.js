@@ -142,16 +142,19 @@
     push({ system: text, cls: cls });
   };
 
-  // Тёмные ники поверх видео не читаются — поднимаем светлоту до ~65%
+  // Тёмные ники поверх видео не читаются — светлота в HSL не ниже 68%
   function lighten(hex) {
     var m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
     if (!m) return hex;
-    var n = parseInt(m[1], 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
-    var l = (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
-    if (l >= 0.62) return hex;
-    var k = (0.65 - l) / (1 - l);
-    r = Math.round(r + (255 - r) * k); g = Math.round(g + (255 - g) * k); b = Math.round(b + (255 - b) * k);
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
+    var n = parseInt(m[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, hh = 0, ss = 0, d = max - min;
+    if (l >= 0.68) return hex;
+    if (d) {
+      ss = d / (1 - Math.abs(2 * l - 1));
+      hh = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      hh = Math.round(hh * 60); if (hh < 0) hh += 360;
+    }
+    return 'hsl(' + hh + ',' + Math.round(Math.min(1, ss) * 100) + '%,68%)';
   }
 
   function color(nick, c) {
