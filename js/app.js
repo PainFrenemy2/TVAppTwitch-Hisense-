@@ -385,6 +385,12 @@
           if (!t) t = page.firstFocus ? page.firstFocus() : null;
           if (!t) t = Nav.focusables(page.el)[0];
           if (t) Nav.focus(t);
+          else {
+            // на странице пока нечего выбрать (пусто или ещё грузится) — всё равно закрываем меню,
+            // а фокус перейдёт на контент, как только он появится
+            U.$('#app').classList.remove('side-open');
+            App.pendingFocus = true;
+          }
         }
         return;
       }
@@ -477,7 +483,7 @@
     var first = null;
     function tile(avatarHtml, name, sub, fn, cls) {
       var el = h('div.profile.focusable' + (cls ? '.' + cls : ''), null, [
-        h('div.profile-avatar', { html: avatarHtml }),
+        h('div.profile-avatar', { html: avatarHtml, 'data-letter': cls ? null : String(name || '?').charAt(0).toUpperCase() }),
         h('div.profile-name', { text: name }),
         sub ? h('div.profile-sub', { text: sub }) : null
       ]);
@@ -488,7 +494,7 @@
     var active = Auth.user();
     Auth.accounts.forEach(function (a) {
       if (!a.user) return;
-      var el = tile('<img src="' + U.esc(a.user.profileImageURL || '') + '" alt="">', a.user.displayName, active && active.login === a.user.login ? tr('Текущий') : '', function () {
+      var el = tile(a.user.profileImageURL ? '<img src="' + U.esc(a.user.profileImageURL) + '" alt="" onerror="this.remove()">' : '', a.user.displayName, active && active.login === a.user.login ? tr('Текущий') : '', function () {
         App.closeLayer();
         Auth.switchTo(a.user.login);
         UI.toast(tr('Профиль: ') + a.user.displayName);

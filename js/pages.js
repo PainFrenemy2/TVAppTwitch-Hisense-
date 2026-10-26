@@ -395,7 +395,8 @@
       if (!mine.length) {
         if (Auth.loggedIn()) {
           body.appendChild(UI.loading());
-          Auth.syncFollows().then(function (l) { if (l.length) render(); else { body.innerHTML = ''; body.appendChild(UI.empty(tr('Вы пока ни на кого не подписаны'))); } },
+          Auth.syncFollows().then(function (l) { if (l.length) render(); else { body.innerHTML = ''; body.appendChild(UI.empty(tr('Вы пока ни на кого не подписаны')));
+            body.appendChild(h('div.row.empty-actions', { 'data-group': 'free' }, UI.button(tr('Найти каналы'), 'search', function () { App.go('search', {}, { root: true }); }, 'primary'))); App.refocus(); } },
             function (e) { body.innerHTML = ''; body.appendChild(UI.error(e, render)); });
           return;
         }
@@ -440,6 +441,7 @@
     var list = App.history_();
     if (!list.length) {
       el.content.appendChild(UI.empty(tr('История пуста'), tr('Здесь появятся эфиры, записи и клипы, которые вы открывали')));
+      el.content.appendChild(h('div.row.empty-actions', { 'data-group': 'free' }, UI.button(tr('На главную'), 'home', function () { App.go('home', {}, { root: true }); }, 'primary')));
       return { el: el, nav: 'history' };
     }
     var clear = UI.button(tr('Очистить историю'), null, function () {
@@ -455,7 +457,7 @@
       var card = h('div.card.card-video.focusable', null, [
         h('div.thumb', null, [
           UI.img('thumb-img', x.thumb),
-          h('div.badge.badge-tl.kind-' + x.kind, { text: x.kind === 'live' ? tr('ЭФИР') : x.kind === 'vod' ? tr('ЗАПИСЬ') : tr('КЛИП') }),
+          x.kind === 'live' ? h('div.badge.badge-live', { text: tr('В ЭФИРЕ') }) : h('div.badge.badge-tl', { text: x.kind === 'vod' ? tr('ЗАПИСЬ') : tr('КЛИП') }),
           x.length && x.kind !== 'live' ? h('div.badge.badge-br', { text: U.duration(x.length) }) : null,
           pos && x.length ? h('div.progress', null, h('div.progress-fill', { style: 'width:' + Math.min(100, pos / x.length * 100) + '%' })) : null
         ]),
@@ -463,8 +465,7 @@
           UI.img('avatar', x.avatar),
           h('div.meta-text', null, [
             h('div.title', { text: x.title || x.name || x.login }),
-            h('div.sub', { text: x.name || x.login }),
-            h('div.sub', { text: U.ago(new Date(x.at).toISOString()) })
+            h('div.sub', { text: (x.name || x.login) + ' • ' + U.ago(new Date(x.at).toISOString()) })
           ])
         ])
       ]);

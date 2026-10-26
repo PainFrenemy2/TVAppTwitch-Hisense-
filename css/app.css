@@ -625,7 +625,6 @@ img.broken { visibility: hidden; }
 /* чат поверх видео — читаемее */
 .chat.overlay-mode { --chat-alpha: .45; }
 .chat.overlay-mode .chat-line { font-weight: 600; }
-.chat-nick { filter: brightness(1.25); }
 
 /* меню справа */
 .menu-panel { width: 42rem; box-shadow: -2rem 0 4rem rgba(0,0,0,.6); border-left: .1rem solid #2f2f35; }
@@ -668,7 +667,6 @@ img.broken { visibility: hidden; }
 /* вход по коду */
 .activate { align-items: center; }
 .activate-qr { margin-left: 8rem; box-shadow: 0 0 0 .4rem var(--accent), 0 0 4rem rgba(145,70,255,.35); }
-.activate-code { animation: codeGlow 2.4s ease-in-out infinite alternate; }
 @keyframes codeGlow { to { box-shadow: 0 0 2.4rem rgba(145,70,255,.45); } }
 
 /* пустые состояния */
@@ -764,3 +762,127 @@ img.broken { visibility: hidden; }
 .search-field { font-size: 2.8rem; height: 5.6rem; }
 .search-field.typing { border-bottom: .3rem solid var(--accent); }
 .side-item.side-account { position: absolute; }
+
+/* ===================== v5: повторное ревью ===================== */
+.hero-title { line-height: 1.4; -webkit-line-clamp: 2; max-height: 5.6rem; }
+.hero-hint { display: none; }
+.hero-cta { margin-top: auto; }
+.hero-meta { margin-bottom: 2rem; }
+.ch-live { white-space: nowrap; padding: .15rem .7rem; font-size: 1.2rem; bottom: -.8rem; }
+.meta { margin-top: 1.6rem; }
+
+/* затухание правого края — над карточками (у фокуса свой z-index) */
+.shelf::after, .chips::after { z-index: 3; }
+.osd-next { position: relative; }
+.osd-next::after { content: ''; position: absolute; right: -6rem; top: 3.4rem; bottom: 0; width: 8rem; z-index: 3; pointer-events: none;
+  background: linear-gradient(90deg, rgba(0,0,0,0), #000); }
+.osd-next .shelf-viewport { padding: 1.6rem 0 1.6rem 1.6rem; margin-left: -1.6rem; }
+.osd-next-title { margin-bottom: .4rem; }
+
+/* заставка: мягкое свечение градиентом, без анимации фильтра */
+.splash-logo { position: relative; }
+.splash-logo::before { content: ''; position: absolute; left: 50%; top: 50%; width: 36vw; height: 36vw; transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(145,70,255,.32) 0, rgba(145,70,255,0) 62%); z-index: -1; }
+.splash-logo svg { filter: none; animation: none; }
+
+/* QR — просто белая плитка, чтобы не выглядел выбранным */
+.activate-qr { box-shadow: none; border-radius: 1.2rem; }
+.activate { align-items: flex-start; }
+
+/* метка текущего раздела — внутри безопасной зоны */
+.side-item.active::after { left: .4rem; top: 1.4rem; bottom: 1.4rem; width: .35rem; }
+
+/* шторка бокового меню без резкого шва */
+.sidebar::before { width: 52rem; background: linear-gradient(90deg, #0e0e10 0, #0e0e10 26rem, rgba(14,14,16,0) 50rem); }
+
+/* плеер: плотнее подложка, подписи у всех кнопок */
+.osd-bottom { background: linear-gradient(0deg, rgba(0,0,0,.88) 0, rgba(0,0,0,.55) 40%, rgba(0,0,0,0) 100%); }
+.ctl-label { opacity: .7; font-size: 1.2rem; }
+.ctl.focused .ctl-label { opacity: 1; font-size: 1.35rem; }
+.ctl { margin: 0 1.6rem; }
+.osd-controls { height: 10rem; }
+
+/* панели */
+.menu-panel { box-shadow: -2rem 0 6rem rgba(0,0,0,.6); }
+
+/* чат поверх видео — подложка и безопасная зона */
+.chat.overlay-mode {
+  right: 4rem; bottom: 4rem; top: 4rem; border-radius: 1rem;
+  background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,var(--chat-alpha, .45)) 30%);
+}
+.chat-left .chat.overlay-mode { left: 4rem; right: auto; background: linear-gradient(270deg, rgba(0,0,0,0), rgba(0,0,0,var(--chat-alpha, .45)) 30%); }
+.chat.overlay-mode .chat-system.notice { color: #fff; background: rgba(145,70,255,.35); border-radius: .4rem; border-left: .3rem solid var(--accent); }
+
+/* поиск: колонки на одной линии */
+.search-results .v-content { padding-top: 3.6rem; }
+.page-search .kb { padding-top: 3.6rem; }
+
+/* тосты — нейтральные, справа сверху в безопасной зоне */
+.toast { left: auto; right: 6rem; top: 4rem; transform: none; background: #1f1f23; border: 0; color: #fff; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-1.5rem); } to { opacity: 1; transform: none; } }
+.set-row.focused .set-arrow, .set-row.focused .set-go { color: #fff; opacity: 1; }
+
+/* профили: тот же фокус, что и везде */
+.profile { transition: transform .15s ease-out; }
+.profile.focused { background: transparent; transform: scale(1.06); }
+.profile.focused .profile-avatar { box-shadow: 0 0 0 .35rem #fff, 0 0 0 .7rem var(--accent); }
+.profile-guest .profile-avatar, .profile-add .profile-avatar { background: #26262c; color: var(--text2); }
+.profile-avatar { position: relative; }
+.profile-avatar[data-letter]::before { content: attr(data-letter); position: absolute; font-size: 5.4rem; }
+.profile-avatar img { position: relative; }
+
+/* канал и категория — без пустот */
+.channel-header { min-height: 0; margin-bottom: 3rem; }
+.channel-top { padding-top: 5rem; }
+.game-header { margin-bottom: 2.4rem; }
+.game-box { border-radius: .4rem; }
+
+/* категории: 8 колонок до правого поля */
+.grid-game .card-game { width: 11.9rem; margin-right: 1.4rem; }
+
+/* ===================== v6 ===================== */
+/* живое кольцо — на контейнере, чтобы было видно и без картинки */
+.is-live .ch-avatar, .channel-avatar.is-live { box-shadow: 0 0 0 .3rem var(--bg), 0 0 0 .6rem var(--live); }
+.card-channel:not(.is-live) .ch-avatar { background: linear-gradient(135deg, #3a3a44, #26262c); color: #bfbfc8; }
+.ch-live { font-size: 1.1rem; padding: .15rem .6rem; }
+
+/* затухание — только когда полке есть куда листать */
+.shelf::after { display: none; width: 4rem; }
+.shelf.overflows::after { display: block; }
+.chips::after { width: 4rem; }
+.chips, .page-actions { margin-right: 6rem; }
+
+/* выбранная карточка показывает название в 2 строки, без сдвигов полки */
+.meta { margin-top: 1.4rem; }
+.meta-text { min-height: 6.6rem; }
+.card.focused .title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-height: 4.4rem; }
+.card-game .title { margin-top: 1.3rem; }
+
+/* ряд «Другие каналы» */
+.osd-next .shelf-viewport { padding: 1.6rem 0 1rem 1.2rem; margin: -.4rem 0 0 -1.2rem; }
+.osd-next-title { padding-bottom: 1.4rem; }
+
+/* плеер */
+.osd-bottom { background: linear-gradient(0deg, rgba(0,0,0,.92) 0, rgba(0,0,0,.8) 35%, rgba(0,0,0,.45) 65%, rgba(0,0,0,0) 100%); }
+.osd-time { font-weight: 600; }
+
+/* чат поверх видео: каждая строка — своя подложка, читается на любом фоне */
+.chat.overlay-mode { background: none; }
+.chat.overlay-mode .chat-list { align-items: flex-end; }
+.chat-left .chat.overlay-mode .chat-list { align-items: flex-start; }
+.chat.overlay-mode .chat-line {
+  display: block; max-width: 100%; background: rgba(0,0,0,calc(var(--chat-alpha, .45) + .15)); border-radius: .6rem;
+  padding: .25rem .8rem; margin: .3rem 0; text-shadow: none;
+}
+.chat.overlay-mode .chat-system.notice { color: #fff; background: rgba(145,70,255,.75); border-left: 0; }
+
+/* кнопки не толкают соседей при увеличении */
+.btn { margin-right: 1.6rem; transform-origin: center; }
+
+/* мягкое свечение кода — только прозрачность слоя */
+.activate-code { position: relative; }
+.activate-code::after { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 1rem;
+  box-shadow: 0 0 2.4rem rgba(145,70,255,.5); opacity: 0; animation: glowFade 2.4s ease-in-out infinite alternate; }
+@keyframes glowFade { to { opacity: 1; } }
+
+.empty-actions { text-align: center; margin-top: -1rem; }

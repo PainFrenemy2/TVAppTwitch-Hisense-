@@ -180,7 +180,10 @@
       h('div.shelf-viewport', null, track)
     ]);
     el.track = track;
-    el.add = function (cards) { cards.forEach(function (c) { track.appendChild(c); }); };
+    el.add = function (cards) {
+      cards.forEach(function (c) { track.appendChild(c); });
+      setTimeout(function () { el.classList.toggle('overflows', track.scrollWidth > track.parentNode.clientWidth + 4); }, 0);
+    };
     if (opts.loadMore) UI.pager(el, track, opts.loadMore);
     return el;
   };

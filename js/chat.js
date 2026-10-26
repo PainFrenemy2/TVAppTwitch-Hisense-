@@ -142,8 +142,20 @@
     push({ system: text, cls: cls });
   };
 
+  // Тёмные ники поверх видео не читаются — поднимаем светлоту до ~65%
+  function lighten(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return hex;
+    var n = parseInt(m[1], 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+    var l = (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
+    if (l >= 0.62) return hex;
+    var k = (0.65 - l) / (1 - l);
+    r = Math.round(r + (255 - r) * k); g = Math.round(g + (255 - g) * k); b = Math.round(b + (255 - b) * k);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
   function color(nick, c) {
-    if (c) return c;
+    if (c) return lighten(c);
     var s = 0;
     for (var i = 0; i < nick.length; i++) s += nick.charCodeAt(i);
     return DEFAULT_COLORS[s % DEFAULT_COLORS.length];
