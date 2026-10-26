@@ -27,6 +27,7 @@
     stop: '<path d="M6 6h12v12H6z"/>',
     next: '<path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>',
     prev: '<path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>',
+    history: '<path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.95 8.95 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>',
     tv: '<path d="M21 3H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5v2h8v-2h5a2 2 0 0 0 1.99-2L23 5a2 2 0 0 0-2-2zm0 14H3V5h18v12z"/>'
   };
 
@@ -68,7 +69,7 @@
     var card = h('div.card.card-video.focusable', null, [
       h('div.thumb', null, [
         UI.img('thumb-img', s.previewImageURL ? s.previewImageURL + (s.previewImageURL.indexOf('?') < 0 ? '?t=' + Math.floor(Date.now() / 120000) : '') : ''),
-        h('div.badge.badge-live', { text: s.type === 'rerun' ? 'ПОВТОР' : 'В ЭФИРЕ' }),
+        h('div.badge.badge-live', { text: s.type === 'rerun' ? tr('ПОВТОР') : tr('В ЭФИРЕ') }),
         h('div.badge.badge-bl', { text: U.viewers(s.viewersCount) })
       ]),
       h('div.meta', null, [
@@ -81,7 +82,16 @@
       ])
     ]);
     card._data = s;
-    card._onclick = function () { onSelect(s, card); };
+    card._onclick = function () { Preview.stop(); onSelect(s, card); };
+    // постоял на карточке — в ней начинается живое превью без звука, как в YouTube
+    card._onfocus = function () {
+      if (!b.login) return;
+      var thumb = U.$('.thumb', card);
+      var v = U.$('video', thumb);
+      if (!v) { v = h('video.thumb-video', { muted: 'muted', playsinline: '' }); thumb.insertBefore(v, thumb.children[1] || null); }
+      Preview.start(v, b.login);
+    };
+    card._onblur = function () { Preview.stop(); };
     return card;
   };
 
@@ -91,7 +101,7 @@
       h('div.thumb', null, [
         UI.img('thumb-img', v.previewThumbnailURL),
         h('div.badge.badge-br', { text: U.duration(v.lengthSeconds) }),
-        v.broadcastType === 'HIGHLIGHT' ? h('div.badge.badge-tl', { text: 'ЛУЧШЕЕ' }) : null,
+        v.broadcastType === 'HIGHLIGHT' ? h('div.badge.badge-tl', { text: tr('ЛУЧШЕЕ') }) : null,
         h('div.progress', null, h('div.progress-fill', { style: 'width:' + UI.vodProgress(v) + '%' }))
       ]),
       h('div.meta', null, [
@@ -119,7 +129,7 @@
     var card = h('div.card.card-video.focusable', null, [
       h('div.thumb', null, [
         UI.img('thumb-img', c.thumbnailURL),
-        h('div.badge.badge-tl', { text: 'КЛИП' }),
+        h('div.badge.badge-tl', { text: tr('КЛИП') }),
         h('div.badge.badge-br', { text: U.duration(c.durationSeconds) })
       ]),
       h('div.meta', null, [
@@ -155,7 +165,7 @@
         live ? h('div.ch-live', { text: 'LIVE' }) : null
       ]),
       h('div.title', { text: u.displayName || u.login }),
-      h('div.sub', { text: live ? (gameName(u.stream.game) || 'В эфире') : (u.followers ? U.num(u.followers.totalCount) + ' фолловеров' : 'Не в сети') })
+      h('div.sub', { text: live ? (gameName(u.stream.game) || tr('В эфире')) : (u.followers ? U.num(u.followers.totalCount) + tr(' фолловеров') : tr('Не в сети')) })
     ]);
     card._data = u;
     card._onclick = function () { onSelect(u, card); };
@@ -217,11 +227,11 @@
   };
 
   UI.error = function (e, retry) {
-    var btn = h('div.btn.focusable', { text: 'Повторить' });
+    var btn = h('div.btn.focusable', { text: tr('Повторить') });
     btn._onclick = retry;
     return h('div.empty.row', null, [
-      h('div.empty-title', { text: 'Не удалось загрузить' }),
-      h('div.empty-sub', { text: (e && e.message) || 'Проверьте подключение к интернету' }),
+      h('div.empty-title', { text: tr('Не удалось загрузить') }),
+      h('div.empty-sub', { text: (e && e.message) || tr('Проверьте подключение к интернету') }),
       retry ? btn : null
     ]);
   };
@@ -274,8 +284,8 @@
 
   // Подтверждение
   UI.confirm = function (title, text, okLabel, onOk) {
-    var ok = UI.button(okLabel || 'Да', null, function () { App.closeLayer(); onOk(); }, 'primary');
-    var cancel = UI.button('Отмена', null, function () { App.closeLayer(); });
+    var ok = UI.button(okLabel || tr('Да'), null, function () { App.closeLayer(); onOk(); }, 'primary');
+    var cancel = UI.button(tr('Отмена'), null, function () { App.closeLayer(); });
     var box = h('div.dialog', null, [
       h('div.dialog-title', { text: title }),
       text ? h('div.dialog-text', { text: text }) : null,

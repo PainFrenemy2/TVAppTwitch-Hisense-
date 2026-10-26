@@ -7,7 +7,8 @@
     el: null, video: null, hls: null, item: null, playlist: null, index: -1,
     loadId: 0, osdTimer: null, osdVisible: false, stall: 0, lastTime: -1,
     netRetries: 0, mediaRetries: 0, reloads: 0, userPaused: false, pausedAt: 0,
-    seekTarget: null, seekTimer: null, metaTimer: null, levels: [], clipSources: null
+    seekTarget: null, seekTimer: null, metaTimer: null, levels: [], clipSources: null,
+    sleepAt: 0, statsOn: false, statsTimer: null
   };
 
   var $ = function (s) { return U.$(s, P.el); };
@@ -25,9 +26,10 @@
       if (P.item && P.item.kind !== 'live') { saveVodPos(true); showOSD(true); }
     });
     v.addEventListener('error', function () {
-      if (!P.hls && P.item) recover('Ошибка видео');
+      if (!P.hls && P.item) recover(tr('Ошибка видео'));
     });
     setInterval(watchdog, 1000);
+    setInterval(sleepCheck, 15000);
   };
 
   // ---------- открыть / закрыть ----------
@@ -71,6 +73,7 @@
     message(null);
     renderMeta();
     buildControls();
+    App.addHistory(item);
     setChat(item.kind === 'live' && Settings.get('chat') === 'on');
     clearInterval(P.metaTimer);
     if (item.kind === 'live') {
@@ -100,7 +103,7 @@
       if (id !== P.loadId) return;
       spinner(false);
       var offline = it.kind === 'live';
-      message(offline ? (it.name || it.login) + ' сейчас не в сети' : 'Не удалось открыть видео', (e && e.message) || '');
+      message(offline ? (it.name || it.login) + tr(' сейчас не в сети') : tr('Не удалось открыть видео'), (e && e.message) || '');
       if (offline) checkOffline();
     });
   }
@@ -110,13 +113,13 @@
     Twitch.user(it.login).then(function (u) {
       if (P.item !== it || P.loadId !== id) return;
       if (u && u.stream && P.reloads++ < 3) {
-        message('Сбой загрузки — повтор…');
+        message(tr('Сбой загрузки — повтор…'));
         setTimeout(function () { if (P.item === it && P.loadId === id) load(); }, 3000);
       } else if (u && u.stream) {
-        message('Не удаётся загрузить эфир', 'Нажмите OK для повтора или синюю кнопку для перезагрузки.');
+        message(tr('Не удаётся загрузить эфир'), tr('Нажмите OK для повтора или синюю кнопку для перезагрузки.'));
         P.failed = true;
       } else {
-        message((it.name || it.login) + ' сейчас не в сети', 'Нажмите «Назад», чтобы выбрать другой канал. Кнопки CH+/CH− — переключение каналов.');
+        message((it.name || it.login) + tr(' сейчас не в сети'), tr('Нажмите «Назад», чтобы выбрать другой канал. Кнопки CH+/CH− — переключение каналов.'));
       }
     }).catch(function () { /* оставляем сообщение как есть */ });
   }
@@ -194,10 +197,13 @@
   }
 
   function levelLabel(l, isTop) {
-    if (!l.height) return 'Только звук';
+    if (!l.height) return tr('Только звук');
     var fps = l.frameRate || 0;
     var s = l.height + 'p' + (fps >= 49 ? Math.round(fps / 10) * 10 : '');
-    if ((l.attrs && l.attrs.VIDEO === 'chunked') || isTop) s += ' (источник)';
+    var vc = String(l.videoCodec || '');
+    if (/^(hvc1|hev1)/.test(vc)) s += ' HEVC';
+    else if (/^av01/.test(vc)) s += ' AV1';
+    if ((l.attrs && l.attrs.VIDEO === 'chunked') || isTop) s += tr(' (источник)');
     return s;
   }
 
@@ -223,9 +229,12 @@
     if (idx >= 0) { P.hls.currentLevel = idx; }
     else {
       P.hls.currentLevel = -1;
-      // для «Авто» не даём ABR уйти выше 1080p
+      // для «Авто» не даём ABR уйти выше 1080p (1440p — только для HEVC/AV1, их ТВ тянет)
       var cap = -1;
-      P.hls.levels.forEach(function (l, i) { if (l.height && l.height <= 1080) cap = i; });
+      P.hls.levels.forEach(function (l, i) {
+        var hi = /^(hvc1|hev1|av01)/.test(String(l.videoCodec || '')) ? 1440 : 1080;
+        if (l.height && l.height <= hi) cap = i;
+      });
       P.hls.autoLevelCapping = cap;
     }
     updateQualityLabel();
@@ -247,20 +256,26 @@
         if (code === 403 && P.reloads++ < 2) return load();
         destroyHls();
         spinner(false);
-        if (P.item.kind === 'live') { message((P.item.name || P.item.login) + ' сейчас не в сети'); checkOffline(); }
-        else message('Видео недоступно', 'Возможно, оно только для подписчиков');
+        if (P.item.kind === 'live') { message((P.item.name || P.item.login) + tr(' сейчас не в сети')); checkOffline(); }
+        else message(tr('Видео недоступно'), tr('Возможно, оно только для подписчиков'));
         return;
       }
       if (P.netRetries++ < 6) {
         spinner(true);
         setTimeout(function () { if (id === P.loadId && P.hls === hls) hls.startLoad(); }, 1000 * P.netRetries);
-      } else recover('Проблемы с сетью');
+      } else recover(tr('Проблемы с сетью'));
     } else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+      // HEVC/AV1 не декодируется на этой прошивке — откатываемся на H.264 до перезапуска приложения
+      if (P.mediaRetries >= 1 && !Twitch.forceH264 && Twitch.codecs() !== 'avc1') {
+        Twitch.forceH264 = true;
+        UI.toast(tr('Переключаюсь на H.264'));
+        return load();
+      }
       if (P.mediaRetries++ < 3) {
         if (P.mediaRetries === 2) hls.swapAudioCodec();
         hls.recoverMediaError();
-      } else recover('Ошибка декодирования');
-    } else recover('Ошибка воспроизведения');
+      } else recover(tr('Ошибка декодирования'));
+    } else recover(tr('Ошибка воспроизведения'));
   }
 
   // Полная переинициализация (новый токен, новый плейлист). Для записей — с той же позиции.
@@ -268,7 +283,7 @@
     if (!P.item) return;
     if (P.reloads++ > 6) {
       spinner(false);
-      message('Не удаётся воспроизвести', reason + '. Нажмите OK для повтора.');
+      message(tr('Не удаётся воспроизвести'), reason + tr('. Нажмите OK для повтора.'));
       P.failed = true;
       return;
     }
@@ -316,7 +331,7 @@
       P.hls.recoverMediaError();
     } else if (P.stall === 16) {
       P.stall = 0;
-      recover('Зависание потока');
+      recover(tr('Зависание потока'));
     }
   }
 
@@ -387,39 +402,84 @@
     box.setAttribute('data-group', 'osd');
     var it = P.item;
     var list = [];
-    if (it.kind !== 'live') list.push(ctrl('replay10', 'Назад 10 с', function () { seekBy(-10); }));
-    list.push(ctrl('pause', 'Пауза', togglePlay, 'ctl-play'));
-    if (it.kind !== 'live') list.push(ctrl('forward10', 'Вперёд 10 с', function () { seekBy(10); }));
-    if (it.kind === 'live') list.push(ctrl('refresh', 'Обновить', function () { P.reloads = 0; P.failed = false; load(); UI.toast('Перезагрузка потока'); }));
-    list.push(ctrl('hd', 'Качество', qualityMenu, 'ctl-quality'));
-    if (it.kind === 'live') list.push(ctrl('chat', 'Чат', function () { setChat(Chat.el.classList.contains('hidden')); }, 'ctl-chat'));
-    list.push(ctrl(App.isFav(it.login) ? 'following' : 'heartOutline', App.isFav(it.login) ? 'В избранном' : 'В избранное', toggleFav, 'ctl-fav'));
+    if (it.kind !== 'live') list.push(ctrl('replay10', tr('Назад 10 с'), function () { seekBy(-10); }));
+    list.push(ctrl('pause', tr('Пауза'), togglePlay, 'ctl-play'));
+    if (it.kind !== 'live') list.push(ctrl('forward10', tr('Вперёд 10 с'), function () { seekBy(10); }));
+    if (it.kind === 'live') list.push(ctrl('refresh', tr('Обновить'), function () { P.reloads = 0; P.failed = false; load(); UI.toast(tr('Перезагрузка потока')); }));
+    list.push(ctrl('hd', tr('Качество'), qualityMenu, 'ctl-quality'));
+    list.push(ctrl('settings', tr('Параметры'), settingsMenu, 'ctl-settings'));
+    if (it.kind === 'live') list.push(ctrl('chat', tr('Чат'), function () { setChat(Chat.el.classList.contains('hidden')); }, 'ctl-chat'));
+    list.push(ctrl(App.isFav(it.login) ? 'following' : 'heartOutline', App.isFav(it.login) ? tr('В избранном') : tr('В избранное'), toggleFav, 'ctl-fav'));
     if (P.playlist && P.playlist.length > 1) {
-      list.push(ctrl('prev', 'Предыдущий', function () { zap(-1); }));
-      list.push(ctrl('next', 'Следующий', function () { zap(1); }));
+      list.push(ctrl('prev', tr('Предыдущий'), function () { zap(-1); }));
+      list.push(ctrl('next', tr('Следующий'), function () { zap(1); }));
     }
-    list.push(ctrl('person', 'Канал', function () { var login = it.login; P.close(); App.go('channel', { login: login }); }));
+    list.push(ctrl('person', tr('Канал'), function () { var login = it.login; P.close(); App.go('channel', { login: login }); }));
     list.forEach(function (b) { box.appendChild(b); });
     var bar = $('.osd-bar');
     bar.classList.toggle('focusable', it.kind !== 'live');
     bar.setAttribute('data-nav-down', '.ctl-play');
     updatePlayIcon();
     updateQualityLabel();
+    buildNext();
+  }
+
+  // Ряд «Другие каналы» под кнопками — как подборка «Далее» в YouTube. Вниз с кнопок — в ряд.
+  function buildNext() {
+    var it = P.item;
+    var track = $('.osd-next .shelf-track');
+    track.innerHTML = '';
+    track.style.transform = '';
+    var title = $('.osd-next-title');
+    var fill = function (items, label) {
+      if (P.item !== it) return;
+      title.textContent = label;
+      items.slice(0, 30).forEach(function (x) {
+        if (x === it || (x.kind === it.kind && x.login === it.login && x.id === it.id)) return;
+        track.appendChild(nextCard(x));
+      });
+      $('.osd-next').classList.toggle('hidden', !track.children.length);
+    };
+    if (P.playlist && P.playlist.length > 1) fill(P.playlist, it.kind === 'live' ? tr('Другие каналы • CH+/CH−') : tr('Далее'));
+    else if (it.kind === 'live') {
+      Twitch.topStreamsByLang(Settings.get('lang'), 20).catch(function () { return Twitch.topStreams(20); }).then(function (p) {
+        fill(p.items.map(App.itemFromStream), tr('Популярные каналы'));
+      }).catch(function () { $('.osd-next').classList.add('hidden'); });
+    } else $('.osd-next').classList.add('hidden');
+  }
+
+  function nextCard(x) {
+    var card = h('div.card.card-next.focusable', null, [
+      h('div.thumb', null, [
+        UI.img('thumb-img', x.thumb || ''),
+        x.kind === 'live' ? h('div.badge.badge-live', { text: tr('В ЭФИРЕ') }) : null,
+        x.kind === 'live' && x.viewers ? h('div.badge.badge-bl', { text: U.num(x.viewers) }) : null
+      ]),
+      h('div.title', { text: x.name || x.login || '' }),
+      h('div.sub', { text: x.title || '' })
+    ]);
+    card._onclick = function () {
+      if (P.playlist && P.playlist.indexOf(x) >= 0) P.index = P.playlist.indexOf(x);
+      else { P.playlist = [x]; P.index = 0; }
+      Nav.blur();
+      start(x);
+    };
+    return card;
   }
 
   function updatePlayIcon() {
     var b = $('.ctl-play');
     if (!b) return;
     var paused = P.video.paused && P.userPaused;
-    b.innerHTML = UI.icon(paused ? 'play' : 'pause') + '<span class="ctl-label">' + (paused ? 'Смотреть' : 'Пауза') + '</span>';
+    b.innerHTML = UI.icon(paused ? 'play' : 'pause') + '<span class="ctl-label">' + (paused ? tr('Смотреть') : tr('Пауза')) + '</span>';
   }
 
   function updateQualityLabel() {
     var b = $('.ctl-quality .ctl-label');
     if (!b) return;
-    var txt = 'Качество';
+    var txt = tr('Качество');
     if (P.hls && P.hls.currentLevel >= 0 && P.levels[P.hls.currentLevel]) {
-      txt = (P.hls.autoLevelEnabled ? 'Авто • ' : '') + P.levels[P.hls.currentLevel].label.replace(' (источник)', '');
+      txt = (P.hls.autoLevelEnabled ? tr('Авто • ') : '') + P.levels[P.hls.currentLevel].label.replace(tr(' (источник)'), '');
     }
     b.textContent = txt;
   }
@@ -427,7 +487,6 @@
   function showOSD(stay) {
     P.osdVisible = true;
     P.el.classList.add('osd-on');
-    $('.osd-clock').textContent = U.clock();
     updateProgress();
     if (!Nav.current || !P.el.contains(Nav.current)) {
       Nav.setScope(U.$('.player-osd', P.el));
@@ -530,7 +589,7 @@
     } else {
       var auto = !P.hls || P.hls.autoLevelEnabled;
       var curLabel = P.hls && P.levels[P.hls.currentLevel] ? P.levels[P.hls.currentLevel].label : '';
-      items.push({ label: 'Авто', sub: auto && curLabel ? 'Сейчас: ' + curLabel : 'Подбирается по скорости сети', selected: auto, onSelect: function () { Settings.set('quality', 'auto'); applyQuality(); } });
+      items.push({ label: tr('Авто'), sub: auto && curLabel ? tr('Сейчас: ') + curLabel : tr('Подбирается по скорости сети'), selected: auto, onSelect: function () { Settings.set('quality', 'auto'); applyQuality(); } });
       P.levels.slice().reverse().forEach(function (l) {
         if (!l.height) return;
         items.push({ label: l.label, selected: !auto && P.hls.currentLevel === l.index, onSelect: function () {
@@ -540,18 +599,132 @@
         } });
       });
     }
-    if (!items.length) { UI.toast('Качество ещё не загружено'); return; }
-    UI.menu('Качество', items, { cls: 'menu-right' });
+    if (!items.length) { UI.toast(tr('Качество ещё не загружено')); return; }
+    UI.menu(tr('Качество'), items, { cls: 'menu-right' });
   }
 
   function closePanel() { /* панель резерв под будущее */ }
+
+  // Меню «Параметры»: чат, статистика, таймер сна — как шестерёнка в плеере Twitch
+  function pick(title, key, values, after) {
+    var cur = Settings.get(key);
+    UI.menu(title, values.map(function (v) {
+      return { label: v[1], selected: String(cur) === String(v[0]), onSelect: function () { Settings.set(key, v[0]); if (after) after(v[0]); } };
+    }), { cls: 'menu-right' });
+  }
+
+  function valueName(key, values) {
+    var cur = Settings.get(key);
+    for (var i = 0; i < values.length; i++) if (String(values[i][0]) === String(cur)) return values[i][1];
+    return '';
+  }
+
+  P.CHAT_OPTS = {
+    chatMode: [['overlay', tr('Поверх видео (как на телефоне)')], ['side', tr('Сбоку от видео')]],
+    chatSide: [['right', tr('Справа')], ['left', tr('Слева')]],
+    chatOpacity: [['0', tr('Прозрачный')], ['30', tr('Лёгкая подложка')], ['55', tr('Средняя подложка')], ['80', tr('Тёмная подложка')]],
+    chatWidth: [['narrow', tr('Узкий')], ['normal', tr('Обычный')], ['wide', tr('Широкий')]],
+    chatFont: [['small', tr('Мелкий')], ['normal', tr('Обычный')], ['large', tr('Крупный')], ['xlarge', tr('Очень крупный')]],
+    chatHeight: [['full', tr('Во всю высоту')], ['half', tr('Нижняя половина')], ['third', tr('Нижняя треть')]]
+  };
+
+  function settingsMenu() {
+    var it = P.item;
+    var O = P.CHAT_OPTS;
+    var items = [];
+    var chatOn = !Chat.el.classList.contains('hidden');
+    if (it.kind === 'live') {
+      items.push({ label: tr('Чат'), sub: chatOn ? tr('Включён') : tr('Выключен'), onSelect: function () { setChat(!chatOn); } });
+      items.push({ label: tr('Вид чата'), sub: valueName('chatMode', O.chatMode), onSelect: function () { pick(tr('Вид чата'), 'chatMode', O.chatMode, refreshChat); } });
+      items.push({ label: tr('Сторона'), sub: valueName('chatSide', O.chatSide), onSelect: function () { pick(tr('Сторона чата'), 'chatSide', O.chatSide, refreshChat); } });
+      items.push({ label: tr('Подложка чата'), sub: valueName('chatOpacity', O.chatOpacity), onSelect: function () { pick(tr('Подложка чата'), 'chatOpacity', O.chatOpacity, refreshChat); } });
+      items.push({ label: tr('Ширина чата'), sub: valueName('chatWidth', O.chatWidth), onSelect: function () { pick(tr('Ширина чата'), 'chatWidth', O.chatWidth, refreshChat); } });
+      items.push({ label: tr('Высота чата'), sub: valueName('chatHeight', O.chatHeight), onSelect: function () { pick(tr('Высота чата'), 'chatHeight', O.chatHeight, refreshChat); } });
+      items.push({ label: tr('Размер текста чата'), sub: valueName('chatFont', O.chatFont), onSelect: function () { pick(tr('Размер текста'), 'chatFont', O.chatFont, refreshChat); } });
+    }
+    items.push({ label: tr('Статистика для гиков'), sub: P.statsOn ? tr('Показана') : tr('Скрыта'), onSelect: function () { toggleStats(); } });
+    var left = P.sleepAt ? Math.max(1, Math.round((P.sleepAt - Date.now()) / 60000)) : 0;
+    items.push({ label: tr('Таймер сна'), sub: left ? tr('Выключится через ') + left + tr(' мин') : tr('Выключен'), onSelect: sleepMenu });
+    UI.menu(tr('Параметры'), items, { cls: 'menu-right' });
+  }
+
+  function sleepMenu() {
+    var opts = [[0, tr('Выключен')], [15, tr('15 минут')], [30, tr('30 минут')], [60, tr('1 час')], [90, tr('1,5 часа')], [120, tr('2 часа')], [180, tr('3 часа')]];
+    UI.menu(tr('Таймер сна'), opts.map(function (o) {
+      return { label: o[1], selected: (!P.sleepAt && !o[0]), onSelect: function () {
+        P.sleepAt = o[0] ? Date.now() + o[0] * 60000 : 0;
+        P.sleepWarned = false;
+        UI.toast(o[0] ? tr('Плеер выключится через ') + o[1] : tr('Таймер сна выключен'));
+      } };
+    }), { cls: 'menu-right' });
+  }
+
+  function sleepCheck() {
+    if (!P.sleepAt || !P.isOpen()) return;
+    var left = P.sleepAt - Date.now();
+    if (left <= 60000 && !P.sleepWarned) { P.sleepWarned = true; UI.toast(tr('Таймер сна: через минуту плеер выключится. Нажмите любую кнопку для продления'), 8000); }
+    if (left <= 0) { P.sleepAt = 0; P.close(); UI.toast(tr('Таймер сна: воспроизведение остановлено'), 6000); }
+  }
+  P.extendSleep = function () {
+    if (P.sleepWarned && P.sleepAt) { P.sleepAt = Date.now() + 30 * 60000; P.sleepWarned = false; UI.toast(tr('Таймер сна продлён на 30 минут')); }
+  };
+
+  // ---------- статистика ----------
+  function toggleStats() {
+    P.statsOn = !P.statsOn;
+    var box = $('.player-stats');
+    box.classList.toggle('hidden', !P.statsOn);
+    clearInterval(P.statsTimer);
+    if (P.statsOn) { updateStats(); P.statsTimer = setInterval(updateStats, 1000); }
+  }
+
+  function updateStats() {
+    var v = P.video, hls = P.hls;
+    var rows = [];
+    var lvl = hls && hls.levels && hls.levels[hls.currentLevel];
+    rows.push([tr('Разрешение'), (v.videoWidth || 0) + '×' + (v.videoHeight || 0) + (lvl && lvl.frameRate ? ' @' + Math.round(lvl.frameRate) : '')]);
+    if (lvl) {
+      rows.push([tr('Поток'), P.levels[hls.currentLevel] ? P.levels[hls.currentLevel].label : '']);
+      rows.push([tr('Кодек'), (lvl.videoCodec || '?') + ' / ' + (lvl.audioCodec || '?')]);
+      rows.push([tr('Битрейт'), (lvl.bitrate / 1e6).toFixed(1) + tr(' Мбит/с')]);
+    }
+    if (hls) {
+      rows.push([tr('Скорость сети'), (hls.bandwidthEstimate / 1e6).toFixed(1) + tr(' Мбит/с')]);
+      rows.push([tr('Режим'), hls.autoLevelEnabled ? tr('Авто') : tr('Вручную')]);
+      if (P.item && P.item.kind === 'live' && hls.latency) rows.push([tr('Задержка'), hls.latency.toFixed(1) + tr(' с')]);
+    }
+    var ahead = 0;
+    for (var i = 0; i < v.buffered.length; i++) if (v.buffered.start(i) <= v.currentTime + 0.5 && v.buffered.end(i) > v.currentTime) ahead = v.buffered.end(i) - v.currentTime;
+    rows.push([tr('Буфер'), ahead.toFixed(1) + tr(' с')]);
+    var q = v.getVideoPlaybackQuality ? v.getVideoPlaybackQuality() : null;
+    if (q) rows.push([tr('Кадры (потеряно)'), q.droppedVideoFrames + ' / ' + q.totalVideoFrames]);
+    rows.push([tr('Движок'), hls ? 'hls.js ' + Hls.version : tr('встроенный')]);
+    rows.push([tr('Кодеки Twitch'), Twitch.codecs()]);
+    $('.player-stats').innerHTML = rows.map(function (r) { return '<div><b>' + U.esc(r[0]) + '</b><span>' + U.esc(r[1]) + '</span></div>'; }).join('');
+  }
+
+  function refreshChat() {
+    if (!Chat.el.classList.contains('hidden')) setChat(true);
+  }
+
+  // Применяем внешний вид чата из настроек
+  function styleChat() {
+    var el = Chat.el;
+    var overlay = Settings.get('chatMode') !== 'side';
+    el.classList.toggle('overlay-mode', overlay);
+    P.el.classList.toggle('chat-side', !overlay);
+    P.el.classList.toggle('chat-left', Settings.get('chatSide') === 'left');
+    ['narrow', 'normal', 'wide'].forEach(function (w) { el.classList.toggle('cw-' + w, Settings.get('chatWidth') === w); });
+    ['small', 'normal', 'large', 'xlarge'].forEach(function (f) { el.classList.toggle('cf-' + f, Settings.get('chatFont') === f); });
+    ['full', 'half', 'third'].forEach(function (x) { el.classList.toggle('ch-' + x, overlay && Settings.get('chatHeight') === x); });
+    el.style.setProperty('--chat-alpha', String((parseInt(Settings.get('chatOpacity'), 10) || 0) / 100));
+  }
 
   function setChat(on) {
     var it = P.item;
     if (on && it && it.kind === 'live') {
       Chat.el.classList.remove('hidden');
-      Chat.el.classList.toggle('overlay-mode', Settings.get('chatMode') === 'overlay');
-      P.el.classList.toggle('chat-side', Settings.get('chatMode') !== 'overlay');
+      styleChat();
       Chat.start(it.login, it.roomId);
     } else {
       Chat.el.classList.add('hidden');
@@ -559,14 +732,14 @@
       Chat.stop();
     }
     var b = $('.ctl-chat .ctl-label');
-    if (b) b.textContent = on ? 'Скрыть чат' : 'Чат';
+    if (b) b.textContent = on ? tr('Скрыть чат') : tr('Чат');
   }
 
   function toggleFav() {
     var it = P.item;
     var on = App.toggleFav(it.login);
     var b = $('.ctl-fav');
-    if (b) b.innerHTML = UI.icon(on ? 'following' : 'heartOutline') + '<span class="ctl-label">' + (on ? 'В избранном' : 'В избранное') + '</span>';
+    if (b) b.innerHTML = UI.icon(on ? 'following' : 'heartOutline') + '<span class="ctl-label">' + (on ? tr('В избранном') : tr('В избранное')) + '</span>';
   }
 
   function zap(dir) {
@@ -610,6 +783,7 @@
       case 'BLUE': P.reloads = 0; load(); return true;
       case 'INFO': showOSD(); return true;
     }
+    P.extendSleep();
     if (!P.osdVisible) {
       if (k === 'BACK') { P.close(); return true; }
       if ((k === 'LEFT' || k === 'RIGHT') && it.kind !== 'live') {
@@ -632,7 +806,7 @@
     var onBar = Nav.current && Nav.current.classList.contains('osd-bar');
     if (onBar && (k === 'LEFT' || k === 'RIGHT')) { seekStep(k === 'LEFT' ? -1 : 1); return true; }
     if (onBar && k === 'ENTER') { togglePlay(); return true; }
-    if (k === 'UP' && !onBar && it.kind === 'live') return true;
+    if (k === 'UP' && it.kind === 'live' && Nav.current && Nav.current.classList.contains('ctl')) return true;
     return false; // остальное — стандартная навигация по кнопкам
   }
 

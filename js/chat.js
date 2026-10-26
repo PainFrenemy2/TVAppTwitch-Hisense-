@@ -27,7 +27,7 @@
     Chat.list.innerHTML = '';
     Chat.retry = 0;
     Chat.emotes = {};
-    Chat.system('Подключение к чату…');
+    Chat.system(tr('Подключение к чату…'));
     connect();
     loadThirdPartyEmotes(Chat.roomId);
   };
@@ -64,7 +64,7 @@
   function reconnect() {
     if (!Chat.active) return;
     Chat.retry++;
-    Chat.state.textContent = 'переподключение…';
+    Chat.state.textContent = tr('переподключение…');
     var ch = Chat.channel;
     setTimeout(function () { if (Chat.active && Chat.channel === ch) connect(); }, Math.min(15000, 1000 * Chat.retry));
   }
@@ -99,12 +99,12 @@
       Chat.state.textContent = '';
     } else if (cmd === '366') {
       Chat.state.textContent = '';
-      Chat.system('Добро пожаловать в чат!');
+      Chat.system(tr('Добро пожаловать в чат!'));
     } else if (cmd === 'USERNOTICE') {
       if (tags['system-msg']) Chat.system(tags['system-msg'] + (text ? ' — ' + text : ''), 'notice');
     } else if (cmd === 'CLEARCHAT' && !text) {
       Chat.list.innerHTML = '';
-      Chat.system('Чат очищен модератором');
+      Chat.system(tr('Чат очищен модератором'));
     } else if (cmd === 'RECONNECT') {
       try { Chat.ws.close(); } catch (e) { /* ignore */ }
     }

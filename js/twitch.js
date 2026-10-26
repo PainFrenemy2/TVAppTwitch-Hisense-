@@ -55,7 +55,7 @@
           if (done) return;
           done = true;
           if (ctrl) ctrl.abort();
-          fail(new Error('Таймаут сети'));
+          fail(new Error(tr('Таймаут сети')));
         }, timeout);
         var i = {};
         for (var k in init) i[k] = init[k];
@@ -121,7 +121,7 @@
   T.gameStreams = function (name, first, after, lang) {
     var q = 'query($name:String!,$first:Int,$after:Cursor){game(name:$name){' + GAME + ' streams(first:$first,after:$after){edges{cursor node{' + STREAM + '}} pageInfo{hasNextPage}}}}';
     return gql(q, { name: name, first: first || 30, after: after || null }, { cache: !after }).then(function (d) {
-      if (!d.game) throw new Error('Категория не найдена');
+      if (!d.game) throw new Error(tr('Категория не найдена'));
       var p = page(d.game.streams);
       p.game = d.game;
       return p;
@@ -204,7 +204,29 @@
     'streamPlaybackAccessToken(channelName:$login,params:{platform:"web",playerBackend:"mediaplayer",playerType:$playerType})@include(if:$isLive){value signature}' +
     'videoPlaybackAccessToken(id:$vodID,params:{platform:"web",playerBackend:"mediaplayer",playerType:$playerType})@include(if:$isVod){value signature}}';
 
+  // Если вошли в аккаунт и включено «Смотреть от своего аккаунта» — токен от имени пользователя
+  // (Turbo/подписка = без рекламы, доступ к записям только для подписчиков)
+  function userToken(kind, id, pt) {
+    var vars = {
+      login: kind === 'live' ? id : '', isLive: kind === 'live',
+      vodID: kind === 'vod' ? id : '', isVod: kind === 'vod', playerType: pt
+    };
+    return Auth.gql(TOKEN_Q.replace('platform:"web"', 'platform:"android"').replace('platform:"web"', 'platform:"android"'), vars).then(function (d) {
+      var t = kind === 'live' ? d.streamPlaybackAccessToken : d.videoPlaybackAccessToken;
+      if (!t || !t.value) throw new Error(tr('Нет токена'));
+      t.clientId = Auth.CLIENT_ID;
+      return t;
+    });
+  }
+
   function token(kind, id, playerType) {
+    if (window.Auth && Auth.loggedIn() && Settings.get('useAccount') === 'on') {
+      return userToken(kind, id, playerType || 'site').catch(function () { return anonToken(kind, id, playerType); });
+    }
+    return anonToken(kind, id, playerType);
+  }
+
+  function anonToken(kind, id, playerType) {
     var types = [playerType || 'site', 'embed', 'popout', 'site'];
     var seen = {};
     types = types.filter(function (t) { if (seen[t]) return false; seen[t] = 1; return true; });
@@ -216,7 +238,7 @@
         vodID: kind === 'vod' ? id : '', isVod: kind === 'vod', playerType: pt
       }, { retries: 2, timeout: 10000 }).then(function (d) {
         var t = kind === 'live' ? d.streamPlaybackAccessToken : d.videoPlaybackAccessToken;
-        if (!t || !t.value) throw new Error('Нет токена');
+        if (!t || !t.value) throw new Error(tr('Нет токена'));
         return t;
       }).catch(function (e) {
         if (i < types.length) return attempt();
@@ -232,12 +254,37 @@
     return a.join('&');
   }
 
-  // Возвращает URL master-плейлиста. Только avc1 (H.264) — его ТВ декодирует аппаратно и без сюрпризов.
+  // Какие кодеки просить у Twitch. H.264 декодирует любой ТВ; HEVC/AV1 (Enhanced Broadcasting, до 1440p)
+  // включаем, только если браузер ТВ реально умеет их через MSE.
+  T.codecSupport = function () {
+    var ms = window.MediaSource || window.WebKitMediaSource;
+    var ok = function (c) { try { return !!(ms && ms.isTypeSupported('video/mp4; codecs="' + c + '"')); } catch (e) { return false; } };
+    return {
+      h264: ok('avc1.64002A'),
+      hevc: ok('hvc1.1.6.L150.90') || ok('hev1.1.6.L150.90') || ok('hvc1.2.4.L153.B0'),
+      av1: ok('av01.0.08M.08') || ok('av01.0.12M.10')
+    };
+  };
+
+  T.codecs = function () {
+    var mode = Settings.get('codec');
+    if (mode === 'h264' || T.forceH264) return 'avc1';
+    var sup = T.codecSupport();
+    var list = [];
+    if (mode !== 'h264') {
+      if (sup.av1 && mode === 'auto') list.push('av1');
+      if (sup.hevc) list.push('h265', 'h264');
+    }
+    list.push('avc1');
+    return list.filter(function (c, i) { return list.indexOf(c) === i; }).join(',');
+  };
+
+  // Возвращает URL master-плейлиста. По умолчанию — кодеки, которые ТВ декодирует аппаратно.
   T.liveUrl = function (login, playerType) {
     login = login.toLowerCase();
     return token('live', login, playerType).then(function (t) {
       return 'https://usher.ttvnw.net/api/channel/hls/' + encodeURIComponent(login) + '.m3u8?' + qs({
-        client_id: CLIENT_ID,
+        client_id: t.clientId || CLIENT_ID,
         token: t.value,
         sig: t.signature,
         allow_source: 'true',
@@ -246,7 +293,7 @@
         player_backend: 'mediaplayer',
         playlist_include_framerate: 'true',
         reassignments_supported: 'true',
-        supported_codecs: 'avc1',
+        supported_codecs: T.codecs(),
         cdm: 'wv',
         player_version: '1.28.0',
         p: Math.floor(Math.random() * 9999999)
@@ -257,14 +304,14 @@
   T.vodUrl = function (id, playerType) {
     return token('vod', String(id), playerType).then(function (t) {
       return 'https://usher.ttvnw.net/vod/' + encodeURIComponent(id) + '.m3u8?' + qs({
-        client_id: CLIENT_ID,
+        client_id: t.clientId || CLIENT_ID,
         nauth: t.value,
         nauthsig: t.signature,
         allow_source: 'true',
         allow_audio_only: 'false',
         player_backend: 'mediaplayer',
         playlist_include_framerate: 'true',
-        supported_codecs: 'avc1',
+        supported_codecs: T.codecs(),
         cdm: 'wv',
         p: Math.floor(Math.random() * 9999999)
       });
@@ -276,7 +323,7 @@
     var q = 'query($slug:ID!){clip(slug:$slug){playbackAccessToken(params:{platform:"web",playerBackend:"mediaplayer",playerType:"site"}){signature value} videoQualities{frameRate quality sourceURL}}}';
     return gql(q, { slug: slug }).then(function (d) {
       var c = d.clip;
-      if (!c || !c.videoQualities || !c.videoQualities.length) throw new Error('Клип недоступен');
+      if (!c || !c.videoQualities || !c.videoQualities.length) throw new Error(tr('Клип недоступен'));
       var tok = c.playbackAccessToken;
       return c.videoQualities.map(function (v) {
         return {

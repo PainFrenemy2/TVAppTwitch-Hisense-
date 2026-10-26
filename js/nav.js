@@ -74,7 +74,10 @@
   };
 
   Nav.blur = function () {
-    if (Nav.current) Nav.current.classList.remove('focused');
+    if (Nav.current) {
+      Nav.current.classList.remove('focused');
+      if (Nav.current._onblur) Nav.current._onblur(Nav.current);
+    }
     Nav.current = null;
     if (Nav.onChange) Nav.onChange(null);
   };
@@ -121,8 +124,12 @@
       if (vs.classList.contains('v-center')) {
         y = top + row.offsetHeight / 2 - viewH / 2;
       } else {
+        // крутим, только если строка не помещается целиком; тогда ставим её к верху (как в YouTube TV)
         var pad = parseFloat(vs.dataset.pad || '0') * Nav.rem;
-        y = top - pad;
+        var cur = vs._y || 0;
+        var bottom = top + row.offsetHeight;
+        if (top - pad < cur || bottom > cur + viewH - pad) y = top - pad;
+        else y = cur;
       }
       if (row.dataset.top === '1') y = 0;
       if (y > maxY) y = maxY;

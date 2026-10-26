@@ -53,31 +53,26 @@
     }
   };
 
-  // --- форматирование ---
-  U.plural = function (n, one, few, many) {
-    n = Math.abs(n) % 100;
-    var n1 = n % 10;
-    if (n > 10 && n < 20) return many;
-    if (n1 > 1 && n1 < 5) return few;
-    if (n1 === 1) return one;
-    return many;
-  };
-
+  // --- форматирование (слова — на языке интерфейса, см. i18n.js) ---
   U.num = function (n) {
     n = n || 0;
-    if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace('.', ',').replace(',0', '') + ' млн';
-    if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace('.', ',').replace(',0', '') + ' тыс.';
+    var w = I18N.words(), en = I18N.lang === 'en';
+    var f = function (x, d) { var t = x.toFixed(d); if (!en) t = t.replace('.', ','); return t.replace(/[.,]0$/, ''); };
+    if (n >= 1e6) return f(n / 1e6, n >= 1e7 ? 0 : 1) + w.m;
+    if (n >= 1e3) return f(n / 1e3, n >= 1e4 ? 0 : 1) + w.k;
     return String(n);
   };
 
   U.viewers = function (n) {
     n = n || 0;
-    return U.num(n) + ' ' + (n >= 1000 ? 'зрителей' : U.plural(n, 'зритель', 'зрителя', 'зрителей'));
+    var w = I18N.words().viewer;
+    return U.num(n) + ' ' + (n >= 1000 ? w[w.length - 1] : I18N.plural(n, w));
   };
 
   U.views = function (n) {
     n = n || 0;
-    return U.num(n) + ' ' + (n >= 1000 ? 'просмотров' : U.plural(n, 'просмотр', 'просмотра', 'просмотров'));
+    var w = I18N.words().view;
+    return U.num(n) + ' ' + (n >= 1000 ? w[w.length - 1] : I18N.plural(n, w));
   };
 
   U.pad = function (n) { return n < 10 ? '0' + n : String(n); };
@@ -91,18 +86,12 @@
   U.ago = function (iso) {
     if (!iso) return '';
     var d = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (d < 60) return 'только что';
-    var units = [
-      [31536000, 'год', 'года', 'лет'],
-      [2592000, 'месяц', 'месяца', 'месяцев'],
-      [604800, 'неделю', 'недели', 'недель'],
-      [86400, 'день', 'дня', 'дней'],
-      [3600, 'час', 'часа', 'часов'],
-      [60, 'минуту', 'минуты', 'минут']
-    ];
-    for (var i = 0; i < units.length; i++) {
-      var n = Math.floor(d / units[i][0]);
-      if (n >= 1) return n + ' ' + U.plural(n, units[i][1], units[i][2], units[i][3]) + ' назад';
+    var w = I18N.words();
+    if (d < 60) return w.now;
+    var secs = [31536000, 2592000, 604800, 86400, 3600, 60];
+    for (var i = 0; i < secs.length; i++) {
+      var n = Math.floor(d / secs[i]);
+      if (n >= 1) return n + ' ' + I18N.plural(n, w.units[i]) + w.ago;
     }
     return '';
   };

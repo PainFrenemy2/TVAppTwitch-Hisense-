@@ -23,7 +23,7 @@ const square = (s) => `<html><body style="margin:0;width:${s}px;height:${s}px;ba
 (async () => {
   const browser = await chromium.launch();
   const shot = async (html, w, h, file) => {
-    const page = await browser.newPage({ viewport: { width: w, height: h } });
+    const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     await page.setContent(html);
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(200);
@@ -31,9 +31,10 @@ const square = (s) => `<html><body style="margin:0;width:${s}px;height:${s}px;ba
     await page.close();
     console.log('icons/' + file, w + 'x' + h);
   };
+  // ТВ растягивает картинку под плитку — даём с запасом по разрешению, чтобы не было «лесенки»
   await shot(tile(1280, 720), 1280, 720, 'thumbnail.png');
-  await shot(tile(640, 360), 640, 360, 'icon-large.png');
-  await shot(tile(320, 180), 320, 180, 'icon-small.png');
+  await shot(tile(1280, 720), 1280, 720, 'icon-large.png');
+  await shot(tile(800, 450), 800, 450, 'icon-small.png');
   await shot(square(512), 512, 512, 'icon-square.png');
   await browser.close();
 })();

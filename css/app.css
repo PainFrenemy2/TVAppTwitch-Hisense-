@@ -223,7 +223,7 @@ img { display: block; }
 }
 .search-icon .ic { font-size: 2.6rem; color: var(--text2); margin-right: 1rem; }
 .search-text { white-space: nowrap; overflow: hidden; max-width: 30rem; }
-.search-field.empty .search-text::before { content: 'Поиск каналов и игр'; color: #717171; }
+.search-field.empty .search-text::before { content: attr(data-ph); color: #717171; }
 .search-caret { width: .2rem; height: 2.6rem; background: var(--accent2); margin-left: .2rem; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .kb-keys { display: flex; flex-wrap: wrap; width: 35.2rem; }
@@ -378,3 +378,189 @@ img { display: block; }
 .ctl.focused .ctl-label { opacity: 1; }
 .ch-avatar, .channel-avatar { background: var(--bg3); border-radius: 50%; }
 img.broken { visibility: hidden; }
+
+/* ===================== v2 ===================== */
+
+/* ---------- заставка (как у YouTube при запуске) ---------- */
+#splash {
+  position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 1000; background: #0e0e10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity .45s ease;
+}
+#splash.out { opacity: 0; pointer-events: none; }
+.splash-logo { width: 9vw; height: 9vw; animation: splashIn .7s cubic-bezier(.2,.8,.3,1.2) both; }
+.splash-logo svg { width: 100%; height: 100%; fill: #9146ff; filter: drop-shadow(0 0 2.2vw rgba(145,70,255,.55)); animation: splashGlow 1.6s ease-in-out .7s infinite alternate; }
+.splash-word { margin-top: 1.6vw; font-size: 3.4vw; font-weight: 700; letter-spacing: -.05vw; color: #fff; font-family: 'Inter', Arial, sans-serif; animation: splashUp .6s ease .25s both; }
+.splash-bar { margin-top: 3vw; width: 16vw; height: .3vw; border-radius: .2vw; background: rgba(255,255,255,.12); overflow: hidden; animation: splashUp .6s ease .4s both; }
+.splash-bar i { display: block; width: 40%; height: 100%; border-radius: .2vw; background: #9146ff; animation: splashBar 1.1s ease-in-out infinite; }
+@keyframes splashIn { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes splashGlow { from { filter: drop-shadow(0 0 1vw rgba(145,70,255,.35)); } to { filter: drop-shadow(0 0 3vw rgba(145,70,255,.8)); } }
+@keyframes splashUp { from { transform: translateY(1vw); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes splashBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+
+/* ---------- облегчённый режим: без анимаций ---------- */
+.lite *, .lite *::before, .lite *::after { transition: none !important; animation-duration: 0s !important; }
+.lite .spinner, .lite .splash-bar i { animation-duration: .8s !important; }
+.lite .card.focused .thumb, .lite .card.focused .box { transform: none; box-shadow: 0 0 0 .3rem var(--accent); }
+
+/* ---------- баннер на главной ---------- */
+.hero-wrap { margin: .4rem 0 2.4rem; }
+.hero {
+  position: relative; display: flex; height: 31rem; margin-right: 2.5rem; border-radius: .8rem; overflow: hidden;
+  background: var(--bg2);
+}
+.hero-media { position: relative; width: 55rem; flex: none; background: #000; }
+.hero-img, .hero-video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+.hero-video { opacity: 0; transition: opacity .4s; }
+.hero-video.playing { opacity: 1; }
+.hero-fade { position: absolute; right: 0; top: 0; bottom: 0; width: 8rem; background: linear-gradient(90deg, rgba(31,31,35,0), var(--bg2)); }
+.hero-info { flex: 1; min-width: 0; padding: 2.6rem 3rem; display: flex; flex-direction: column; }
+.hero-chan { display: flex; align-items: center; }
+.hero-avatar { width: 5rem; height: 5rem; border-radius: 50%; margin-right: 1.4rem; background: var(--bg3); object-fit: cover; }
+.hero-name { font-size: 2rem; font-weight: 700; }
+.hero-game { font-size: 1.4rem; color: var(--accent2); margin-top: .3rem; }
+.hero-title { font-size: 1.7rem; line-height: 1.4; margin-top: 1.8rem; max-height: 7.2rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; color: var(--text); }
+.hero-meta { margin-top: 1.4rem; display: flex; align-items: center; font-size: 1.4rem; color: var(--text2); }
+.badge-inline { display: inline-block; padding: .2rem .6rem; border-radius: .4rem; font-size: 1.2rem; font-weight: 600; margin-right: 1rem; color: #fff; }
+.badge-inline.live { background: var(--live); }
+.hero-hint { margin-top: auto; font-size: 1.25rem; color: var(--text2); opacity: 0; transition: opacity .2s; }
+.hero.focused .hero-hint { opacity: 1; }
+.hero-dots { margin-top: 1rem; display: flex; }
+.hero-dots i { width: .8rem; height: .8rem; border-radius: 50%; background: rgba(255,255,255,.25); margin-right: .7rem; }
+.hero-dots i.on { background: var(--accent); width: 2.4rem; border-radius: .4rem; }
+.hero.focused { box-shadow: 0 0 0 .35rem var(--accent); }
+
+/* живое превью в карточке */
+.thumb-video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s; background: #000; }
+.thumb-video.playing { opacity: 1; }
+
+/* ---------- поиск: вкладки раскладок ---------- */
+.kb-tabs { display: flex; margin: 0 0 1.4rem; width: 35.2rem; }
+.kb-tab {
+  flex: 1; text-align: center; padding: .8rem 0; margin: 0 .2rem; border-radius: .6rem; font-size: 1.45rem; font-weight: 700;
+  background: rgba(255,255,255,.06); color: var(--text2);
+}
+.kb-tab.active { background: rgba(145,70,255,.25); color: #fff; }
+.kb-tab.focused { background: var(--accent); color: #fff; }
+.kb-full { width: 34.8rem; }
+
+/* ---------- профили «Кто смотрит?» ---------- */
+.profiles-overlay { background: #0e0e10; display: flex; align-items: center; justify-content: center; }
+.profiles { text-align: center; }
+.profiles-logo { width: 5rem; height: 5rem; margin: 0 auto 2rem; }
+.profiles-title { font-size: 3.2rem; font-weight: 700; margin-bottom: 4rem; }
+.profiles-list { display: flex; justify-content: center; }
+.profile { width: 18rem; margin: 0 1.4rem; padding: 1.6rem 0; border-radius: 1.2rem; }
+.profile-avatar {
+  width: 13rem; height: 13rem; margin: 0 auto; border-radius: 50%; overflow: hidden; background: var(--bg3);
+  display: flex; align-items: center; justify-content: center; font-size: 6rem; color: var(--text2);
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-plus { font-size: 7rem; line-height: 1; font-weight: 300; }
+.profile-name { font-size: 1.8rem; font-weight: 600; margin-top: 1.4rem; }
+.profile-sub { font-size: 1.3rem; color: var(--text2); margin-top: .4rem; }
+.profile.focused .profile-avatar { box-shadow: 0 0 0 .4rem var(--accent), 0 0 3rem rgba(145,70,255,.6); }
+.profile.focused { background: rgba(255,255,255,.05); }
+
+/* ---------- уведомление «в эфире» ---------- */
+.notify {
+  position: fixed; right: 3rem; top: 3rem; z-index: 300; display: flex; align-items: center; width: 44rem; padding: 1.4rem;
+  border-radius: 1rem; background: var(--bg2); border-left: .5rem solid var(--accent); box-shadow: 0 1rem 3rem rgba(0,0,0,.6);
+  animation: notifyIn .35s ease both;
+}
+.notify.out { opacity: 0; transform: translateX(3rem); transition: all .35s; }
+.notify-avatar { width: 5.4rem; height: 5.4rem; border-radius: 50%; flex: none; margin-right: 1.4rem; object-fit: cover; opacity: 1 !important; }
+.notify-text { min-width: 0; }
+.notify-title { font-size: 1.6rem; font-weight: 700; }
+.notify-sub { font-size: 1.3rem; color: var(--text2); margin-top: .3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notify-hint { font-size: 1.15rem; color: var(--accent2); margin-top: .5rem; }
+@keyframes notifyIn { from { opacity: 0; transform: translateX(3rem); } to { opacity: 1; transform: none; } }
+
+/* ---------- аккаунт / вход по коду ---------- */
+.side-account { position: absolute; left: 0; right: 0; bottom: 2.4rem; }
+.side-avatar { width: 2.6rem; height: 2.6rem; border-radius: 50%; flex: none; object-fit: cover; margin-left: -.1rem; }
+.activate { display: flex; align-items: flex-start; }
+.activate-steps { flex: 1; max-width: 62rem; }
+.activate-step { font-size: 1.8rem; margin-bottom: 1.4rem; line-height: 1.4; }
+.activate-step b {
+  display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; margin-right: 1.2rem;
+  border-radius: 50%; background: var(--accent); font-size: 1.5rem;
+}
+.activate-step.muted { font-size: 1.4rem; color: var(--text2); }
+.activate-url { color: var(--accent2); font-weight: 700; }
+.activate-code {
+  display: inline-block; margin: .6rem 0 2.4rem 4.2rem; padding: 1.4rem 3rem; border-radius: 1rem; background: var(--bg2);
+  font-size: 5rem; font-weight: 700; letter-spacing: .6rem; font-family: 'Inter', monospace; border: .2rem solid var(--accent);
+}
+.activate-wait { display: flex; align-items: center; font-size: 1.5rem; color: var(--text2); margin: .6rem 0 2rem; }
+.activate-wait .err { color: #ff6b6b; }
+.spinner.small { width: 2.2rem; height: 2.2rem; border-width: .3rem; margin-right: 1rem; }
+.activate-qr { width: 24rem; height: 24rem; margin-left: 4rem; padding: 1.2rem; border-radius: 1rem; background: #fff; flex: none; }
+.activate-qr svg { width: 100%; height: 100%; display: block; }
+.account-card { display: flex; align-items: center; }
+.account-avatar { width: 14rem; height: 14rem; border-radius: 50%; object-fit: cover; background: var(--bg3); box-shadow: 0 0 0 .4rem var(--accent); }
+.account-info { margin-left: 3.4rem; }
+.account-name { font-size: 3rem; font-weight: 700; }
+.account-sub { font-size: 1.5rem; color: var(--text2); margin: .6rem 0 2rem; }
+.account-actions { display: flex; flex-wrap: wrap; }
+.account-actions .btn { margin-bottom: 1rem; }
+.login-banner {
+  display: flex; align-items: center; justify-content: space-between; padding: 2.2rem 2.6rem; margin: 0 2.5rem 2.6rem 0;
+  border-radius: 1rem; background: linear-gradient(90deg, rgba(145,70,255,.35), rgba(145,70,255,.08));
+}
+.login-banner-title { font-size: 2rem; font-weight: 700; }
+.login-banner-sub { font-size: 1.4rem; color: var(--text2); margin-top: .5rem; max-width: 70rem; }
+.followed-badge { margin-left: 1.4rem; padding: .3rem .9rem; border-radius: .5rem; background: var(--accent); font-size: 1.3rem; vertical-align: middle; }
+.page-actions { margin-bottom: 2rem; }
+
+/* ---------- настройки ---------- */
+.set-section { font-size: 1.5rem; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: .06em; margin: 2.6rem 0 1rem; }
+.set-section:first-child { margin-top: 0; }
+.tv-info { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem 3rem; padding: 1.6rem 2.2rem; border-radius: 1rem; background: rgba(255,255,255,.03); margin-top: .5rem; }
+.tv-info-row { display: flex; justify-content: space-between; font-size: 1.35rem; color: var(--text2); }
+.tv-info-row b { color: var(--text); font-weight: 600; margin-left: 1rem; text-align: right; }
+
+/* ---------- плеер: статистика ---------- */
+.player-stats {
+  position: absolute; left: 3rem; top: 12rem; z-index: 5; min-width: 38rem; padding: 1.4rem 1.8rem; border-radius: .8rem;
+  background: rgba(0,0,0,.75); font-size: 1.25rem; font-family: 'Inter', monospace;
+}
+.player-stats div { display: flex; justify-content: space-between; line-height: 1.7; }
+.player-stats b { color: var(--accent2); font-weight: 600; margin-right: 2rem; }
+
+/* ---------- плеер: ряд «Другие каналы» снизу (как «Далее» в YouTube) ---------- */
+.osd-bottom { padding-bottom: 1.6rem; }
+.osd-next { margin-top: .4rem; max-height: 4.4rem; overflow: hidden; transition: max-height .25s ease; }
+.next-open .osd-next { max-height: 26rem; }
+.osd-next-title { font-size: 1.5rem; font-weight: 600; color: #ddd; padding: .6rem 0 .8rem; }
+.osd-next-title::before { content: '\25BE  '; color: var(--accent2); }
+.next-open .osd-next-title::before { content: ''; }
+.osd-next .shelf-viewport { padding-top: .8rem; }
+.card-next { width: 22rem; margin-right: 1.4rem; }
+.card-next .title { font-size: 1.35rem; margin-top: .7rem; -webkit-line-clamp: 1; max-height: 1.9rem; display: block; white-space: nowrap; text-overflow: ellipsis; }
+.card-next .sub { font-size: 1.15rem; }
+.next-open .osd-controls { height: 7.6rem; }
+
+/* ---------- чат поверх видео (как на телефоне) ---------- */
+.chat.overlay-mode {
+  position: absolute; right: 0; top: 0; bottom: 0; border: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,var(--chat-alpha, .3)) 18%);
+}
+.chat-left .chat.overlay-mode { right: auto; left: 0; background: linear-gradient(270deg, rgba(0,0,0,0), rgba(0,0,0,var(--chat-alpha, .3)) 18%); }
+.chat-left .player-stage { flex-direction: row-reverse; }
+.chat-left.chat-side .player-osd { right: 0; left: 28rem; }
+.chat.overlay-mode .chat-list { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12%); mask-image: linear-gradient(180deg, transparent 0, #000 12%); }
+.chat.overlay-mode .chat-line { text-shadow: 0 0 .25rem #000, 0 .1rem .3rem #000, 0 0 .6rem rgba(0,0,0,.8); }
+.chat.overlay-mode.ch-half { top: 50%; }
+.chat.overlay-mode.ch-third { top: 66%; }
+.chat.overlay-mode.cw-narrow { width: 22rem; }
+.chat.overlay-mode.cw-wide { width: 36rem; }
+.chat.cf-small .chat-line { font-size: 1.15rem; }
+.chat.cf-large .chat-line { font-size: 1.6rem; }
+.chat.cf-large .emote { height: 2.6rem; }
+.chat.cf-xlarge .chat-line { font-size: 1.9rem; }
+.chat.cf-xlarge .emote { height: 3rem; }
+.osd-on .chat.overlay-mode { opacity: .55; transition: opacity .2s; }
+
+.next-open .chat.overlay-mode { opacity: 0; }
+.activate, .account-card { margin-bottom: 2rem; }
