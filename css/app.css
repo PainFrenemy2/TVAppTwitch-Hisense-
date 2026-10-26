@@ -886,3 +886,11 @@ img.broken { visibility: hidden; }
 @keyframes glowFade { to { opacity: 1; } }
 
 .empty-actions { text-align: center; margin-top: -1rem; }
+
+/* ряд «Другие каналы»: фиксированная высота карточек, без прыжков и лишних слоёв */
+.card-next { width: 22rem; }
+.card-next .thumb { will-change: auto; }
+.card-next .title, .card-next.focused .title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 2rem; font-size: 1.4rem; margin-top: .8rem; }
+.card-next .sub { font-size: 1.2rem; }
+.card-next.focused .thumb { transform: none; box-shadow: 0 0 0 .3rem #fff, 0 0 0 .55rem var(--accent); }
+.osd-next .shelf-track { transition: transform .18s ease-out; }

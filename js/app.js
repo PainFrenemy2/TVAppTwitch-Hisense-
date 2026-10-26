@@ -401,7 +401,15 @@
       Nav.setScope(prevScope);
       return;
     }
-    var moved = Nav.move(dir);
+    var moved;
+    var pg = currentPage();
+    if (layer === App.base && (dir === 'up' || dir === 'down') && pg) {
+      // вверх/вниз — только по странице, без прыжков в боковое меню
+      var sc = Nav.scope;
+      Nav.setScope(pg.el);
+      moved = Nav.move(dir);
+      Nav.setScope(sc);
+    } else moved = Nav.move(dir);
     if (layer === App.base && Nav.current && inSidebar(Nav.current) && !inSidebar(cur)) {
       // уход в меню: запоминаем место в контенте, подсвечиваем текущий раздел
       var p = currentPage();

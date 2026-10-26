@@ -431,21 +431,27 @@
     track.innerHTML = '';
     track.style.transform = '';
     var title = $('.osd-next-title');
-    var fill = function (items, label) {
+    var seen = {};
+    seen[it.kind + ':' + (it.login || '') + ':' + (it.id || '')] = 1;
+    var fill = function (items) {
       if (P.item !== it) return;
-      title.textContent = label;
-      items.slice(0, 30).forEach(function (x) {
-        if (x === it || (x.kind === it.kind && x.login === it.login && x.id === it.id)) return;
+      items.forEach(function (x) {
+        var key = x.kind + ':' + (x.login || '') + ':' + (x.id || '');
+        if (seen[key] || track.children.length >= 24) return;
+        seen[key] = 1;
         track.appendChild(nextCard(x));
       });
       $('.osd-next').classList.toggle('hidden', !track.children.length);
     };
-    if (P.playlist && P.playlist.length > 1) fill(P.playlist, it.kind === 'live' ? tr('Другие каналы • CH+/CH−') : tr('Далее'));
-    else if (it.kind === 'live') {
-      Twitch.topStreamsByLang(Settings.get('lang'), 20).catch(function () { return Twitch.topStreams(20); }).then(function (p) {
-        fill(p.items.map(App.itemFromStream), tr('Популярные каналы'));
-      }).catch(function () { $('.osd-next').classList.add('hidden'); });
-    } else $('.osd-next').classList.add('hidden');
+    var others = (P.playlist || []).filter(function (x) { return x !== it; });
+    title.textContent = it.kind === 'live' ? tr('Другие каналы • CH+/CH−') : tr('Далее');
+    fill(others);
+    // всегда добиваем ряд популярными эфирами, чтобы было что выбрать
+    if (it.kind === 'live' || track.children.length < 6) {
+      Twitch.topStreamsByLang(Settings.get('lang'), 24).catch(function () { return Twitch.topStreams(24); }).then(function (p) {
+        fill(p.items.map(App.itemFromStream));
+      }).catch(function () {});
+    }
   }
 
   function nextCard(x) {
