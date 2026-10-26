@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Twitch TV</title>
+<link rel="icon" href="icons/icon-square.png">
+<link rel="stylesheet" href="css/app.css?v=1">
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar" class="sidebar"></nav>
+  <main id="pages"></main>
+
+  <div id="player" class="player hidden">
+    <div class="player-stage">
+      <div class="video-box"><video id="video" playsinline preload="auto"></video></div>
+      <aside id="chat" class="chat hidden">
+        <div class="chat-head"><span class="chat-title">Чат</span><span class="chat-state"></span></div>
+        <div class="chat-list"></div>
+      </aside>
+    </div>
+    <div class="player-spinner hidden"><div class="spinner"></div></div>
+    <div class="player-message hidden"></div>
+    <div class="player-osd">
+      <div class="osd-top">
+        <img class="osd-avatar" alt="">
+        <div class="osd-meta">
+          <div class="osd-title"></div>
+          <div class="osd-sub"></div>
+        </div>
+        <div class="osd-clock"></div>
+      </div>
+      <div class="osd-bottom">
+        <div class="osd-progress">
+          <div class="osd-live-badge">В ЭФИРЕ</div>
+          <div class="osd-time osd-time-cur"></div>
+          <div class="osd-bar"><div class="osd-bar-buf"></div><div class="osd-bar-fill"></div><div class="osd-bar-knob"></div></div>
+          <div class="osd-time osd-time-dur"></div>
+        </div>
+        <div class="osd-controls"></div>
+      </div>
+    </div>
+    <div class="player-panel hidden"></div>
+    <div class="player-zap hidden"></div>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast" class="toast hidden"></div>
+</div>
+
+<script src="js/vendor/hls.min.js?v=1.5.20"></script>
+<script src="js/util.js?v=1"></script>
+<script src="js/twitch.js?v=1"></script>
+<script src="js/nav.js?v=1"></script>
+<script src="js/ui.js?v=1"></script>
+<script src="js/chat.js?v=1"></script>
+<script src="js/player.js?v=1"></script>
+<script src="js/pages.js?v=1"></script>
+<script src="js/app.js?v=1"></script>
+</body>
+</html>
