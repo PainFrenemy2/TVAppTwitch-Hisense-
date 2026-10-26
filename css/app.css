@@ -530,7 +530,9 @@ img.broken { visibility: hidden; }
 
 /* ---------- плеер: ряд «Другие каналы» снизу (как «Далее» в YouTube) ---------- */
 .osd-bottom { padding-bottom: 1.6rem; }
-.osd-next { margin-top: .4rem; max-height: 4.4rem; overflow: hidden; transition: max-height .25s ease; }
+.osd-next { margin-top: .4rem; max-height: 3.6rem; overflow: hidden; transition: max-height .25s ease; }
+.osd-next .shelf-viewport { visibility: hidden; }
+.next-open .osd-next .shelf-viewport { visibility: visible; }
 .next-open .osd-next { max-height: 26rem; }
 .osd-next-title { font-size: 1.5rem; font-weight: 600; color: #ddd; padding: .6rem 0 .8rem; }
 .osd-next-title::before { content: '\25BE  '; color: var(--accent2); }
@@ -560,7 +562,7 @@ img.broken { visibility: hidden; }
 .chat.cf-large .emote { height: 2.6rem; }
 .chat.cf-xlarge .chat-line { font-size: 1.9rem; }
 .chat.cf-xlarge .emote { height: 3rem; }
-.osd-on .chat.overlay-mode { opacity: .55; transition: opacity .2s; }
+.osd-on .chat.overlay-mode { top: 10rem; bottom: 21rem; opacity: .7; }
 
 .next-open .chat.overlay-mode { opacity: 0; }
 .activate, .account-card { margin-bottom: 2rem; }
