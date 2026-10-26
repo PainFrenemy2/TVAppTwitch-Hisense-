@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.0.0',
+    VERSION: '1.3.0',
     layers: [],
     history: [],
     pendingFocus: false
@@ -337,10 +337,14 @@
   };
 
   // ---------- клавиши ----------
-  var lastBackAt = 0;
+  var lastBackAt = 0, lastKeyAt = 0;
 
   function onKeyDown(e) {
     var k = Nav.keyName(e);
+    // зажатая кнопка: не даём нажатиям копиться быстрее, чем ТВ успевает рисовать
+    var now = Date.now();
+    if (e.repeat && k && now - lastKeyAt < 110) { e.preventDefault(); return; }
+    lastKeyAt = now;
     if (k) { e.preventDefault(); e.stopPropagation(); }
     if (k === 'BACK') lastBackAt = Date.now();
     App.pendingFocus = false;
@@ -448,6 +452,13 @@
     Nav.onChange = function (el) {
       U.$('#app').classList.toggle('side-open', inSidebar(el) && App.topLayer() === App.base);
       Player.el.classList.toggle('next-open', !!el && !!el.closest && !!el.closest('.osd-next'));
+      // ленивые полки: фокус дошёл до предпоследних — достраиваем следующие
+      var lz = el && el.closest && el.closest('[data-lazy]');
+      if (lz && lz._lazy) {
+        var rows = lz.children, row = el.closest('.shelf, .grid');
+        var idx = Array.prototype.indexOf.call(rows, row);
+        if (idx >= rows.length - 2) lz._lazy(2);
+      }
     };
     Chat.init();
     Player.init();

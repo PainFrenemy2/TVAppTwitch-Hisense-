@@ -894,3 +894,15 @@ img.broken { visibility: hidden; }
 .card-next .sub { font-size: 1.2rem; }
 .card-next.focused .thumb { transform: none; box-shadow: 0 0 0 .3rem #fff, 0 0 0 .55rem var(--accent); }
 .osd-next .shelf-track { transition: transform .18s ease-out; }
+
+/* ===================== v7: скорость ===================== */
+/* меньше постоянных слоёв: полки получают слой только на время анимации */
+.shelf-track { will-change: auto; }
+/* картинки появляются без анимации прозрачности — меньше перерисовок */
+.thumb-img, .box-img, .ch-img { transition: none; }
+.thumb, .box { transition: transform .15s ease-out; }
+/* простая заставка: без масштабирования и большого свечения */
+.splash-logo { animation: splashUp .5s ease both; }
+.splash-logo::before { width: 22vw; height: 22vw; }
+.splash-word, .splash-bar { animation: none; }
+.splash-bar i { will-change: transform; }

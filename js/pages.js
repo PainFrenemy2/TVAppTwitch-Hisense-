@@ -253,17 +253,28 @@
       });
     }
 
+    // Полки строим порциями: сначала 4, остальные — когда пользователь листает вниз.
+    // Так главная открывается быстрее и меньше нагружает ТВ.
+    var queue = [];
+    body.setAttribute('data-lazy', '1');
+    body._lazy = function (n) {
+      var k = n || 2;
+      while (k-- > 0 && queue.length) queue.shift()();
+    };
+    function later(fn) { queue.push(fn); }
+
     function renderMain() {
       body.innerHTML = '';
+      queue = [];
       if (App.myChannels().length || Auth.loggedIn()) {
         autoShelf(body, Auth.loggedIn() ? tr('Подписки в эфире') : tr('Избранное в эфире'), myLive, streamCard, { cls: 'shelf-favs' });
       }
       var cont = continueItems();
-      if (cont.length) autoShelf(body, tr('Продолжить просмотр'), function () { return Promise.resolve(cont); }, videoCard);
+      if (cont.length) later(function () { autoShelf(body, tr('Продолжить просмотр'), function () { return Promise.resolve(cont); }, videoCard); });
       var recent = App.history_().filter(function (x) { return x.kind === 'live'; });
       var seen = {};
       recent = recent.filter(function (x) { if (seen[x.login]) return false; seen[x.login] = 1; return true; }).slice(0, 20);
-      if (recent.length) {
+      if (recent.length) later(function () {
         autoShelf(body, tr('Недавно смотрели'), function () {
           return Twitch.users(recent.map(function (x) { return x.login; })).then(function (us) {
             var byLogin = {};
@@ -273,18 +284,31 @@
         }, function (u) {
           return u.stream ? streamCard(Object.assign(u.stream, { broadcaster: u.stream.broadcaster || u })) : channelCard(u);
         });
-      }
+      });
       var langName = (LANGS.filter(function (l) { return l[0] === lang; })[0] || ['', ''])[1];
-      autoShelf(body, tr('Популярные трансляции') + (langName ? ' • ' + langName : ''), function () {
-        return Twitch.topStreamsByLang(lang, 30).then(function (p) { return p.items; });
-      }, streamCard);
-      autoShelf(body, tr('Популярные категории'), function () { return Twitch.topGames(30).then(function (p) { return p.items; }); }, gameCard, { game: true, skeleton: 8 });
-      autoShelf(body, tr('Популярно во всём мире'), function () { return Twitch.topStreams(30).then(function (p) { return p.items; }); }, streamCard);
-      Twitch.topGames(6).then(function (p) {
-        p.items.forEach(function (g) {
-          autoShelf(body, g.displayName || g.name, function () { return Twitch.gameStreams(g.name, 20).then(function (r) { return r.items; }); }, streamCard);
+      // «Популярные трансляции» всегда во второй-третьей строке
+      queue.unshift(function () {
+        autoShelf(body, tr('Популярные трансляции') + (langName ? ' • ' + langName : ''), function () {
+          return Twitch.topStreamsByLang(lang, 20).then(function (p) { return p.items; });
+        }, streamCard);
+      });
+      later(function () { autoShelf(body, tr('Популярные категории'), function () { return Twitch.topGames(20).then(function (p) { return p.items; }); }, gameCard, { game: true, skeleton: 8 }); });
+      later(function () { autoShelf(body, tr('Популярно во всём мире'), function () { return Twitch.topStreams(20).then(function (p) { return p.items; }); }, streamCard); });
+      for (var gi = 0; gi < 6; gi++) (function (i) {
+        later(function () {
+          var shelf = autoShelf(body, '…', function () {
+            return Twitch.topGames(6).then(function (p) {
+              var g = p.items[i];
+              if (!g) return [];
+              var t = U.$('.shelf-title', shelf);
+              if (t) t.textContent = g.displayName || g.name;
+              return Twitch.gameStreams(g.name, 16).then(function (r) { return r.items; });
+            });
+          }, streamCard);
         });
-      }).catch(function () {});
+      })(gi);
+      // сразу показываем столько полок, чтобы заполнить экран
+      body._lazy(Math.max(0, 4 - body.children.length));
     }
 
     function renderGame(g) {
