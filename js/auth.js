@@ -95,15 +95,16 @@
         }).then(function (j) {
           if (stopped) return;
           if (j.access_token) {
+            var prev = Auth.data;
             Auth.data = { token: j.access_token, refresh: j.refresh_token, expires: Date.now() + (j.expires_in || 3600) * 1000 };
-            return Auth.loadUser().then(function (u) { U.store.set('followsCache', []); resolve(u); }, reject);
+            return Auth.loadUser().then(function (u) { U.store.set('followsCache', []); resolve(u); }, function (e) { Auth.data = prev; reject(e); });
           }
           var msg = String(j.message || '');
+          if (msg.indexOf('slow_down') >= 0) { interval += 5000; return setTimeout(tick, interval); }
           if (msg.indexOf('pending') >= 0 || j._status === 400 && !/denied|expired|invalid/.test(msg)) {
             if (onTick) onTick();
             return setTimeout(tick, interval);
           }
-          if (msg.indexOf('slow_down') >= 0) { interval += 5000; return setTimeout(tick, interval); }
           reject(new Error(msg || tr('Вход отклонён')));
         }, function () { if (!stopped) setTimeout(tick, interval); });
       }
@@ -113,22 +114,32 @@
     return p;
   };
 
+  // Одно обновление за раз: refresh-токен одноразовый, второй параллельный запрос его бы «сжёг»
   Auth.refresh = function () {
     if (!Auth.data || !Auth.data.refresh) return Promise.reject(new Error(tr('Нет refresh-токена')));
-    return post(ID + 'token', { client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: Auth.data.refresh }).then(function (j) {
-      if (!j.access_token) throw new Error(j.message || tr('Не удалось обновить вход'));
-      Auth.data.token = j.access_token;
-      if (j.refresh_token) Auth.data.refresh = j.refresh_token;
-      Auth.data.expires = Date.now() + (j.expires_in || 3600) * 1000;
+    if (Auth._rp) return Auth._rp;
+    var acc = Auth.data;
+    Auth._rp = post(ID + 'token', { client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: acc.refresh }).then(function (j) {
+      Auth._rp = null;
+      if (!j.access_token) {
+        var e = new Error(j.message || tr('Не удалось обновить вход'));
+        e.invalid = j._status === 400 || j._status === 401; // Twitch прямо отверг токен
+        throw e;
+      }
+      acc.token = j.access_token;
+      if (j.refresh_token) acc.refresh = j.refresh_token;
+      acc.expires = Date.now() + (j.expires_in || 3600) * 1000;
       save();
-    });
+    }, function (e) { Auth._rp = null; throw e; });
+    return Auth._rp;
   };
 
   // Проверка токена (и заодно логин) — заранее обновляем, если скоро истечёт
   Auth.ensure = function () {
     if (!Auth.loggedIn()) return Promise.reject(new Error(tr('Не выполнен вход')));
     if (Auth.data.expires && Auth.data.expires - Date.now() < 5 * 60 * 1000) {
-      return Auth.refresh().catch(function (e) { Auth.logout(true); throw e; });
+      // сеть ещё не поднялась после сна ТВ и т.п. — аккаунт не трогаем, только при явном отказе Twitch
+      return Auth.refresh().catch(function (e) { if (e.invalid) Auth.logout(true); throw e; });
     }
     return Promise.resolve();
   };

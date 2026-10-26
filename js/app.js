@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.4.0',
+    VERSION: '1.4.1',
     layers: [],
     history: [],
     pendingFocus: false
@@ -111,7 +111,7 @@
     var key = it.kind + ':' + (it.kind === 'live' ? it.login : (it.id || it.slug));
     var list = App.history_().filter(function (x) { return x.key !== key; });
     list.unshift({ key: key, kind: it.kind, login: it.login, name: it.name, avatar: it.avatar, id: it.id, slug: it.slug,
-      title: it.title, thumb: it.thumb, length: it.length, game: it.game, createdAt: it.kind === 'live' ? null : it.createdAt, at: Date.now() });
+      title: it.title, thumb: it.thumb, length: it.length, game: it.game, roomId: it.roomId, createdAt: it.kind === 'live' ? null : it.createdAt, at: Date.now() });
     U.store.set('watchHistory', list.slice(0, 40));
   };
 
@@ -261,6 +261,8 @@
     var page = Pages[name](params);
     pagesEl.appendChild(page.el);
     App.history.push({ name: name, params: params, page: page });
+    // не копим бесконечно скрытые страницы (память ТВ): держим не больше 6 шагов «назад»
+    while (App.history.length > 6) removePage(App.history.splice(1, 1)[0].page);
     markSidebar();
     focusPage(page, true);
   };
@@ -457,7 +459,7 @@
       if (lz && lz._lazy) {
         var rows = lz.children, row = el.closest('.shelf, .grid');
         var idx = Array.prototype.indexOf.call(rows, row);
-        if (idx >= rows.length - 2) lz._lazy(2);
+        if (idx >= 0 && idx >= rows.length - 2) lz._lazy(2);
       }
     };
     Chat.init();
@@ -468,9 +470,12 @@
     // ТВ свернул приложение — ставим на паузу, при возврате эфир перезапускаем с «живой» точки
     document.addEventListener('visibilitychange', function () {
       if (!Player.isOpen()) return;
-      if (document.hidden) { try { Player.video.pause(); } catch (e) { /* ignore */ } }
-      else if (Player.item && Player.item.kind === 'live') Player.open(Player.item, Player.playlist);
-      else { try { Player.video.play(); } catch (e2) { /* ignore */ } }
+      if (document.hidden) { Player.bgPaused = true; try { Player.video.pause(); } catch (e) { /* ignore */ } }
+      else {
+        Player.bgPaused = false;
+        if (Player.item && Player.item.kind === 'live') Player.open(Player.item, Player.playlist);
+        else { try { Player.video.play(); } catch (e2) { /* ignore */ } }
+      }
     });
 
     // клики мышью/указкой (у некоторых пультов Hisense есть режим курсора)
@@ -482,6 +487,7 @@
     });
 
     Auth.onChange(function () {
+      knownLive = null; // другой профиль — не засыпаем уведомлениями о «новых» эфирах
       App.updateAccountItem();
       if (Auth.loggedIn()) Auth.syncFollows().catch(function () {});
     });

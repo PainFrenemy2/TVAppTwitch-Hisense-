@@ -47,7 +47,12 @@
 
   P.isOpen = function () { return !P.el.classList.contains('hidden'); };
 
-  P.close = function () { App.closeLayer(); };
+  // закрыть именно плеер — сначала снимаем открытые поверх него меню
+  P.close = function () {
+    if (!P.isOpen()) return;
+    while (App.topLayer() && App.topLayer().el !== P.el && App.layers.length > 1) App.closeLayer();
+    App.closeLayer();
+  };
 
   function teardown() {
     P.loadId++;
@@ -57,6 +62,11 @@
     Chat.stop();
     clearInterval(P.metaTimer);
     clearTimeout(P.osdTimer);
+    clearInterval(P.statsTimer);
+    P.statsOn = false;
+    $('.player-stats').classList.add('hidden');
+    P.sleepAt = 0; P.sleepWarned = false;
+    P.bgPaused = false;
     P.osdVisible = false;
     P.el.classList.remove('osd-on');
     P.el.classList.add('hidden');
@@ -67,7 +77,7 @@
   function start(item) {
     saveVodPos();
     P.item = item;
-    P.netRetries = 0; P.mediaRetries = 0; P.reloads = 0; P.stall = 0; P.userPaused = false;
+    P.netRetries = 0; P.mediaRetries = 0; P.reloads = 0; P.stall = 0; P.userPaused = false; P.okSince = 0;
     P.seekTarget = null;
     P.levels = [];
     message(null);
@@ -182,7 +192,12 @@
         play();
       });
       hls.on(Hls.Events.LEVEL_SWITCHED, function () { updateQualityLabel(); });
-      hls.on(Hls.Events.FRAG_BUFFERED, function () { P.netRetries = 0; });
+      hls.on(Hls.Events.FRAG_BUFFERED, function () {
+        P.netRetries = 0;
+        // долго играет без проблем — обнуляем счётчики, чтобы редкие сбои за вечер не копились до «ошибки»
+        if (P.okSince && Date.now() - P.okSince > 60000) { P.reloads = 0; P.mediaRetries = 0; P.okSince = Date.now(); }
+        if (!P.okSince) P.okSince = Date.now();
+      });
       hls.on(Hls.Events.ERROR, function (ev, d) { onHlsError(d, id); });
       hls.attachMedia(v);
       hls.loadSource(url);
@@ -309,7 +324,7 @@
 
   // Сторож: если картинка стоит, а пользователь не ставил паузу — лечим по нарастающей
   function watchdog() {
-    if (!P.item || P.userPaused || P.failed) return;
+    if (!P.item || P.userPaused || P.failed || P.bgPaused) return;
     var v = P.video;
     if (P.loadId && !v.src && !P.hls) return;
     var t = v.currentTime;
@@ -384,7 +399,7 @@
         it.game = u.stream.game ? (u.stream.game.displayName || u.stream.game.name) : '';
       }
       renderMeta();
-      if (Chat.active && !Chat.roomId) Chat.roomId = u.id;
+      if (Chat.active) { Chat.roomId = u.id; Chat.loadEmotes(u.id); }
     }).catch(function () { /* не критично */ });
   }
 
@@ -494,7 +509,7 @@
     P.osdVisible = true;
     P.el.classList.add('osd-on');
     updateProgress();
-    if (!Nav.current || !P.el.contains(Nav.current)) {
+    if ((!Nav.current || !P.el.contains(Nav.current)) && App.topLayer() && App.topLayer().el === P.el) {
       Nav.setScope(U.$('.player-osd', P.el));
       Nav.focus($('.ctl-play'));
     }
@@ -589,7 +604,9 @@
       (P.clipSources || []).forEach(function (c) {
         items.push({ label: c.quality + 'p' + (c.fps >= 50 ? c.fps : ''), selected: c === cur, onSelect: function () {
           Settings.set('quality', c.quality + 'p' + (c.fps >= 50 ? c.fps : ''));
-          var t = P.video.currentTime; P.video.src = c.url; P.video.currentTime = t; play();
+          var t = P.video.currentTime;
+          P.video.addEventListener('loadedmetadata', function once() { P.video.removeEventListener('loadedmetadata', once); P.video.currentTime = t; });
+          P.video.src = c.url; play();
         } });
       });
     } else {
@@ -600,7 +617,7 @@
         if (!l.height) return;
         items.push({ label: l.label, selected: !auto && P.hls.currentLevel === l.index, onSelect: function () {
           Settings.set('quality', l.height + 'p' + (l.fps >= 49 ? Math.round(l.fps / 10) * 10 : ''));
-          P.hls.currentLevel = l.index;
+          if (P.hls) P.hls.currentLevel = l.index;
           updateQualityLabel();
         } });
       });

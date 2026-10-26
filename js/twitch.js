@@ -39,7 +39,14 @@
         err.gql = j.errors;
         throw err;
       }
-      if (key) cache[key] = { t: Date.now(), d: j.data };
+      if (key) {
+        cache[key] = { t: Date.now(), d: j.data };
+        // не растём бесконечно: выкидываем устаревшее, держим не больше ~80 ответов
+        var keys = Object.keys(cache);
+        if (keys.length > 80) keys.forEach(function (k) { if (Date.now() - cache[k].t > CACHE_MS) delete cache[k]; });
+        keys = Object.keys(cache);
+        while (keys.length > 80) delete cache[keys.shift()];
+      }
       return j.data;
     });
   }

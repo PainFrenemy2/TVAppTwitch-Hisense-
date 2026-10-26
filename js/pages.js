@@ -84,10 +84,12 @@
     wrap.appendChild(grid);
     return grid._loadMore().then(function () {
       loading.remove();
+      if (!grid.isConnected) return; // пока грузили, переключили вкладку
       if (!grid.children.length) wrap.appendChild(UI.empty(emptyText || tr('Здесь пока пусто')));
       App.refocus();
     }, function (e) {
       loading.remove();
+      if (!grid.isConnected) return;
       var err = UI.error(e, function () { err.remove(); fillGrid(wrap, grid, emptyText); });
       wrap.appendChild(err);
       App.refocus();
@@ -100,6 +102,7 @@
     wrap.appendChild(grid);
     return promise.then(function (items) {
       loading.remove();
+      if (!grid.isConnected) return;
       if (!items.length) wrap.appendChild(UI.empty(emptyText));
       grid.add(items.map(makeCard));
       App.refocus();
@@ -132,13 +135,15 @@
 
   // ---------- Превью эфира (одно на всё приложение, минимальное качество — бережём ТВ) ----------
   var Preview = {
-    hls: null, timer: null, video: null,
+    hls: null, timer: null, video: null, gen: 0,
     start: function (video, login) {
       Preview.stop();
       if (Settings.get('preview') === 'off' || App.isLite() || !window.Hls || !Hls.isSupported() || Player.isOpen()) return;
+      var gen = Preview.gen;
       Preview.timer = setTimeout(function () {
         Twitch.liveUrl(login, Settings.get('playerType')).then(function (url) {
-          if (Player.isOpen() || !video.isConnected) return;
+          // пока ждали токен, фокус ушёл / открылся плеер или меню — не запускаем
+          if (gen !== Preview.gen || Player.isOpen() || !video.isConnected || App.topLayer() !== App.base) return;
           var hls = new Hls({ enableWorker: true, startLevel: 0, capLevelToPlayerSize: true, maxBufferLength: 6, maxMaxBufferLength: 10,
             backBufferLength: 0, liveSyncDurationCount: 2, abrEwmaDefaultEstimate: 1500000 });
           Preview.hls = hls; Preview.video = video;
@@ -162,6 +167,7 @@
       }, 1400);
     },
     stop: function () {
+      Preview.gen++;
       clearTimeout(Preview.timer);
       if (Preview.hls) { try { Preview.hls.destroy(); } catch (e) { /* ignore */ } Preview.hls = null; }
       if (Preview.video) { Preview.video.classList.remove('playing'); try { Preview.video.removeAttribute('src'); Preview.video.load(); } catch (e2) { /* ignore */ } Preview.video = null; }
@@ -199,7 +205,7 @@
       if (!heroItems.length) return;
       heroIdx = (i + heroItems.length) % heroItems.length;
       var s = heroItems[heroIdx], b = s.broadcaster || {};
-      U.$('.hero-img', heroEl).src = U.img(s.previewImageURL, 1280, 720) || s.previewImageURL.replace('440x248', '1280x720');
+      U.$('.hero-img', heroEl).src = String(s.previewImageURL || '').replace('440x248', '1280x720');
       U.$('.hero-avatar', heroEl).src = b.profileImageURL || '';
       U.$('.hero-name', heroEl).textContent = b.displayName || b.login;
       U.$('.hero-game', heroEl).textContent = s.game ? (s.game.displayName || s.game.name) : '';
@@ -313,6 +319,7 @@
 
     function renderGame(g) {
       body.innerHTML = '';
+      queue = [];
       var wrap = h('div.grid-wrap');
       body.appendChild(wrap);
       fillGrid(wrap, pagedGrid('grid-video', function (c) { return Twitch.gameStreams(g.name, 24, c); }, streamCard), tr('Нет трансляций'));
@@ -400,7 +407,7 @@
   // ---------- Подписки ----------
   Pages.following = function () {
     var el = pageShell('page-following');
-    el.content.appendChild(header(tr('Подписки'), Auth.loggedIn()
+    el.content.appendChild(header(tr('Подписки'), Auth.loggedIn() && Auth.user()
       ? tr('Каналы аккаунта ') + Auth.user().displayName + tr(' и ваше избранное')
       : tr('Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки')));
     var body = h('div');
@@ -494,7 +501,7 @@
           ])
         ])
       ]);
-      card._onclick = function () { App.play({ kind: x.kind, login: x.login, name: x.name, avatar: x.avatar, id: x.id, slug: x.slug, title: x.title, length: x.length, thumb: x.thumb, game: x.game }); };
+      card._onclick = function () { App.play({ kind: x.kind, login: x.login, name: x.name, avatar: x.avatar, id: x.id, slug: x.slug, title: x.title, length: x.length, thumb: x.thumb, game: x.game, roomId: x.roomId }); };
       return card;
     }));
     el.content.appendChild(grid);

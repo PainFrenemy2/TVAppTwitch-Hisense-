@@ -27,14 +27,23 @@
     Chat.list.innerHTML = '';
     Chat.retry = 0;
     Chat.emotes = {};
+    Chat.emotesFor = null;
     Chat.system(tr('Подключение к чату…'), 'chat-connecting');
     connect();
-    loadThirdPartyEmotes(Chat.roomId);
+    Chat.loadEmotes(Chat.roomId);
+  };
+
+  // эмоуты канала грузим один раз на каждый room-id (он может прийти позже — из ROOMSTATE или метаданных)
+  Chat.loadEmotes = function (roomId) {
+    if (Chat.emotesFor === roomId && roomId) return;
+    if (roomId) Chat.emotesFor = roomId;
+    loadThirdPartyEmotes(roomId);
   };
 
   Chat.stop = function () {
     Chat.active = false;
     Chat.queue = [];
+    clearTimeout(Chat.reconnectTimer);
     if (Chat.ws) {
       try { Chat.ws.onclose = null; Chat.ws.close(); } catch (e) { /* уже закрыт */ }
       Chat.ws = null;
@@ -44,6 +53,7 @@
   function connect() {
     var ch = Chat.channel;
     var ws;
+    if (Chat.ws) { try { Chat.ws.onclose = null; Chat.ws.close(); } catch (e0) { /* ignore */ } }
     try { ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443'); } catch (e) { return reconnect(); }
     Chat.ws = ws;
     ws.onopen = function () {
@@ -57,7 +67,7 @@
       var lines = String(ev.data).split('\r\n');
       for (var i = 0; i < lines.length; i++) if (lines[i]) handle(lines[i]);
     };
-    ws.onclose = function () { if (Chat.active && Chat.channel === ch) reconnect(); };
+    ws.onclose = function () { if (Chat.ws === ws && Chat.active && Chat.channel === ch) reconnect(); };
     ws.onerror = function () { /* onclose сработает следом */ };
   }
 
@@ -66,7 +76,8 @@
     Chat.retry++;
     Chat.state.textContent = tr('переподключение…');
     var ch = Chat.channel;
-    setTimeout(function () { if (Chat.active && Chat.channel === ch) connect(); }, Math.min(15000, 1000 * Chat.retry));
+    clearTimeout(Chat.reconnectTimer);
+    Chat.reconnectTimer = setTimeout(function () { if (Chat.active && Chat.channel === ch) connect(); }, Math.min(15000, 1000 * Chat.retry));
   }
 
   function parseTags(s) {
@@ -103,7 +114,7 @@
       if (text.indexOf('\u0001ACTION ') === 0) { action = true; text = text.slice(8, -1); }
       push({ nick: nick, color: tags.color, text: text, emotes: tags.emotes, badges: tags.badges, action: action, bits: tags.bits });
     } else if (cmd === 'ROOMSTATE') {
-      if (tags['room-id'] && !Chat.roomId) { Chat.roomId = tags['room-id']; loadThirdPartyEmotes(Chat.roomId); }
+      if (tags['room-id']) { Chat.roomId = tags['room-id']; Chat.loadEmotes(Chat.roomId); }
       Chat.state.textContent = '';
     } else if (cmd === '366') {
       Chat.state.textContent = '';
