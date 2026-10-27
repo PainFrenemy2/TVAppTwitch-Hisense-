@@ -620,7 +620,13 @@
       if (!mine.length) {
         if (active) {
           body.appendChild(UI.loading());
-          Auth.syncFollows().then(function (l) { if (l.length) render(); else { body.innerHTML = ''; body.appendChild(UI.empty(tr('Вы пока ни на кого не подписаны')));
+          Auth.syncFollows().then(function (l) { if (l.length) render(); else if (Auth.followsDenied) {
+              // вход без права на список отслеживаемых — объясняем и предлагаем войти заново
+              body.innerHTML = '';
+              body.appendChild(UI.empty(tr('Чтобы показать отслеживаемые каналы, войдите в Twitch ещё раз')));
+              body.appendChild(h('div.row.empty-actions', { 'data-group': 'free' }, UI.button(tr('Войти снова'), 'person', function () { App.go('account', { add: true }, { root: true }); }, 'primary')));
+              App.refocus();
+            } else { body.innerHTML = ''; body.appendChild(UI.empty(tr('Вы пока ни на кого не подписаны')));
             body.appendChild(h('div.row.empty-actions', { 'data-group': 'free' }, UI.button(tr('Найти каналы'), 'search', function () { App.go('search', {}, { root: true }); }, 'primary'))); App.refocus(); } },
             function (e) { body.innerHTML = ''; body.appendChild(UI.error(e, render)); });
           return;
@@ -640,6 +646,11 @@
         var live = r[0];
         var liveSet = {};
         live.forEach(function (s) { liveSet[s.broadcaster.login] = 1; });
+        // канал в эфире, но не попал в список «в эфире» (разные ответы Twitch) — тоже показываем среди живых
+        r[1].forEach(function (u) {
+          if (u.stream && !liveSet[u.login]) { u.stream.broadcaster = u.stream.broadcaster || u; live.push(u.stream); liveSet[u.login] = 1; }
+        });
+        live.sort(function (a, b) { return b.viewersCount - a.viewersCount; });
         var off = r[1].filter(function (u) { return !u.stream && !liveSet[u.login]; });
         if (live.length) {
           body.appendChild(h('h2.section-title.row', { text: tr('В эфире') + ' • ' + live.length }));
@@ -1103,7 +1114,10 @@
       row('Needs sign-in', Auth.needsLogin() ? 'yes' : 'no', !Auth.needsLogin());
       row('Client-ID', Auth.CLIENT_ID);
       test('currentUser', function () { return Auth.gql('query{currentUser{id login}}').then(function (d) { return d.currentUser ? d.currentUser.login : 'null'; }); })
-        .then(function () { return test('followedLiveUsers', function () { return Auth.followedLive().then(function (l) { return l.length + ' live'; }); }); })
+        .then(function () { return test('token scopes', function () { return Auth.validate().then(function (j) { return (j.login || '?') + ' • client ' + j.client_id + ' • ' + ((j.scopes || []).join(' ') || 'no scopes'); }); }); })
+        .then(function () { return test('Helix follows', function () { return Auth.helix('channels/followed?user_id=' + encodeURIComponent(acc.user.id) + '&first=100').then(function (j) { return (j.total !== undefined ? j.total : (j.data || []).length) + ' channels'; }); }); })
+        .then(function () { return test('Helix live', function () { return Auth.helix('streams/followed?user_id=' + encodeURIComponent(acc.user.id) + '&first=100').then(function (j) { return (j.data || []).length + ' live'; }); }); })
+        .then(function () { return test('followedLive', function () { return Auth.followedLive().then(function (l) { return l.length + ' live'; }); }); })
         .then(function () { return test('follows', function () { return Auth.syncFollows().then(function (l) { return l.length + ' channels'; }); }); })
         .then(function () { return test('followedGames', function () { return Auth.followedGames().then(function (l) { return l.length + ' categories'; }); }); })
         .then(shelves);

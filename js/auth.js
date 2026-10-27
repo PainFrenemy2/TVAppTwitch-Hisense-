@@ -68,14 +68,19 @@
 
   // Шаг 1: получаем код для показа на экране
   Auth.startDevice = function () {
-    return post(ID + 'device', { client_id: CLIENT_ID, scopes: SCOPES }).then(function (j) {
-      if (j.device_code) return j;
-      // если какой-то scope не принят — пробуем без них
-      return post(ID + 'device', { client_id: CLIENT_ID, scopes: '' }).then(function (j2) {
-        if (!j2.device_code) throw new Error(j2.message || j.message || tr('Twitch не выдал код'));
-        return j2;
+    // если Twitch отказал в каком-то праве — пробуем наборы поменьше; доступ к отслеживаемым (user:read:follows)
+    // просим в каждом, без него на ТВ не будет списка ваших каналов
+    var sets = [SCOPES, 'user:read:follows chat:read', 'user:read:follows', ''];
+    var lastErr = null;
+    function attempt(i) {
+      if (i >= sets.length) return Promise.reject(new Error((lastErr && lastErr.message) || tr('Twitch не выдал код')));
+      return post(ID + 'device', { client_id: CLIENT_ID, scopes: sets[i] }).then(function (j) {
+        if (j.device_code) { j.scopesAsked = sets[i]; return j; }
+        lastErr = new Error(j.message || '');
+        return attempt(i + 1);
       });
-    });
+    }
+    return attempt(0);
   };
 
   // Шаг 2: ждём, пока пользователь введёт код на телефоне/компьютере
@@ -89,7 +94,7 @@
         if (Date.now() > deadline) return reject(new Error(tr('Код устарел — получите новый')));
         post(ID + 'token', {
           client_id: CLIENT_ID,
-          scopes: SCOPES,
+          scopes: dev.scopesAsked !== undefined ? dev.scopesAsked : SCOPES,
           device_code: dev.device_code,
           grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
         }).then(function (j) {
@@ -207,23 +212,90 @@
     });
   };
 
-  // Подписки пользователя: все каналы + кто сейчас в эфире
-  Auth.follows = function () {
+  // ---------- Официальный API Twitch (Helix) ----------
+  // Списки отслеживаемого берём отсюда: Twitch поддерживает его официально (права user:read:follows),
+  // а внутренний GQL у сторонних приложений может отдавать пустой список без ошибки.
+  Auth.helix = function (path, retried) {
+    var acc;
+    return Auth.ensure().then(function () {
+      acc = Auth.data;
+      return fetch('https://api.twitch.tv/helix/' + path, { headers: { 'Client-Id': CLIENT_ID, 'Authorization': 'Bearer ' + acc.token } });
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        // 401 «Missing scope» — у входа нет нужного права: токен в порядке, обновлять его бесполезно
+        if (r.status === 401 && !retried && !/scope/i.test(j.message || '')) {
+          return Auth.refresh().then(function () { return Auth.helix(path, true); }, function (e) { if (e.invalid) markExpired(acc); throw e; });
+        }
+        if (!r.ok) throw new Error('Helix ' + r.status + (j.message ? ': ' + j.message : ''));
+        return j;
+      });
+    });
+  };
+
+  // Что выдал Twitch при входе: client_id, логин, права (scopes) — для «Диагностики аккаунта»
+  Auth.validate = function () {
+    if (!Auth.loggedIn()) return Promise.reject(new Error(tr('Не выполнен вход')));
+    return fetch(ID + 'validate', { headers: { 'Authorization': 'OAuth ' + Auth.data.token } }).then(function (r) {
+      return r.json().then(function (j) { if (!r.ok) throw new Error('validate ' + r.status + (j.message ? ': ' + j.message : '')); return j; });
+    });
+  };
+
+  function helixFollows() {
+    var u = Auth.user();
+    if (!u || !u.id) return Promise.reject(new Error('no user id'));
     var all = [];
-    function page(after) {
-      return Auth.gql('query($after:Cursor){currentUser{follows(first:100,after:$after){edges{cursor node{login}} pageInfo{hasNextPage}}}}', { after: after || null })
-        .then(function (d) {
-          var f = d.currentUser && d.currentUser.follows;
-          var edges = (f && f.edges) || [];
-          edges.forEach(function (e) { if (e.node) all.push(e.node.login); });
-          if (f && f.pageInfo && f.pageInfo.hasNextPage && edges.length && all.length < 1000) return page(edges[edges.length - 1].cursor);
+    function page(cursor) {
+      return Auth.helix('channels/followed?user_id=' + encodeURIComponent(u.id) + '&first=100' + (cursor ? '&after=' + encodeURIComponent(cursor) : ''))
+        .then(function (j) {
+          (j.data || []).forEach(function (f) { if (f.broadcaster_login) all.push(f.broadcaster_login); });
+          var next = j.pagination && j.pagination.cursor;
+          if (next && (j.data || []).length && all.length < 2000) return page(next);
           return all;
         });
     }
     return page(null);
+  }
+
+  // GQL: через currentUser, а если пусто — через user(login), как страница «Отслеживаемое» на twitch.tv
+  function gqlFollows() {
+    return gqlFollowsVia('currentUser').then(function (list) {
+      var u = Auth.user();
+      return list.length || !u ? list : gqlFollowsVia('user').catch(function () { return list; });
+    });
+  }
+  function gqlFollowsVia(root) {
+    var all = [], u = Auth.user();
+    var q = root === 'user'
+      ? 'query($after:Cursor,$login:String!){user(login:$login){follows(first:100,after:$after,order:DESC){edges{cursor node{login}} pageInfo{hasNextPage}}}}'
+      : 'query($after:Cursor){currentUser{follows(first:100,after:$after){edges{cursor node{login}} pageInfo{hasNextPage}}}}';
+    function page(after) {
+      return Auth.gql(q, { after: after || null, login: u ? u.login : '' })
+        .then(function (d) {
+          var owner = root === 'user' ? d.user : d.currentUser;
+          var f = owner && owner.follows;
+          var edges = (f && f.edges) || [];
+          edges.forEach(function (e) { if (e.node) all.push(e.node.login); });
+          if (f && f.pageInfo && f.pageInfo.hasNextPage && edges.length && all.length < 2000) return page(edges[edges.length - 1].cursor);
+          return all;
+        });
+    }
+    return page(null);
+  }
+
+  // Все каналы, которые отслеживает пользователь: сначала официальный API, потом GQL.
+  // Пустой ответ одного источника не считаем окончательным — пробуем второй.
+  Auth.follows = function () {
+    Auth.followsDenied = false;
+    return helixFollows().then(function (list) {
+      return list.length ? list : gqlFollows().catch(function () { return list; });
+    }, function (e) {
+      // 401/403 от официального API — у входа нет права на список отслеживаемых: нужно войти заново
+      if (/Helix 40[13]/.test(e && e.message)) Auth.followsDenied = true;
+      return gqlFollows().catch(function () { throw e; });
+    });
   };
 
-  Auth.followedLive = function () {
+  function gqlFollowedLive() {
     return Auth.gql('query{currentUser{followedLiveUsers(first:100){edges{node{id login displayName profileImageURL(width:70) stream{id title viewersCount createdAt type previewImageURL(width:440,height:248) game{id name displayName}}}}}}}')
       .then(function (d) {
         var c = d.currentUser && d.currentUser.followedLiveUsers;
@@ -233,6 +305,30 @@
           return s;
         });
       });
+  }
+
+  // Кто из отслеживаемых сейчас в эфире: официальный API (кто в эфире) + карточки с аватарками из GQL
+  function helixFollowedLive() {
+    var u = Auth.user();
+    if (!u || !u.id) return Promise.reject(new Error('no user id'));
+    return Auth.helix('streams/followed?user_id=' + encodeURIComponent(u.id) + '&first=100').then(function (j) {
+      var logins = (j.data || []).map(function (st) { return st.user_login; }).filter(Boolean);
+      if (!logins.length) return [];
+      return Twitch.users(logins).then(function (us) {
+        return us.filter(function (x) { return x.stream; }).map(function (x) {
+          var st = x.stream; st.broadcaster = st.broadcaster || { id: x.id, login: x.login, displayName: x.displayName, profileImageURL: x.profileImageURL };
+          return st;
+        }).sort(function (a, b) { return b.viewersCount - a.viewersCount; });
+      });
+    });
+  }
+
+  Auth.followedLive = function () {
+    return helixFollowedLive().then(function (list) {
+      return list.length ? list : gqlFollowedLive().catch(function () { return list; });
+    }, function (e) {
+      return gqlFollowedLive().catch(function () { throw e; });
+    });
   };
 
   // Кто из подписок в эфире; если вход устарел или Twitch не ответил — по сохранённому списку подписок без входа
