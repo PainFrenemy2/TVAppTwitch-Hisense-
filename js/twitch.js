@@ -260,7 +260,7 @@
   // Рекомендованные эфиры для ленты «Эфир» — как в приложении Twitch на телефоне. Какой запрос Twitch отдаст
   // входу с телевизора, заранее неизвестно, поэтому пробуем по очереди; итог каждого — в T.recsDiag (для диагностики).
   function recQ(loc, platform, app) {
-    return 'query($id:String!){recommendedStreams(first:40,recRequestID:$id,location:' + loc + ',context:{platform:"' + platform + '",clientApp:"' + app + '"}){edges{node{' + STREAM + '}}}}';
+    return 'query($id:ID!){recommendedStreams(first:40,recRequestID:$id,location:' + loc + ',context:{platform:"' + platform + '",clientApp:"' + app + '"}){edges{node{' + STREAM + '}}}}';
   }
   var REC_VARIANTS = [
     ['personalSections android', 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"android"}}){type title{localizedFallback} items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}'],
