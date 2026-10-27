@@ -1132,3 +1132,26 @@ img.broken { visibility: hidden; }
 .evc-plus { display: none; margin-left: .5rem; color: #00f593; }
 .ev-corner.flash .evc-plus { display: inline; }
 .ev-corner.flash { box-shadow: 0 0 0 .2rem #00f593; }
+/* ===== «Эфир» — лента эфиров как в приложении Twitch на телефоне ===== */
+.page-live { padding: 3rem 3rem 3rem 3rem; }
+.live-feed { position: absolute; left: 3rem; top: 3rem; right: 22rem; bottom: 3rem; border-radius: 1rem; overflow: hidden; background: #000; }
+.live-feed.focused { box-shadow: 0 0 0 .35rem var(--accent); }
+.live-media { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.live-img, .live-video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+.live-video { opacity: 0; transition: opacity .4s; }
+.live-video.playing { opacity: 1; }
+.live-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 60%; background: linear-gradient(0deg, rgba(0,0,0,.9), rgba(0,0,0,0)); }
+.live-info { position: absolute; left: 3rem; right: 3rem; bottom: 2.6rem; }
+.live-chan { display: flex; align-items: center; }
+.live-avatar { width: 5.4rem; height: 5.4rem; border-radius: 50%; margin-right: 1.4rem; object-fit: cover; background: var(--bg3); border: .2rem solid var(--live); }
+.live-name { font-size: 2.3rem; font-weight: 700; }
+.live-game { font-size: 1.5rem; color: var(--accent2); margin-top: .3rem; }
+.live-title { font-size: 1.8rem; line-height: 1.4; margin-top: 1.4rem; max-width: 90rem; max-height: 5rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.live-meta { margin-top: 1.2rem; display: flex; align-items: center; font-size: 1.45rem; color: #ddd; }
+.live-mine { margin-left: 1.4rem; color: #bf94ff; font-weight: 600; }
+.live-hint { margin-top: 1.2rem; font-size: 1.3rem; color: var(--text2); opacity: 0; transition: opacity .2s; }
+.live-feed.focused .live-hint { opacity: 1; }
+.live-next { position: absolute; right: 3rem; top: 3rem; width: 17rem; }
+.live-next-item { margin-bottom: 1.6rem; font-size: 1.3rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.live-next-item img { display: block; width: 100%; height: 9.6rem; object-fit: cover; border-radius: .6rem; background: var(--bg2); margin-bottom: .5rem; }
+.live-empty { position: absolute; left: 0; right: 0; top: 45%; text-align: center; font-size: 1.8rem; color: var(--text2); }

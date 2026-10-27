@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.9.1',
+    VERSION: '1.9.2',
     layers: [],
     history: [],
     pendingFocus: false
@@ -220,6 +220,7 @@
   var SIDE = [
     ['search', 'search', tr('Поиск')],
     ['home', 'home', tr('Главная')],
+    ['live', 'liveFeed', tr('Эфир')],
     ['browse', 'browse', tr('Категории')],
     ['clips', 'clip', tr('Клипы')],
     ['following', 'following', tr('Отслеживаемое')],

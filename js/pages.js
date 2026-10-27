@@ -636,6 +636,121 @@
     };
   };
 
+  // ---------- Эфир — лента эфиров как в приложении Twitch на телефоне ----------
+  // Один большой эфир на экран с живым превью: ▲/▼ — следующий/предыдущий, OK — смотреть.
+  // Сначала каналы, за которыми вы следите, потом эфиры из ваших категорий, потом популярные на вашем языке.
+  Pages.live = function () {
+    var el = h('section.page.page-live');
+    var items = [], idx = 0, seen = {}, loading = null, sources = [], srcI = 0;
+    var feed = h('div.live-feed.focusable', null, [
+      h('div.live-media', null, [h('img.live-img', { alt: '' }), h('video.live-video', { playsinline: '' }), h('div.live-fade')]),
+      h('div.live-info', null, [
+        h('div.live-chan', null, [h('img.live-avatar', { alt: '' }), h('div', null, [h('div.live-name'), h('div.live-game')])]),
+        h('div.live-title'),
+        h('div.live-meta', null, [h('span.badge-inline.live', { text: tr('В ЭФИРЕ') }), h('span.live-viewers'), h('span.live-mine', { text: tr('Вы отслеживаете') })]),
+        h('div.live-hint', { text: tr('▲ ▼ — листать эфиры • OK — смотреть') })
+      ])
+    ]);
+    var empty = h('div.live-empty', { text: '' });
+    var nextBox = h('div.live-next');
+    el.appendChild(feed);
+    el.appendChild(nextBox);
+    el.appendChild(empty);
+    var mine = {};
+
+    function add(list, isMine) {
+      (list || []).forEach(function (st) {
+        var l = st && st.broadcaster && st.broadcaster.login;
+        if (!l || seen[l] || App.isBlocked && App.isBlocked(l)) return;
+        seen[l] = 1;
+        if (isMine) mine[l] = 1;
+        items.push(st);
+      });
+    }
+    function more() {
+      if (loading || srcI >= sources.length) return loading || Promise.resolve();
+      var src = sources[srcI++];
+      loading = src().catch(function () { return []; }).then(function (r) {
+        loading = null;
+        var before = items.length;
+        add(r.list, r.mine);
+        if (!items.length && srcI < sources.length) return more();
+        if (before === 0 && items.length) show(0);
+        else renderNext();
+        if (!items.length && srcI >= sources.length) { empty.textContent = tr('Нет трансляций'); feed.classList.add('hidden'); }
+      });
+      return loading;
+    }
+    var lang = Settings.get('lang');
+    sources.push(function () { return myLive().then(function (l) { return { list: l, mine: true }; }); });
+    sources.push(function () {
+      if (!Auth.loggedIn()) return Promise.resolve({ list: [] });
+      return Twitch.tasteGames(Auth.cachedFollows()).then(function (games) {
+        return U.pool(games.slice(0, 4), 2, function (g) { return Twitch.gameStreams(g.name, 10).then(function (p) { return p.items; }).catch(function () { return []; }); });
+      }).then(function (lists) {
+        var out = [];
+        for (var k = 0; k < 10; k++) lists.forEach(function (l) { if (l && l[k]) out.push(l[k]); });
+        return { list: out };
+      });
+    });
+    sources.push(function () { return Twitch.topStreamsByLang(lang, 30).catch(function () { return Twitch.topStreams(30); }).then(function (p) { return { list: p.items }; }); });
+    // дальше — популярные по всему Twitch, страница за страницей (лента не кончается)
+    var topCursor = null;
+    function topPage() {
+      return Twitch.topStreams(30, topCursor).then(function (p) {
+        topCursor = p.cursor;
+        if (p.more && p.cursor) sources.push(topPage);
+        return { list: p.items };
+      });
+    }
+    sources.push(topPage);
+
+    function renderNext() {
+      var box = nextBox;
+      box.innerHTML = '';
+      for (var k = idx + 1; k <= idx + 3 && k < items.length; k++) {
+        var st = items[k], b = st.broadcaster || {};
+        box.appendChild(h('div.live-next-item', null, [h('img', { src: st.previewImageURL || '', alt: '' }), h('span', { text: b.displayName || b.login })]));
+      }
+    }
+    function show(i) {
+      if (!items.length) return;
+      idx = Math.max(0, Math.min(i, items.length - 1));
+      var st = items[idx], b = st.broadcaster || {};
+      U.$('.live-img', feed).src = String(st.previewImageURL || '').replace('440x248', '1280x720');
+      U.$('.live-avatar', feed).src = b.profileImageURL || '';
+      U.$('.live-name', feed).textContent = b.displayName || b.login;
+      U.$('.live-game', feed).textContent = st.game ? (st.game.displayName || st.game.name) : '';
+      U.$('.live-title', feed).textContent = st.title || '';
+      U.$('.live-viewers', feed).textContent = U.viewers(st.viewersCount);
+      U.$('.live-mine', feed).style.display = mine[b.login] ? '' : 'none';
+      renderNext();
+      if (feed.classList.contains('focused')) Preview.start(U.$('.live-video', feed), b.login); else Preview.stop();
+      if (idx >= items.length - 4) more();
+    }
+    feed._onfocus = function () { show(idx); };
+    feed._onblur = function () { Preview.stop(); };
+    feed._onclick = function () {
+      if (!items.length) return;
+      Preview.stop();
+      var list = items.map(App.itemFromStream);
+      App.play(list[idx], list);
+    };
+    feed._onkey = function (k) {
+      if (k === 'DOWN') { if (idx < items.length - 1) show(idx + 1); else more(); return true; }
+      if (k === 'UP') { if (idx > 0) show(idx - 1); return true; }
+      if (k === 'RIGHT') return true;
+      return false;
+    };
+    more().then(function () { App.refocus(); });
+    return {
+      el: el, nav: 'live',
+      firstFocus: function () { return items.length ? feed : null; },
+      onHide: function () { Preview.stop(); },
+      onShow: function () { if (feed.classList.contains('focused')) show(idx); }
+    };
+  };
+
   // ---------- Подписки ----------
   Pages.following = function () {
     var el = pageShell('page-following');
