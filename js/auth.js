@@ -174,6 +174,7 @@
       if (j.refresh_token) acc.refresh = j.refresh_token;
       acc.expires = Date.now() + (j.expires_in || 3600) * 1000;
       acc.needsLogin = false;
+      acc.refreshBroken = false;
       acc.refreshLog = { at: Date.now(), ok: true, status: j._status, msg: '' };
       Auth._failAcc = null;
       save();
@@ -200,8 +201,18 @@
     if (acc.expires && acc.expires - Date.now() < 5 * 60 * 1000) {
       // приложение свёрнуто / ТВ в режиме ожидания — не продлеваем (см. Auth.refresh)
       if (asleep()) return acc.expires > Date.now() ? Promise.resolve() : Promise.reject(new Error(tr('Не удалось обновить вход')));
+      // Twitch уже отказал в продлении этого входа — не дёргаем refresh повторно, работаем, пока токен жив
+      if (acc.refreshBroken) return revalidate(acc).then(function (ok) {
+        if (!ok) { markExpired(acc); throw new Error(tr('Вход в Twitch устарел — войдите снова')); }
+      });
       return Auth.refresh().catch(function (e) {
-        if (e.invalid) { markExpired(acc); throw e; }
+        // Twitch отверг продление — но сам токен может быть ещё действителен (так было на ТВ:
+        // продление 400, а проверка токена — успешна). Выходим из аккаунта, только если токен и правда мёртв.
+        if (e.invalid) return revalidate(acc).then(function (ok) {
+          if (ok) { acc.refreshBroken = true; save(); return; }
+          markExpired(acc);
+          throw e;
+        });
         // сеть ещё не поднялась после сна ТВ — пока токен жив, работаем с ним
         if (acc.expires > Date.now()) return;
         throw e;
@@ -209,6 +220,26 @@
     }
     return Promise.resolve();
   };
+
+  // Проверка токена у Twitch (id.twitch.tv/oauth2/validate): жив — берём настоящий срок действия.
+  // true — токен рабочий (и «нужен вход» снимается), false — Twitch его не принимает.
+  function revalidate(acc) {
+    if (!acc || !acc.token) return Promise.resolve(false);
+    return fetchTimeout(ID + 'validate', { headers: { 'Authorization': 'OAuth ' + acc.token } }, 10000).then(function (r) {
+      if (r.status === 401) return false;
+      if (!r.ok) throw new Error('validate ' + r.status);
+      return r.json().then(function (j) {
+        if (!(j.expires_in > 60)) return false;
+        acc.expires = Date.now() + j.expires_in * 1000;
+        var was = acc.needsLogin;
+        acc.needsLogin = false;
+        save(); U.store.flush();
+        if (was) changed();
+        return true;
+      });
+    }, function () { return acc.expires > Date.now(); }); // нет сети — решаем по сохранённому сроку
+  }
+  Auth.revalidate = function () { return revalidate(Auth.data); };
 
   function markExpired(acc) {
     if (acc.needsLogin) return;

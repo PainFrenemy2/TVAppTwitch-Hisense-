@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '2.0.4',
+    VERSION: '2.0.5',
     layers: [],
     history: [],
     pendingFocus: false
@@ -623,7 +623,10 @@
     }
     // «Кто смотрит?» — только при обычном запуске; если вернулись к эфиру, не перебиваем его
     if (Auth.accounts.length > 1 && resumed !== 'player') App.showProfiles();
-    if (Auth.needsLogin()) setTimeout(function () { UI.toast(tr('Вход в Twitch устарел — войдите снова в разделе «Аккаунт»'), 6000); }, 1500);
+    // «вход устарел» мог быть поставлен зря (Twitch отказал в продлении, а токен ещё жив) — сначала спрашиваем Twitch
+    if (Auth.needsLogin()) Auth.revalidate().then(function (ok) {
+      if (!ok) setTimeout(function () { UI.toast(tr('Вход в Twitch устарел — войдите снова в разделе «Аккаунт»'), 6000); }, 1500);
+    });
     setTimeout(checkLive, 20000);
     setInterval(checkLive, 3 * 60 * 1000);
   }
