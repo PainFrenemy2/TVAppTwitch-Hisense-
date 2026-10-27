@@ -1167,3 +1167,4 @@ img.broken { visibility: hidden; }
 .num-key.num-ok { background: var(--accent); font-size: 1.8rem; }
 .num-key.focused { box-shadow: 0 0 0 .3rem #fff; background: rgba(255,255,255,.22); }
 .num-key.num-ok.focused { background: #a970ff; }
+.account-why { color: var(--text2); font-size: 1.25rem; margin-top: .4rem; }

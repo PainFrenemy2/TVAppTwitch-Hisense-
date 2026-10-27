@@ -1315,6 +1315,12 @@
         h('div.account-info', null, [
           h('div.account-name', { text: u.displayName }),
           h('div.account-sub' + (expired ? '.account-expired' : ''), { text: expired ? tr('Вход в Twitch устарел. Избранное и подписки сохранены — просто войдите снова по коду.') : tr('Подписок: ') + Auth.cachedFollows().length }),
+          (function () {
+            // что ответил Twitch, когда вход не удалось продлить (для разработчика — по скриншоту)
+            var f = U.store.get('lastRefreshFail', null) || (Auth.data && Auth.data.refreshLog && !Auth.data.refreshLog.ok ? Auth.data.refreshLog : null);
+            if (f && f.msg === undefined) f.msg = '';
+            return expired && f ? h('div.account-sub.account-why', { text: 'Twitch: HTTP ' + f.status + ' ' + f.msg + ' • ' + new Date(f.at).toLocaleString() }) : null;
+          })(),
           actions
         ])
       ]));
@@ -1408,6 +1414,8 @@
     if (acc && acc.token) {
       row('Token', acc.expires ? 'expires in ' + Math.round((acc.expires - Date.now()) / 60000) + ' min' : 'no expiry info', acc.expires > Date.now());
       row('Needs sign-in', Auth.needsLogin() ? 'yes' : 'no', !Auth.needsLogin());
+      var lf = U.store.get('lastRefreshFail', null);
+      if (lf) row('Last sign-in loss', new Date(lf.at).toLocaleString() + ' • HTTP ' + lf.status + ' ' + lf.msg, false);
       var rl = acc.refreshLog;
       row('Last token refresh', rl ? new Date(rl.at).toLocaleString() + ' • ' + (rl.ok ? 'ok' : 'HTTP ' + rl.status + ' ' + rl.msg) : 'never', rl ? rl.ok : undefined);
       row('Client-ID', Auth.CLIENT_ID);

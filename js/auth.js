@@ -165,6 +165,8 @@
         e.invalid = j._status === 400 || j._status === 401; // Twitch прямо отверг токен
         // для «Диагностики аккаунта»: что ответил Twitch при последнем продлении
         acc.refreshLog = { at: Date.now(), ok: false, status: j._status, msg: String(j.message || '') };
+        // отдельно и надолго: переживает повторный вход — чтобы было видно, почему вход слетел
+        if (e.invalid) U.store.set('lastRefreshFail', { at: Date.now(), status: j._status, msg: String(j.message || ''), issued: acc.issued || 0, login: acc.user && acc.user.login });
         save(); U.store.flush();
         throw e;
       }
