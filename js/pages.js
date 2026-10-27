@@ -328,7 +328,7 @@
     var queue = [];
     body.setAttribute('data-lazy', '1');
     body._lazy = function (n) {
-      var k = n || 2;
+      var k = n === undefined || n === null ? 2 : n; // 0 — значит «ничего не достраивать», а не 2
       while (k-- > 0 && queue.length) queue.shift()();
     };
     function later(fn) { queue.push(fn); }
@@ -336,6 +336,8 @@
     function renderMain() {
       body.innerHTML = '';
       queue = [];
+      personalDone = false;
+      clearTimeout(lateTimer);
       if (App.myChannels().length || Auth.loggedIn()) {
         autoShelf(body, Auth.loggedIn() ? tr('Подписки в эфире') : tr('Избранное в эфире'), myLive, streamCard, { cls: 'shelf-favs' });
       }
@@ -366,7 +368,8 @@
         later(function () { autoShelf(body, tr('Новые записи ваших каналов'), function () { return followedVideos(24); }, videoCard); });
         // остальные ряды — когда придут персональные (не забиваем сеть ТВ залпом запросов при открытии),
         // но не позже чем через 4 секунды, если Twitch отвечает медленно
-        setTimeout(function () { if (body.isConnected) afterPersonal(); }, 4000);
+        clearTimeout(lateTimer);
+        lateTimer = setTimeout(function () { if (body.isConnected && !personalDone) afterPersonal(); }, 4000);
         return;
       }
       genericRows(true);
@@ -403,7 +406,8 @@
 
     var MAKE = { Stream: streamCard, Game: gameCard, Clip: clipCard, Video: videoCard };
     // персональные ряды пришли (или вместо них — рекомендации): достраиваем экран до 4 рядов
-    function afterPersonal() { body._lazy(Math.max(0, 4 - body.children.length)); }
+    var personalDone = false, lateTimer = null;
+    function afterPersonal() { personalDone = true; clearTimeout(lateTimer); body._lazy(Math.max(0, 4 - body.children.length)); }
 
     function personalRows() {
       var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard);
@@ -470,6 +474,7 @@
     function renderGame(g) {
       body.innerHTML = '';
       queue = [];
+      clearTimeout(lateTimer);
       var wrap = h('div.grid-wrap');
       body.appendChild(wrap);
       fillGrid(wrap, pagedGrid('grid-video', function (c) { return Twitch.gameStreams(g.name, 24, c); }, streamCard), tr('Нет трансляций'));
@@ -574,7 +579,7 @@
     // Ряды категорий строим порциями по мере прокрутки, как на главной, — меньше запросов и DOM на слабом ТВ.
     var queue = [];
     body.setAttribute('data-lazy', '1');
-    body._lazy = function (n) { var k = n || 2; while (k-- > 0 && queue.length) queue.shift()(); };
+    body._lazy = function (n) { var k = n === undefined || n === null ? 2 : n; while (k-- > 0 && queue.length) queue.shift()(); };
     function gameClips(g) { return Twitch.gameClips(g.name, 20, period); }
 
     function render() {

@@ -262,7 +262,8 @@
     var firstBtn = U.$('.focusable', panel.actions);
     var box = U.$('.ev-scrollbox', panel.el);
     if (firstBtn && box && panel.body.offsetHeight < box.clientHeight * 0.6) firstBtn.setAttribute('data-top', '1');
-    var target = firstBtn || U.$('.focusable', panel.el);
+    // много исходов — фокус на первом исходе вверху списка (а не на кнопке внизу)
+    var target = U.$('.ev-pick', panel.el) || firstBtn || U.$('.focusable', panel.el);
     if (panel.refs && isTop() && hadFocus && target) Nav.focus(target);
   }
 
@@ -317,7 +318,8 @@
         var pct = h('div.ev-pct-num', { style: 'color:' + color });
         var won = p.winningOutcome && p.winningOutcome.id === o.id;
         // много исходов — сами строки исходов выбираются и нажимаются (OK → ставка): фокус всегда рядом с цифрами
-        var rowBet = !two && p.status === 'ACTIVE';
+        // строки выбираются в любом состоянии — так список можно листать и после закрытия ставок; ставка — только пока приём открыт
+        var rowBet = !two;
         var oc = h('div.ev-outcome' + (won ? '.ev-won' : '') + (rowBet ? '.focusable.ev-pick' : ''), rowBet ? { style: '--ev:' + color } : null, [
           h('div.ev-name', { text: o.title, style: 'color:' + color }),
           h('div.ev-row', null, [
@@ -327,7 +329,7 @@
         ]);
         if (rowBet) {
           if (i === 0) oc.setAttribute('data-top', '1');
-          oc._onclick = function () { if (!needLogin()) pickPoints(p.id, o, Ev.balance); };
+          if (p.status === 'ACTIVE') oc._onclick = function () { if (!needLogin()) pickPoints(p.id, o, Ev.balance); };
         }
         cols.appendChild(oc);
         refs.outcomes.push({ points: s1.v, ratio: s2.v, users: s3.v, top: s4.v, pct: pct });
