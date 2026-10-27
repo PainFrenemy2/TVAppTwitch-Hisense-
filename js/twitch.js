@@ -203,7 +203,10 @@
         var st = u.stream; st.broadcaster = st.broadcaster || { id: u.id, login: u.login, displayName: u.displayName, profileImageURL: u.profileImageURL };
         return { type: 'Stream', data: st };
       });
-      if (items.length) out.push({ id: sec.type, title: (sec.title && sec.title.localizedFallback) || tr('Рекомендуемые каналы'), items: items });
+      var title = (sec.title && sec.title.localizedFallback) || '';
+      // «Popular Channels» — общая подборка для всех, а не рекомендации под пользователя: не считаем её личной
+      if (/popular/i.test(title + ' ' + sec.type)) return;
+      if (items.length) out.push({ id: sec.type, title: title || tr('Рекомендуемые каналы'), items: items });
     });
     return out;
   }
@@ -260,7 +263,7 @@
     return 'query($id:String!){recommendedStreams(first:40,recRequestID:$id,location:' + loc + ',context:{platform:"' + platform + '",clientApp:"' + app + '"}){edges{node{' + STREAM + '}}}}';
   }
   var REC_VARIANTS = [
-    ['personalSections android', 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"android"}}){items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}'],
+    ['personalSections android', 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"android"}}){type title{localizedFallback} items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}'],
     ['recommendedStreams HOME android', recQ('HOME', 'android', 'android')],
     ['recommendedStreams "HOME" android', recQ('"HOME"', 'android', 'android')],
     ['recommendedStreams HOME web', recQ('HOME', 'web', 'twilight')]
@@ -284,6 +287,8 @@
         var list;
         if (d && d.recommendedStreams) list = edges(d.recommendedStreams);
         else list = [].concat.apply([], ((d && d.personalSections) || []).map(function (sec) {
+          // общая подборка «Popular Channels» — не рекомендации под вас
+          if (/popular/i.test(((sec.title && sec.title.localizedFallback) || '') + ' ' + sec.type)) return [];
           return (sec.items || []).map(function (it) {
             var u = it.user; if (!u || !u.stream) return null;
             u.stream.broadcaster = u.stream.broadcaster || { id: u.id, login: u.login, displayName: u.displayName, profileImageURL: u.profileImageURL };

@@ -297,6 +297,8 @@
     }
     var followedHero = Auth.loggedIn() ? myLive().then(addHero, function () { return false; }) : Promise.resolve(false);
     Promise.all([followedHero, Twitch.personalShelves()]).then(function (r) {
+      // как на телефоне: вверху — только ваши каналы в эфире (если кто-то есть), без чужих
+      if (r[0]) return;
       var st = [];
       r[1].forEach(function (row) { row.items.forEach(function (it) { if (it.type === 'Stream') st.push(it.data); }); });
       if (addHero(st)) return;
@@ -1365,7 +1367,7 @@
       var v = row('Live recommendations', '…');
       return Twitch.liveRecs().then(function (l) {
         v.textContent = l.length ? l.length + ' streams' : 'none — feed uses your categories';
-        v.style.color = l.length ? '#7ee787' : '#ff7b72';
+        v.style.color = l.length ? '#7ee787' : '';
         (Twitch.recsDiag || []).forEach(function (st) { row('  ' + st.name, st.info + ' • ' + st.ms + ' ms', st.ok); });
       });
     }
@@ -1373,9 +1375,10 @@
       Twitch.clearCache();
       var v = row('Home shelves', '…');
       Twitch.personalShelves().then(function (rows) {
-        v.textContent = rows.length ? rows.length + ' rows' : 'none — generic Home is shown';
-        v.style.color = rows.length ? '#7ee787' : '#ff7b72';
-        (Twitch.diag.steps || []).forEach(function (st) { row('  ' + st.name, st.info + ' • ' + st.ms + ' ms', st.ok); });
+        v.textContent = rows.length ? rows.length + ' rows' : 'none — Home is built from your follows';
+        v.style.color = rows.length ? '#7ee787' : '';
+        // «skipped» — не ошибка: Twitch этому входу ряды не отдаёт, и мы их сознательно не спрашиваем
+        (Twitch.diag.steps || []).forEach(function (st) { row('  ' + st.name, st.info + ' • ' + st.ms + ' ms', /skipped/.test(st.info) ? undefined : st.ok); });
       });
     }
     return { el: el, nav: 'settings', firstFocus: function () { return again; } };
