@@ -41,23 +41,102 @@
   };
 
   // --- хранилище ---
+  // Основное — localStorage. Каждая запись дублируется в IndexedDB: некоторые прошивки VIDAA
+  // при выходе из приложения теряют localStorage (или не успевают сбросить его на диск),
+  // и тогда при следующем запуске мы восстанавливаем данные (вход, настройки, место) из копии.
+  var PREFIX = 'ttv.';
+  var mem = {};
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] === undefined ? null : mem[k]; } }
+  function lsSet(k, v) { mem[k] = v; try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+  var Backup = { db: null, waiting: [], failed: false };
+  Backup.open = function (cb) {
+    if (Backup.db) return cb(Backup.db);
+    if (Backup.failed || !window.indexedDB) return cb(null);
+    Backup.waiting.push(cb);
+    if (Backup.waiting.length > 1) return;
+    var done = function (db) { Backup.db = db; Backup.failed = !db; var w = Backup.waiting; Backup.waiting = []; w.forEach(function (f) { f(db); }); };
+    try {
+      var req = indexedDB.open('ttv-backup', 1);
+      req.onupgradeneeded = function () { req.result.createObjectStore('kv'); };
+      req.onsuccess = function () { done(req.result); };
+      req.onerror = req.onblocked = function () { done(null); };
+    } catch (e) { done(null); }
+  };
+  // запись пачкой: несколько set подряд — одна транзакция
+  var pending = {}, flushTimer = null;
+  Backup.put = function (k, v) {
+    pending[k] = v;
+    if (flushTimer) return;
+    flushTimer = setTimeout(Backup.flush, 50);
+  };
+  Backup.flush = function () {
+    clearTimeout(flushTimer); flushTimer = null;
+    var batch = pending; pending = {};
+    if (!Object.keys(batch).length) return;
+    Backup.open(function (db) {
+      if (!db) return;
+      try {
+        var st = db.transaction('kv', 'readwrite').objectStore('kv');
+        Object.keys(batch).forEach(function (k) { st.put(batch[k], k); });
+      } catch (e) { /* нет места */ }
+    });
+  };
+  Backup.all = function (cb) {
+    Backup.open(function (db) {
+      if (!db) return cb({});
+      var out = {};
+      try {
+        var req = db.transaction('kv', 'readonly').objectStore('kv').openCursor();
+        req.onsuccess = function () {
+          var c = req.result;
+          if (c) { out[c.key] = c.value; c.continue(); } else cb(out);
+        };
+        req.onerror = function () { cb(out); };
+      } catch (e) { cb(out); }
+    });
+  };
+
+  // Какие ключи были в localStorage при запуске — до того, как модули ниже что-то запишут
+  var initialKeys = {};
+  try { for (var i = 0; i < localStorage.length; i++) initialKeys[localStorage.key(i)] = 1; } catch (e) { /* нет доступа */ }
+
   U.store = {
     get: function (key, def) {
-      try {
-        var v = localStorage.getItem('ttv.' + key);
-        return v === null ? def : JSON.parse(v);
-      } catch (e) { return def; }
+      var v = lsGet(PREFIX + key);
+      if (v === null) return def;
+      try { return JSON.parse(v); } catch (e) { return def; }
     },
     set: function (key, val) {
-      try { localStorage.setItem('ttv.' + key, JSON.stringify(val)); } catch (e) { /* нет места */ }
+      var s = JSON.stringify(val);
+      lsSet(PREFIX + key, s);
+      Backup.put(PREFIX + key, s);
+    },
+    flush: function () { Backup.flush(); },
+    // При запуске (параллельно, не задерживая интерфейс): если каких-то сохранённых ключей нет в localStorage,
+    // а в копии они есть — ТВ стёр данные. Возвращаем их и перезапускаемся (обычно ещё под заставкой).
+    restore: function () {
+      if (/[?&]restored=1/.test(location.search)) return;
+      Backup.all(function (all) {
+        var lost = Object.keys(all).filter(function (k) { return k.indexOf(PREFIX) === 0 && !initialKeys[k]; });
+        if (!lost.length) return;
+        var ok = true;
+        lost.forEach(function (k) { if (!lsSet(k, all[k])) ok = false; });
+        if (!ok) return;
+        location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'restored=1' + location.hash);
+      });
     }
   };
+  // при уходе из приложения дописываем копию сразу
+  window.addEventListener('pagehide', Backup.flush);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) Backup.flush(); });
 
   // --- форматирование (слова — на языке интерфейса, см. i18n.js) ---
   U.num = function (n) {
     n = n || 0;
-    var w = I18N.words(), en = I18N.lang === 'en';
-    var f = function (x, d) { var t = x.toFixed(d); if (!en) t = t.replace('.', ','); return t.replace(/[.,]0$/, ''); };
+    var w = I18N.words(), dot = /^(en|ja|ko|th|zh)/.test(I18N.lang);
+    var f = function (x, d) { var t = x.toFixed(d); if (!dot) t = t.replace('.', ','); return t.replace(/[.,]0$/, ''); };
+    if (w.wan) return n >= 1e4 ? f(n / 1e4, n >= 1e5 ? 0 : 1) + w.wan : String(n); // 万: 1,2万
     if (n >= 1e6) return f(n / 1e6, n >= 1e7 ? 0 : 1) + w.m;
     if (n >= 1e3) return f(n / 1e3, n >= 1e4 ? 0 : 1) + w.k;
     return String(n);
@@ -65,14 +144,14 @@
 
   U.viewers = function (n) {
     n = n || 0;
-    var w = I18N.words().viewer;
-    return U.num(n) + ' ' + (n >= 1000 ? w[w.length - 1] : I18N.plural(n, w));
+    var W = I18N.words(), w = W.viewer;
+    return U.num(n) + (W.sep === undefined ? ' ' : W.sep) + (n >= 1000 ? w[w.length - 1] : I18N.plural(n, w));
   };
 
   U.views = function (n) {
     n = n || 0;
-    var w = I18N.words().view;
-    return U.num(n) + ' ' + (n >= 1000 ? w[w.length - 1] : I18N.plural(n, w));
+    var W = I18N.words(), w = W.view;
+    return U.num(n) + (W.sep === undefined ? ' ' : W.sep) + (n >= 1000 ? w[w.length - 1] : I18N.plural(n, w));
   };
 
   U.pad = function (n) { return n < 10 ? '0' + n : String(n); };
@@ -91,7 +170,7 @@
     var secs = [31536000, 2592000, 604800, 86400, 3600, 60];
     for (var i = 0; i < secs.length; i++) {
       var n = Math.floor(d / secs[i]);
-      if (n >= 1) return n + ' ' + I18N.plural(n, w.units[i]) + w.ago;
+      if (n >= 1) return (w.pre || '') + n + (w.sep === undefined ? ' ' : w.sep) + I18N.plural(n, w.units[i]) + w.ago;
     }
     return '';
   };

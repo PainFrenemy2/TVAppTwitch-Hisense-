@@ -102,6 +102,8 @@
   }
 
   var T = {};
+  // сырой запрос без кэша и повторов (прогнозы, голосования — данные меняются каждую секунду)
+  T.gqlRaw = function (query, variables) { return gql(query, variables, { retries: 0, timeout: 8000 }); };
 
   T.topStreams = function (first, after) {
     return gql('query($first:Int,$after:Cursor){streams(first:$first,after:$after){edges{cursor node{' + STREAM + '}} pageInfo{hasNextPage}}}',
@@ -255,6 +257,17 @@
     return attempt();
   }
 
+  function anonTokenOnce(kind, id, playerType) {
+    return gql(TOKEN_Q, {
+      login: kind === 'live' ? id : '', isLive: kind === 'live',
+      vodID: kind === 'vod' ? id : '', isVod: kind === 'vod', playerType: playerType
+    }, { retries: 0, timeout: 5000 }).then(function (d) {
+      var t = kind === 'live' ? d.streamPlaybackAccessToken : d.videoPlaybackAccessToken;
+      if (!t || !t.value) throw new Error(tr('Нет токена'));
+      return t;
+    });
+  }
+
   function qs(o) {
     var a = [];
     for (var k in o) a.push(encodeURIComponent(k) + '=' + encodeURIComponent(o[k]));
@@ -287,24 +300,28 @@
   };
 
   // Возвращает URL master-плейлиста. По умолчанию — кодеки, которые ТВ декодирует аппаратно.
+  function masterUrl(login, t, clientId) {
+    return 'https://usher.ttvnw.net/api/channel/hls/' + encodeURIComponent(login) + '.m3u8?' + qs({
+      client_id: clientId,
+      token: t.value,
+      sig: t.signature,
+      allow_source: 'true',
+      allow_audio_only: 'false',
+      fast_bread: 'true',
+      player_backend: 'mediaplayer',
+      playlist_include_framerate: 'true',
+      reassignments_supported: 'true',
+      supported_codecs: T.codecs(),
+      cdm: 'wv',
+      player_version: '1.28.0',
+      p: Math.floor(Math.random() * 9999999)
+      });
+  }
+
   T.liveUrl = function (login, playerType) {
     login = login.toLowerCase();
     return token('live', login, playerType).then(function (t) {
-      return 'https://usher.ttvnw.net/api/channel/hls/' + encodeURIComponent(login) + '.m3u8?' + qs({
-        client_id: t.clientId || CLIENT_ID,
-        token: t.value,
-        sig: t.signature,
-        allow_source: 'true',
-        allow_audio_only: 'false',
-        fast_bread: 'true',
-        player_backend: 'mediaplayer',
-        playlist_include_framerate: 'true',
-        reassignments_supported: 'true',
-        supported_codecs: T.codecs(),
-        cdm: 'wv',
-        player_version: '1.28.0',
-        p: Math.floor(Math.random() * 9999999)
-      });
+      return masterUrl(login, t, t.clientId || CLIENT_ID);
     });
   };
 
@@ -340,6 +357,128 @@
         };
       }).sort(function (a, b) { return b.quality - a.quality; });
     });
+  };
+
+  // ---------- Значки чата ----------
+  // Берём прямо у Twitch: глобальные (модератор, VIP, Prime, сезонные и ивентовые — Хэллоуин и т.п.)
+  // и значки канала (подписчик, битсы). Новые значки Twitch появляются у нас сами, без обновления приложения.
+  var BADGE = 'setID version title imageURL(size:DOUBLE)';
+  function badgeMap(list) {
+    var m = {};
+    (list || []).forEach(function (b) { if (b && b.setID && b.imageURL) m[b.setID + '/' + b.version] = { url: b.imageURL, title: b.title || b.setID }; });
+    return m;
+  }
+  T.globalBadges = function () {
+    return gql('query{badges{' + BADGE + '}}', {}, { retries: 1 }).then(function (d) { return badgeMap(d.badges); });
+  };
+  T.channelBadges = function (login) {
+    return gql('query($login:String!){user(login:$login){broadcastBadges{' + BADGE + '}}}', { login: login }, { retries: 1 })
+      .then(function (d) { return badgeMap(d.user && d.user.broadcastBadges); });
+  };
+
+  // ---------- Рекламные паузы ----------
+  // Зрителям без входа/Turbo Twitch иногда вклеивает в эфир рекламу или заставку
+  // «Commercial break in progress». Такие куски видно в медиаплейлисте (метки stitched-ad,
+  // сегменты без названия «live»). На время паузы подменяем плейлист тем же качеством из
+  // резервного потока Twitch (другой тип плеера), где рекламы обычно нет.
+  T.isAdPlaylist = function (text) {
+    return /stitched-ad|X-TV-TWITCH-AD|CLASS="twitch-ad/.test(text) || /#EXTINF:[^,\n]*,(?!live)[^\s]/.test(text);
+  };
+
+  var BACKUP_TYPES = ['embed', 'popout', 'autoplay', 'picture-by-picture'];
+  var backup = { login: null, good: null, masters: {} };
+
+  function absolute(base, url) {
+    if (/^https?:\/\//.test(url)) return url;
+    try { return new URL(url, base).href; } catch (e) { return url; }
+  }
+
+  function getText(url) {
+    return request(url, {}, 4000, 0).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    });
+  }
+
+  // варианты качества резервного потока (кэш 4 минуты — токен живёт дольше)
+  function backupVariants(login, type) {
+    var key = type, c = backup.masters[key];
+    if (c && Date.now() - c.t < 240000) return Promise.resolve(c.list);
+    return anonTokenOnce('live', login, type).then(function (t) {
+      var url = masterUrl(login, t, CLIENT_ID);
+      return getText(url).then(function (txt) {
+        var list = [], lines = txt.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+          var m = /^#EXT-X-STREAM-INF:(.*)$/.exec(lines[i]);
+          if (!m || !lines[i + 1]) continue;
+          var res = /RESOLUTION=\d+x(\d+)/.exec(m[1]);
+          list.push({ height: res ? +res[1] : 0, url: absolute(url, lines[i + 1].trim()) });
+        }
+        backup.masters[key] = { t: Date.now(), list: list };
+        return list;
+      });
+    });
+  }
+
+  // Медиаплейлист без рекламы того же качества (или ближайшего ниже). null — не нашли.
+  T.adFreePlaylist = function (login, height) {
+    login = login.toLowerCase();
+    if (backup.login !== login) { backup.login = login; backup.good = null; backup.masters = {}; }
+    var types = BACKUP_TYPES.slice();
+    if (backup.good) { types.splice(types.indexOf(backup.good), 1); types.unshift(backup.good); }
+    var i = 0;
+    function next() {
+      if (i >= types.length) return Promise.resolve(null);
+      var type = types[i++];
+      return backupVariants(login, type).then(function (list) {
+        var pick = null;
+        list.forEach(function (v) {
+          if (!v.height) return;
+          if (v.height <= (height || 1080) && (!pick || v.height > pick.height)) pick = v;
+        });
+        if (!pick) pick = list.filter(function (v) { return v.height; })[0];
+        if (!pick) return next();
+        return getText(pick.url).then(function (txt) {
+          if (T.isAdPlaylist(txt) || txt.indexOf('#EXTINF') < 0) return next();
+          backup.good = type;
+          // ссылки на сегменты — абсолютные, чтобы hls.js грузил их откуда надо
+          return txt.split('\n').map(function (l) { return l && l[0] !== '#' ? absolute(pick.url, l.trim()) : l; }).join('\n');
+        });
+      }).catch(function () { return next(); });
+    }
+    return next();
+  };
+
+  // Загрузчик плейлистов для hls.js: пропускает всё как есть, кроме медиаплейлистов эфира с рекламой
+  T.adLoader = function (getInfo, onAd) {
+    var Base = window.Hls && Hls.DefaultConfig.loader;
+    function L(config) { this.inner = new Base(config); this.dead = false; }
+    ['stats', 'context'].forEach(function (k) {
+      Object.defineProperty(L.prototype, k, { get: function () { return this.inner[k]; } });
+    });
+    L.prototype.abort = function () { this.dead = true; this.inner.abort(); };
+    L.prototype.destroy = function () { this.dead = true; this.inner.destroy(); };
+    L.prototype.load = function (context, config, callbacks) {
+      var self = this;
+      var info = getInfo();
+      if (context.type !== 'level' || !info || !info.login || !info.enabled) return this.inner.load(context, config, callbacks);
+      var cb = {};
+      for (var k in callbacks) cb[k] = callbacks[k];
+      cb.onSuccess = function (response, stats, ctx, net) {
+        var text = typeof response.data === 'string' ? response.data : '';
+        if (!text || !T.isAdPlaylist(text)) { if (onAd) onAd(false); return callbacks.onSuccess(response, stats, ctx, net); }
+        T.adFreePlaylist(info.login, info.height(ctx.level)).then(function (clean) {
+          if (self.dead) return;
+          if (onAd) onAd(true, !!clean);
+          if (clean) response.data = clean;
+          callbacks.onSuccess(response, stats, ctx, net);
+        }, function () {
+          if (!self.dead) callbacks.onSuccess(response, stats, ctx, net);
+        });
+      };
+      this.inner.load(context, config, cb);
+    };
+    return L;
   };
 
   T.clearCache = function () { cache = {}; };

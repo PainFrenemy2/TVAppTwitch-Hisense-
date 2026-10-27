@@ -129,20 +129,37 @@
       acc.token = j.access_token;
       if (j.refresh_token) acc.refresh = j.refresh_token;
       acc.expires = Date.now() + (j.expires_in || 3600) * 1000;
+      acc.needsLogin = false;
       save();
     }, function (e) { Auth._rp = null; throw e; });
     return Auth._rp;
   };
 
-  // Проверка токена (и заодно логин) — заранее обновляем, если скоро истечёт
+  // Проверка токена (и заодно логин) — заранее обновляем, если скоро истечёт.
+  // Аккаунт при этом НИКОГДА не удаляем: если Twitch отверг refresh-токен (например, ТВ выключили,
+  // не успев сохранить новый), помечаем «нужно войти снова» — профиль, избранное и подписки остаются.
   Auth.ensure = function () {
     if (!Auth.loggedIn()) return Promise.reject(new Error(tr('Не выполнен вход')));
-    if (Auth.data.expires && Auth.data.expires - Date.now() < 5 * 60 * 1000) {
-      // сеть ещё не поднялась после сна ТВ и т.п. — аккаунт не трогаем, только при явном отказе Twitch
-      return Auth.refresh().catch(function (e) { if (e.invalid) Auth.logout(true); throw e; });
+    var acc = Auth.data;
+    if (acc.needsLogin) return Promise.reject(new Error(tr('Вход в Twitch устарел — войдите снова')));
+    if (acc.expires && acc.expires - Date.now() < 5 * 60 * 1000) {
+      return Auth.refresh().catch(function (e) {
+        if (e.invalid) { markExpired(acc); throw e; }
+        // сеть ещё не поднялась после сна ТВ — пока токен жив, работаем с ним
+        if (acc.expires > Date.now()) return;
+        throw e;
+      });
     }
     return Promise.resolve();
   };
+
+  function markExpired(acc) {
+    if (acc.needsLogin) return;
+    acc.needsLogin = true;
+    save();
+    changed();
+  }
+  Auth.needsLogin = function () { return !!(Auth.data && Auth.data.needsLogin); };
 
   Auth.loadUser = function () {
     return Auth.gql('query{currentUser{id login displayName profileImageURL(width:70)}}').then(function (d) {
@@ -171,7 +188,13 @@
         body: JSON.stringify({ query: query, variables: variables || {} })
       });
     }).then(function (r) {
-      if (r.status === 401 && !retried) return Auth.refresh().then(function () { return Auth.gql(query, variables, true); });
+      if (r.status === 401 && !retried) {
+        var acc = Auth.data;
+        return Auth.refresh().then(function () { return Auth.gql(query, variables, true); }, function (e) {
+          if (e.invalid && acc) markExpired(acc);
+          throw e;
+        });
+      }
       return r.json().then(function (j) {
         if (j.errors && !j.data) throw new Error(j.errors[0].message);
         return j.data;
@@ -205,6 +228,17 @@
           return s;
         });
       });
+  };
+
+  // Кто из подписок в эфире; если вход устарел или Twitch не ответил — по сохранённому списку подписок без входа
+  Auth.followedLiveSafe = function () {
+    return Auth.followedLive().catch(function () {
+      var logins = Auth.cachedFollows().slice(0, 300);
+      if (!logins.length) return [];
+      return Twitch.users(logins).then(function (us) {
+        return us.filter(function (u) { return u.stream; }).map(function (u) { var st = u.stream; st.broadcaster = st.broadcaster || u; return st; });
+      });
+    });
   };
 
   // Логины для избранного: подписки аккаунта (кэш) + локальные

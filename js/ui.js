@@ -28,6 +28,7 @@
     next: '<path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>',
     prev: '<path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/>',
     history: '<path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.95 8.95 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>',
+    keyboard: '<path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>',
     tv: '<path d="M21 3H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5v2h8v-2h5a2 2 0 0 0 1.99-2L23 5a2 2 0 0 0-2-2zm0 14H3V5h18v12z"/>'
   };
 
@@ -181,7 +182,7 @@
     ]);
     el.track = track;
     el.add = function (cards) {
-      cards.forEach(function (c) { track.appendChild(c); });
+      UI.visibleCards(cards).forEach(function (c) { track.appendChild(c); });
       setTimeout(function () { el.classList.toggle('overflows', track.scrollWidth > track.parentNode.clientWidth + 4); }, 0);
     };
     if (opts.loadMore) UI.pager(el, track, opts.loadMore);
@@ -192,7 +193,7 @@
   UI.grid = function (cls, loadMore) {
     var el = h('div.grid' + (cls ? '.' + cls : ''), { 'data-group': 'free' });
     el.add = function (cards) {
-      cards.forEach(function (c) { c.classList.add('row'); el.appendChild(c); });
+      UI.visibleCards(cards).forEach(function (c) { c.classList.add('row'); el.appendChild(c); });
     };
     if (loadMore) UI.pager(el, el, loadMore);
     return el;
@@ -292,6 +293,45 @@
       h('div.dialog-buttons', null, [cancel, ok])
     ]);
     App.openLayer({ el: h('div.overlay.center', null, box), root: U.$('#modal-root'), focus: cancel });
+  };
+
+  // Окно с QR-кодом: действие, которое можно сделать только на сайте Twitch/GitHub — с телефона
+  UI.qrDialog = function (title, text, url, shortUrl) {
+    var qr = '';
+    try {
+      var q = qrcode(0, 'L');
+      q.addData(url);
+      q.make();
+      qr = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+    } catch (e) { qr = ''; }
+    var close = UI.button(tr('Закрыть'), null, function () { App.closeLayer(); }, 'primary');
+    var box = h('div.dialog.dialog-qr', null, [
+      h('div.dialog-title', { text: title }),
+      h('div.dialog-qr-body', null, [
+        qr ? h('div.dialog-qr-code', { html: qr }) : null,
+        h('div.dialog-qr-text', null, [
+          h('div.dialog-text', { text: text }),
+          h('div.dialog-url', { text: shortUrl || url })
+        ])
+      ]),
+      h('div.dialog-buttons', { 'data-group': 'free' }, close)
+    ]);
+    App.openLayer({ el: h('div.overlay.center', null, box), root: U.$('#modal-root'), focus: close });
+  };
+
+  // карточка относится к заблокированному каналу?
+  function cardLogin(c) {
+    var d = c && c._data;
+    if (!d) return '';
+    return (d.broadcaster && d.broadcaster.login) || (d.owner && d.owner.login) || (d.stream ? d.login : '') || (d.followers ? d.login : '') || '';
+  }
+  // канал только что заблокировали — убираем его карточки с уже открытых страниц
+  UI.dropCards = function (login) {
+    login = String(login).toLowerCase();
+    U.$$('.card').forEach(function (c) { if (cardLogin(c).toLowerCase() === login && c.parentNode) c.parentNode.removeChild(c); });
+  };
+  UI.visibleCards = function (cards) {
+    return cards.filter(function (c) { var l = cardLogin(c); return !l || !App.isBlocked(l); });
   };
 
   window.UI = UI;

@@ -9,7 +9,7 @@
 
   var Chat = {
     ws: null, channel: null, roomId: null, el: null, list: null, state: null,
-    queue: [], flushTimer: null, retry: 0, active: false, emotes: {}
+    queue: [], flushTimer: null, retry: 0, active: false, emotes: {}, badges: {}
   };
 
   Chat.init = function () {
@@ -28,6 +28,8 @@
     Chat.retry = 0;
     Chat.emotes = {};
     Chat.emotesFor = null;
+    Chat.badges = {};
+    loadBadges(Chat.channel);
     Chat.system(tr('Подключение к чату…'), 'chat-connecting');
     connect();
     Chat.loadEmotes(Chat.roomId);
@@ -110,6 +112,7 @@
     if (cmd === 'PRIVMSG' || cmd === 'ROOMSTATE' || cmd === '366') connected();
     if (cmd === 'PRIVMSG') {
       var nick = tags['display-name'] || prefix.split('!')[0];
+      if (App.isBlocked(prefix.split('!')[0])) return; // заблокированные — и в чате не показываем
       var action = false;
       if (text.indexOf('\u0001ACTION ') === 0) { action = true; text = text.slice(8, -1); }
       push({ nick: nick, color: tags.color, text: text, emotes: tags.emotes, badges: tags.badges, action: action, bits: tags.bits });
@@ -205,10 +208,13 @@
 
     var badges = '';
     if (m.badges) {
-      if (m.badges.indexOf('broadcaster') >= 0) badges += '<span class="cb cb-host">●</span>';
-      else if (m.badges.indexOf('moderator') >= 0) badges += '<span class="cb cb-mod">⚔</span>';
-      else if (m.badges.indexOf('vip') >= 0) badges += '<span class="cb cb-vip">◆</span>';
-      if (m.badges.indexOf('subscriber') >= 0) badges += '<span class="cb cb-sub">★</span>';
+      // «subscriber/12,premium/1» → картинки значков Twitch; пока не загрузились — простые символы
+      m.badges.split(',').slice(0, 3).forEach(function (b) {
+        var img = Chat.badges[b] || globalBadges[b];
+        if (img) { badges += '<img class="chat-badge" src="' + U.esc(img.url) + '" alt="">'; return; }
+        var set = b.split('/')[0];
+        if (FALLBACK[set]) badges += '<span class="cb cb-' + FALLBACK[set][0] + '">' + FALLBACK[set][1] + '</span>';
+      });
     }
     var c = color(m.nick, m.color);
     var line = document.createElement('div');
@@ -217,6 +223,17 @@
       (m.action ? ' ' : '<span class="chat-colon">: </span>') +
       '<span class="chat-text"' + (m.action ? ' style="color:' + U.esc(c) + '"' : '') + '>' + html + '</span>';
     return line;
+  }
+
+  var FALLBACK = { broadcaster: ['host', '●'], moderator: ['mod', '⚔'], vip: ['vip', '◆'], subscriber: ['sub', '★'] };
+  var globalBadges = {}, globalBadgesAt = 0;
+  function loadBadges(login) {
+    // глобальные — раз в 6 часов (Twitch меняет сезонные значки)
+    if (Date.now() - globalBadgesAt > 6 * 3600 * 1000) {
+      globalBadgesAt = Date.now();
+      Twitch.globalBadges().then(function (m) { globalBadges = m; }, function () { globalBadgesAt = 0; });
+    }
+    Twitch.channelBadges(login).then(function (m) { if (Chat.channel === login) Chat.badges = m; }).catch(function () {});
   }
 
   // Текст: экранируем и подставляем эмоуты 7TV/BTTV/FFZ по словам

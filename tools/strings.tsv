@@ -68,7 +68,6 @@ OK — смотреть • ← → — листать	OK — дивитися �
 Очистить историю	Очистити історію	Clear history
 Очистить историю?	Очистити історію?	Clear history?
 Очистить	Очистити	Clear
-ЭФИР	ЕФІР	LIVE
 ЗАПИСЬ	ЗАПИС	VIDEO
 КЛИП	КЛІП	CLIP
 Канал не найден	Канал не знайдено	Channel not found
@@ -202,13 +201,12 @@ hls.js (рекомендуется)	hls.js (рекомендовано)	hls.js (
 Обновить	Оновити	Reload
 Перезагрузка потока	Перезавантаження потоку	Reloading stream
 Качество	Якість	Quality
-Параметры	Параметри	Settings
+Параметры	Параметри	Options
 Предыдущий	Попередній	Previous
 Следующий	Наступний	Next
 Канал	Канал	Channel
 Другие каналы • CH+/CH−	Інші канали • CH+/CH−	Other channels • CH+/CH−
 Далее	Далі	Up next
-Популярные каналы	Популярні канали	Popular channels
 Смотреть	Дивитися	Play
 Авто • 	Авто • 	Auto • 
 Сейчас: 	Зараз: 	Now: 
@@ -277,9 +275,6 @@ hls.js (рекомендуется)	hls.js (рекомендовано)	hls.js (
 Проверьте подключение к интернету	Перевірте підключення до інтернету	Check your internet connection
 Отмена	Скасувати	Cancel
 Поиск каналов и игр	Пошук каналів та ігор	Search channels and games
-Профиль	Профіль	Profile
-Загрузка…	Завантаження…	Loading…
-Информация о ТВ	Інформація про ТВ	TV info
 Модель / браузер	Модель / браузер	Model / browser
 Экран	Екран	Screen
 Окно приложения	Вікно застосунку	App window
@@ -292,3 +287,69 @@ hls.js (рекомендуется)	hls.js (рекомендовано)	hls.js (
 Звук в превью	Звук у прев'ю	Preview sound
 Превью в карточке играет со звуком, как в YouTube.	Прев'ю в картці грає зі звуком, як у YouTube.	Card previews play with sound, like on YouTube.
 На главную	На головну	Go to Home
+Во время рекламной паузы («Commercial break in progress») плеер переключается на резервный поток Twitch без рекламы.	Під час рекламної паузи («Commercial break in progress») плеєр перемикається на резервний потік Twitch без реклами.	During an ad break ("Commercial break in progress") the player switches to a backup Twitch stream without ads.
+Войти снова	Увійти знову	Sign in again
+Вход в Twitch устарел — войдите снова	Вхід у Twitch застарів — увійдіть знову	Your Twitch sign-in has expired — please sign in again
+Вход в Twitch устарел — войдите снова в разделе «Аккаунт»	Вхід у Twitch застарів — увійдіть знову в розділі «Акаунт»	Your Twitch sign-in has expired — sign in again under "Account"
+Вход в Twitch устарел. Избранное и подписки сохранены — просто войдите снова по коду.	Вхід у Twitch застарів. Обране й підписки збережено — просто увійдіть знову за кодом.	Your Twitch sign-in has expired. Favorites and follows are kept — just sign in again with a code.
+Вход устарел — нажмите, чтобы войти снова	Вхід застарів — натисніть, щоб увійти знову	Sign-in expired — press to sign in again
+Издатель: 	Видавець: 	Publisher: 
+Источник видео, чата и данных — Twitch (twitch.tv). Twitch и логотип Twitch — товарные знаки Twitch Interactive, Inc. Это неофициальное приложение: оно не связано с Twitch и не одобрено им. Все права на трансляции, записи и клипы принадлежат их авторам и Twitch.	Джерело відео, чату й даних — Twitch (twitch.tv). Twitch і логотип Twitch — торговельні марки Twitch Interactive, Inc. Це неофіційний застосунок: він не пов’язаний із Twitch і не схвалений ним. Усі права на трансляції, записи й кліпи належать їхнім авторам і Twitch.	Video, chat and data are provided by Twitch (twitch.tv). Twitch and the Twitch logo are trademarks of Twitch Interactive, Inc. This is an unofficial app: it is not affiliated with or endorsed by Twitch. All rights to streams, videos and clips belong to their creators and Twitch.
+Открывать главную	Відкривати головну	Open Home
+При запуске	Під час запуску	On launch
+Приложение откроется там, где вы из него вышли, — на той же странице или в том же эфире.	Застосунок відкриється там, де ви з нього вийшли, — на тій самій сторінці або в тому самому ефірі.	The app reopens where you left it — on the same page or the same stream.
+Продолжить с того же места	Продовжити з того самого місця	Continue where I left off
+Пропуск рекламы Twitch	Пропуск реклами Twitch	Skip Twitch ads
+Работает на телевизорах Hisense и других ТВ с системой VIDAA (Toshiba, Sharp, Loewe и др.).	Працює на телевізорах Hisense та інших ТВ із системою VIDAA (Toshiba, Sharp, Loewe тощо).	Works on Hisense TVs and other TVs running VIDAA (Toshiba, Sharp, Loewe and more).
+Разработчик: 	Розробник: 	Developer: 
+Раскладка клавиатуры	Розкладка клавіатури	Keyboard layout
+Реклама Twitch	Реклама Twitch	Twitch ads
+Рекламная пауза Twitch пропущена	Рекламну паузу Twitch пропущено	Twitch ad break skipped
+Рекламная пауза Twitch — эфир скоро продолжится	Рекламна пауза Twitch — ефір скоро продовжиться	Twitch ad break — the stream will continue shortly
+идёт	триває	in progress
+пропускается	пропускається	skipping
+ баллов	 балів	 points
+ заблокирован	 заблоковано	 blocked
+ из всех списков	 з усіх списків	 from all lists
+ разблокирован	 розблоковано	 unblocked
+OK — участвовать	OK — взяти участь	OK — join in
+QR-код на страницу GitHub — опишите, что не работает	QR-код на сторінку GitHub — опишіть, що не працює	QR code to the GitHub page — describe what is wrong
+Twitch не принял голос	Twitch не прийняв голос	Twitch did not accept the vote
+Twitch не принял ставку	Twitch не прийняв ставку	Twitch did not accept the prediction
+Все баллы	Усі бали	All points
+Голос учтён: 	Голос зараховано: 	Vote counted: 
+Голосование	Голосування	Poll
+Делать прогнозы и голосовать можно только из своего аккаунта Twitch.	Робити прогнози й голосувати можна лише зі свого акаунта Twitch.	You can only make predictions and vote from your own Twitch account.
+Жалобы принимает только Twitch. Откройте канал на телефоне по QR-коду и выберите «⋮ → Пожаловаться».	Скарги приймає лише Twitch. Відкрийте канал на телефоні за QR-кодом і виберіть «⋮ → Поскаржитися».	Reports are handled by Twitch only. Open the channel on your phone with the QR code and choose "⋮ → Report".
+Заблокированные каналы	Заблоковані канали	Blocked channels
+Заблокировано: 	Заблоковано: 	Blocked: 
+Заблокировать	Заблокувати	Block
+Заблокировать 	Заблокувати 	Block 
+Заблокировать канал	Заблокувати канал	Block channel
+Закрыть	Закрити	Close
+Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Канал зникне з головної, пошуку, рекомендацій і сповіщень. Розблокувати можна в Налаштуваннях → Заблоковані канали.	The channel will disappear from Home, search, recommendations and notifications. You can unblock it in Settings → Blocked channels.
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Коли стример запускає прогноз чи голосування — у плеєрі з’являється підказка. Взяти участь можна й через «Параметри» плеєра.	When the streamer starts a prediction or poll, a hint pops up in the player. You can also join via the player's "Options".
+Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Наведіть камеру телефона на QR-код і опишіть, що сталося. Дані про ТВ і версію вже підставлено.	Point your phone camera at the QR code and describe what happened. TV and version details are already filled in.
+Недостаточно баллов канала	Недостатньо балів каналу	Not enough channel points
+Никого не заблокировано	Нікого не заблоковано	No one is blocked
+Нужен вход в Twitch	Потрібен вхід у Twitch	Twitch sign-in required
+Плеер, звук, зависания, ошибки	Плеєр, звук, зависання, помилки	Player, sound, freezes, errors
+Пожаловаться	Поскаржитися	Report
+Пожаловаться на 	Поскаржитися на 	Report 
+Проблема: 	Проблема: 	Problem: 
+Прогноз	Прогноз	Prediction
+Разблокировать	Розблокувати	Unblock
+Разблокировать канал	Розблокувати канал	Unblock channel
+Сейчас голосования нет	Зараз голосування немає	No poll right now
+Сейчас прогноза нет	Зараз прогнозу немає	No prediction right now
+Скрыть 	Приховати 	Hide 
+Сообщить о проблеме	Повідомити про проблему	Report a problem
+Ставка: 	Ставка: 	Predict: 
+Ставка принята: 	Ставку прийнято: 	Prediction placed: 
+Ставки уже закрыты	Ставки вже закрито	Predictions are closed
+Уведомления о прогнозах и голосованиях	Сповіщення про прогнози й голосування	Prediction and poll alerts
+ваши баллы: 	ваші бали: 	your points: 
+завершён	завершено	ended
+приём ставок	приймання ставок	open
+ставки закрыты	ставки закрито	locked
+ участников	 учасників	 people

@@ -28,6 +28,7 @@
     v.addEventListener('error', function () {
       if (!P.hls && P.item) recover(tr('Ошибка видео'));
     });
+    window.addEventListener('resize', function () { P.nextShift = null; if (P.isOpen()) measureNext(); });
     setInterval(watchdog, 1000);
     setInterval(sleepCheck, 15000);
   };
@@ -60,6 +61,7 @@
     destroyHls();
     try { P.video.pause(); P.video.removeAttribute('src'); P.video.load(); } catch (e) { /* ignore */ }
     Chat.stop();
+    Events.stop();
     clearInterval(P.metaTimer);
     clearTimeout(P.osdTimer);
     clearInterval(P.statsTimer);
@@ -71,21 +73,23 @@
     P.el.classList.remove('osd-on');
     P.el.classList.add('hidden');
     P.item = null;
-    closePanel();
+    App.saveState();
   }
 
   function start(item) {
     saveVodPos();
     P.item = item;
-    P.netRetries = 0; P.mediaRetries = 0; P.reloads = 0; P.stall = 0; P.userPaused = false; P.okSince = 0;
+    P.netRetries = 0; P.mediaRetries = 0; P.reloads = 0; P.stall = 0; P.userPaused = false; P.okSince = 0; P.adNoted = false; P.adState = '';
     P.seekTarget = null;
     P.levels = [];
     message(null);
     renderMeta();
     buildControls();
     App.addHistory(item);
+    App.saveState();
     setChat(item.kind === 'live' && Settings.get('chat') === 'on');
     clearInterval(P.metaTimer);
+    if (item.kind === 'live') Events.start(item.login); else Events.stop();
     if (item.kind === 'live') {
       refreshMeta();
       P.metaTimer = setInterval(refreshMeta, 60000);
@@ -183,7 +187,9 @@
     if (kind !== 'clip' && window.Hls && Hls.isSupported() && Settings.get('engine') !== 'native') {
       var saved = kind === 'vod' ? U.store.get('vodpos', {})[P.item.id] : 0;
       if (saved && P.item.length && saved > P.item.length - 30) saved = 0;
-      var hls = new Hls(hlsConfig(kind, saved));
+      var cfg = hlsConfig(kind, saved);
+      if (kind === 'live' && Settings.get('adblock') !== 'off') cfg.pLoader = adLoader(id);
+      var hls = new Hls(cfg);
       P.hls = hls;
       hls.on(Hls.Events.MANIFEST_PARSED, function () {
         if (id !== P.loadId) return;
@@ -209,6 +215,23 @@
       }
       play();
     }
+  }
+
+  // Обход рекламных пауз Twitch (см. Twitch.adLoader): знаем канал и качество текущего уровня
+  function adLoader(id) {
+    var it = P.item;
+    return Twitch.adLoader(function () {
+      if (id !== P.loadId || !it) return null;
+      return { enabled: true, login: it.login, height: function (lvl) { var l = P.hls && P.hls.levels[lvl]; return l ? l.height : 1080; } };
+    }, function (isAd, replaced) {
+      if (id !== P.loadId) return;
+      if (isAd && !P.adNoted) {
+        P.adNoted = true;
+        UI.toast(replaced ? tr('Рекламная пауза Twitch пропущена') : tr('Рекламная пауза Twitch — эфир скоро продолжится'), 4000);
+      }
+      if (!isAd) P.adNoted = false;
+      P.adState = isAd ? (replaced ? tr('пропускается') : tr('идёт')) : '';
+    });
   }
 
   function levelLabel(l, isTop) {
@@ -452,11 +475,12 @@
       if (P.item !== it) return;
       items.forEach(function (x) {
         var key = x.kind + ':' + (x.login || '') + ':' + (x.id || '');
-        if (seen[key] || track.children.length >= 24) return;
+        if (seen[key] || track.children.length >= 24 || App.isBlocked(x.login)) return;
         seen[key] = 1;
         track.appendChild(nextCard(x));
       });
       $('.osd-next').classList.toggle('hidden', !track.children.length);
+      measureNext();
     };
     var others = (P.playlist || []).filter(function (x) { return x !== it; });
     title.textContent = it.kind === 'live' ? tr('Другие каналы • CH+/CH−') : tr('Далее');
@@ -467,6 +491,19 @@
         fill(p.items.map(App.itemFromStream));
       }).catch(function () {});
     }
+  }
+
+  // Ряд выезжает сдвигом всей нижней панели (transform), а не анимацией высоты:
+  // так браузер ТВ не пересчитывает раскладку на каждом кадре и нет микролагов при нажатии «вниз».
+  // Сдвиг = сколько ряда должно быть спрятано под краем экрана. Мерим один раз на ряд (размеры карточек постоянные).
+  function measureNext() {
+    var bottom = $('.osd-bottom');
+    var shift = 0;
+    if (!$('.osd-next').classList.contains('hidden') && $('.osd-next .card')) {
+      var vp = $('.osd-next .shelf-viewport');
+      shift = Math.max(0, bottom.offsetHeight - U.offsetWithin(vp, bottom).top);
+    }
+    if (shift !== P.nextShift) { P.nextShift = shift; bottom.style.setProperty('--next-shift', shift + 'px'); }
   }
 
   function nextCard(x) {
@@ -626,8 +663,6 @@
     UI.menu(tr('Качество'), items, { cls: 'menu-right' });
   }
 
-  function closePanel() { /* панель резерв под будущее */ }
-
   // Меню «Параметры»: чат, статистика, таймер сна — как шестерёнка в плеере Twitch
   function pick(title, key, values, after) {
     var cur = Settings.get(key);
@@ -665,9 +700,25 @@
       items.push({ label: tr('Высота чата'), sub: valueName('chatHeight', O.chatHeight), onSelect: function () { pick(tr('Высота чата'), 'chatHeight', O.chatHeight, refreshChat); } });
       items.push({ label: tr('Размер текста чата'), sub: valueName('chatFont', O.chatFont), onSelect: function () { pick(tr('Размер текста'), 'chatFont', O.chatFont, refreshChat); } });
     }
+    items = Events.menuItems().concat(items);
     items.push({ label: tr('Статистика для гиков'), sub: P.statsOn ? tr('Показана') : tr('Скрыта'), onSelect: function () { toggleStats(); } });
     var left = P.sleepAt ? Math.max(1, Math.round((P.sleepAt - Date.now()) / 60000)) : 0;
     items.push({ label: tr('Таймер сна'), sub: left ? tr('Выключится через ') + left + tr(' мин') : tr('Выключен'), onSelect: sleepMenu });
+    var who = it.name || it.login;
+    items.push({ label: tr('Пожаловаться'), sub: who, onSelect: function () {
+      UI.qrDialog(tr('Пожаловаться на ') + who, tr('Жалобы принимает только Twitch. Откройте канал на телефоне по QR-коду и выберите «⋮ → Пожаловаться».'),
+        'https://www.twitch.tv/' + encodeURIComponent(it.login) + (it.kind === 'vod' ? '/videos' : ''), 'twitch.tv/' + it.login);
+    } });
+    items.push({ label: tr('Заблокировать канал'), sub: tr('Скрыть ') + who + tr(' из всех списков'), onSelect: function () {
+      UI.confirm(tr('Заблокировать ') + who + '?', tr('Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.'), tr('Заблокировать'), function () {
+        App.setBlocked(it.login, true);
+        UI.toast(who + tr(' заблокирован'));
+        P.close();
+      });
+    } });
+    items.push({ label: tr('Сообщить о проблеме'), sub: tr('Плеер, звук, зависания, ошибки'), onSelect: function () {
+      App.reportProblem(it.kind + ':' + (it.login || '') + (it.id ? '/' + it.id : '') + ' q=' + Settings.get('quality') + ' ' + (P.hls && P.levels[P.hls.currentLevel] ? P.levels[P.hls.currentLevel].label : ''));
+    } });
     UI.menu(tr('Параметры'), items, { cls: 'menu-right' });
   }
 
@@ -723,6 +774,7 @@
     if (q) rows.push([tr('Кадры (потеряно)'), q.droppedVideoFrames + ' / ' + q.totalVideoFrames]);
     rows.push([tr('Движок'), hls ? 'hls.js ' + Hls.version : tr('встроенный')]);
     rows.push([tr('Кодеки Twitch'), Twitch.codecs()]);
+    if (P.adState) rows.push([tr('Реклама Twitch'), P.adState]);
     $('.player-stats').innerHTML = rows.map(function (r) { return '<div><b>' + U.esc(r[0]) + '</b><span>' + U.esc(r[1]) + '</span></div>'; }).join('');
   }
 
@@ -807,6 +859,7 @@
       case 'INFO': showOSD(); return true;
     }
     P.extendSleep();
+    if (!P.osdVisible && Events.onKey(k)) return true;
     if (!P.osdVisible) {
       if (k === 'BACK') { P.close(); return true; }
       if ((k === 'LEFT' || k === 'RIGHT') && it.kind !== 'live') {
@@ -838,5 +891,6 @@
   }
 
   P.hideOSD = hideOSD;
+  P.saveNow = function () { saveVodPos(); };
   window.Player = P;
 })();

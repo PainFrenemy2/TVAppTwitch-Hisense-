@@ -6,7 +6,8 @@
   // ---------- Настройки ----------
   var DEFAULTS = {
     quality: 'auto', latency: 'normal', chat: 'on', chatMode: 'overlay', chatSide: 'right', chatOpacity: '30',
-    chatWidth: 'normal', chatFont: 'normal', chatHeight: 'full', lang: I18N.tvLang(), uiLang: I18N.tvLang(),
+    chatWidth: 'normal', chatFont: 'normal', chatHeight: 'full', lang: I18N.tvLang().split('-')[0], uiLang: I18N.tvLang(),
+    resume: 'on', adblock: 'on', eventsNotify: 'on',
     engine: 'hls', playerType: 'site', scale: '100', preview: 'on', codec: 'auto', useAccount: 'on',
     notify: 'on', lite: 'auto', previewSound: 'on', kb: I18N.tvLang() === 'en' ? 'en' : I18N.tvLang()
   };
@@ -17,8 +18,12 @@
   };
   window.Settings = Settings;
 
+  // языки трансляций (фильтр Twitch по языку стримера)
   var LANGS = [['ru', 'Русский'], ['uk', 'Українська'], ['en', 'English'], ['de', 'Deutsch'], ['es', 'Español'],
-    ['fr', 'Français'], ['pt', 'Português'], ['pl', 'Polski'], ['tr', 'Türkçe'], ['ja', '日本語'], ['ko', '한국어']];
+    ['fr', 'Français'], ['pt', 'Português'], ['pl', 'Polski'], ['tr', 'Türkçe'], ['it', 'Italiano'], ['nl', 'Nederlands'],
+    ['cs', 'Čeština'], ['sk', 'Slovenčina'], ['hu', 'Magyar'], ['ro', 'Română'], ['bg', 'Български'], ['el', 'Ελληνικά'],
+    ['sv', 'Svenska'], ['da', 'Dansk'], ['no', 'Norsk'], ['fi', 'Suomi'], ['ar', 'العربية'], ['th', 'ภาษาไทย'],
+    ['vi', 'Tiếng Việt'], ['id', 'Bahasa Indonesia'], ['ja', '日本語'], ['ko', '한국어'], ['zh', '中文']];
 
   // ---------- общие кусочки ----------
 
@@ -121,7 +126,7 @@
   // Мои каналы в эфире: с аккаунтом — сразу из подписок, иначе по избранному
   function myLive() {
     var favs = App.favs();
-    var acc = Auth.loggedIn() ? Auth.followedLive().catch(function () { return []; }) : Promise.resolve([]);
+    var acc = Auth.loggedIn() ? Auth.followedLiveSafe().catch(function () { return []; }) : Promise.resolve([]);
     var loc = favs.length ? Twitch.users(favs).then(liveOf).catch(function () { return []; }) : Promise.resolve([]);
     return Promise.all([acc, loc]).then(function (r) {
       var seen = {}, out = [];
@@ -231,7 +236,7 @@
 
     var lang = Settings.get('lang');
     Twitch.topStreamsByLang(lang, 8).catch(function () { return Twitch.topStreams(8); }).then(function (p) {
-      heroItems = p.items.filter(function (s) { return s.broadcaster; }).slice(0, 8);
+      heroItems = p.items.filter(function (s) { return s.broadcaster && !App.isBlocked(s.broadcaster.login); }).slice(0, 8);
       if (!heroItems.length) return;
       hero.appendChild(heroEl);
       showHero(0);
@@ -533,6 +538,13 @@
         buttons.push(UI.button(tr('Смотреть эфир'), 'play', function () { App.play(App.itemFromStream(s)); }, 'primary'));
       }
       buttons.push(favBtn);
+      var blockBtn = UI.button(App.isBlocked(u.login) ? tr('Разблокировать') : tr('Заблокировать'), null, function () {
+        var on = !App.isBlocked(u.login);
+        App.setBlocked(u.login, on);
+        UI.toast(u.displayName + (on ? tr(' заблокирован') : tr(' разблокирован')));
+        U.$('span', blockBtn).textContent = on ? tr('Разблокировать') : tr('Заблокировать');
+      });
+      buttons.push(blockBtn);
       head.appendChild(h('div.channel-top', null, [
         h('div.channel-avatar' + (u.stream ? '.is-live' : ''), { 'data-letter': String(u.displayName || '?').charAt(0).toUpperCase() }, [UI.img('ch-img', u.profileImageURL), u.stream ? h('div.ch-live', { text: tr('В ЭФИРЕ') }) : null]),
         h('div.channel-info', null, [
@@ -568,17 +580,40 @@
   };
 
   // ---------- Поиск ----------
-  var KB = {
-    ru: 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'.split(''),
-    uk: 'абвгґдеєжзиіїйклмнопрстуфхцчшщьюя'.split(''),
-    en: 'abcdefghijklmnopqrstuvwxyz'.split(''),
-    num: '1234567890_-.@!?#&()+:/\'"%*,;~$'.split('')
-  };
-  var KB_TABS = [['ru', 'РУС'], ['uk', 'УКР'], ['en', 'ENG'], ['num', '123']];
+  // Раскладки экранной клавиатуры: латиница + буквы языка, кириллица, греческий
+  var LATIN = 'abcdefghijklmnopqrstuvwxyz';
+  var KB_LAYOUTS = [
+    ['ru', 'Русская', 'РУС', 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'],
+    ['uk', 'Українська', 'УКР', 'абвгґдеєжзиіїйклмнопрстуфхцчшщьюя'],
+    ['en', 'English', 'ENG', LATIN],
+    ['de', 'Deutsch', 'DEU', LATIN + 'äöüß'],
+    ['fr', 'Français', 'FRA', LATIN + 'àâçéèêëîïôûùœ'],
+    ['es', 'Español', 'ESP', LATIN + 'ñáéíóúü'],
+    ['pt', 'Português', 'POR', LATIN + 'ãõáâàçéêíóôú'],
+    ['it', 'Italiano', 'ITA', LATIN + 'àèéìòù'],
+    ['pl', 'Polski', 'POL', LATIN + 'ąćęłńóśźż'],
+    ['cs', 'Čeština', 'CES', LATIN + 'áčďéěíňóřšťúůýž'],
+    ['sk', 'Slovenčina', 'SLK', LATIN + 'áäčďéíĺľňóôŕšťúýž'],
+    ['hu', 'Magyar', 'HUN', LATIN + 'áéíóöőúüű'],
+    ['ro', 'Română', 'RON', LATIN + 'ăâîșț'],
+    ['tr', 'Türkçe', 'TUR', 'abcçdefgğhıijklmnoöprsştuüvyz'],
+    ['nl', 'Nederlands', 'NLD', LATIN],
+    ['sv', 'Svenska', 'SVE', LATIN + 'åäö'],
+    ['da', 'Dansk', 'DAN', LATIN + 'æøå'],
+    ['no', 'Norsk', 'NOR', LATIN + 'æøå'],
+    ['fi', 'Suomi', 'FIN', LATIN + 'åäö'],
+    ['vi', 'Tiếng Việt', 'VIE', LATIN + 'ăâđêôơưáàảãạéèẻẽẹíìóòúù'],
+    ['el', 'Ελληνικά', 'ΕΛΛ', 'αβγδεζηθικλμνξοπρστυφχψωάέήίόύώ'],
+    ['bg', 'Български', 'БЪЛ', 'абвгдежзийклмнопрстуфхцчшщъьюя']
+  ];
+  var KB = {};
+  KB_LAYOUTS.forEach(function (l) { KB[l[0]] = l[3].split(''); });
+  var KB_NUM = '1234567890_-.@!?#&()+:/\'"%*,;~$'.split('');
 
   Pages.search = function () {
     var query = '';
-    var layout = KB[Settings.get('kb')] ? Settings.get('kb') : 'ru';
+    var layout = KB[Settings.get('kb')] ? Settings.get('kb') : 'en';
+    var symbols = false;
     var el = h('section.page.page-search');
     var field = h('div.search-field', null, [h('span.search-icon', { html: UI.icon('search') }), h('span.search-text', { 'data-ph': tr('Поиск каналов и игр') }), h('span.search-caret')]);
     var tabs = h('div.kb-tabs', { 'data-group': 'kbtabs' });
@@ -588,53 +623,81 @@
     var results = h('div.search-results.v-scroll', { 'data-pad': '1' }, resultsContent);
     el.appendChild(kb);
     el.appendChild(results);
+    var lastKey = null;
 
-    // Вкладки раскладок: РУС / УКР / ENG / 123
-    KB_TABS.forEach(function (tb) {
-      var b = h('div.kb-tab.focusable', { text: tb[1], 'data-kb': tb[0] });
-      b._onclick = function () {
-        layout = tb[0];
-        if (layout !== 'num') Settings.set('kb', layout);
-        markTabs();
-        buildKeys();
-      };
-      tabs.appendChild(b);
-    });
+    function layoutOf(code) { return KB_LAYOUTS.filter(function (l) { return l[0] === code; })[0] || KB_LAYOUTS[2]; }
+
+    // Раскладка — кнопка со списком (OK → выбрать из списка), рядом переключатель цифр/символов
+    var layoutBtn = h('div.kb-tab.kb-layout.focusable');
+    layoutBtn._onclick = function () {
+      UI.menu(tr('Раскладка клавиатуры'), KB_LAYOUTS.map(function (l) {
+        return { label: l[1], sub: l[2], selected: !symbols && l[0] === layout, onSelect: function () {
+          layout = l[0]; symbols = false;
+          Settings.set('kb', layout);
+          markTabs(); buildKeys(true);
+        } };
+      }), { cls: 'menu-right' });
+    };
+    var symBtn = h('div.kb-tab.kb-sym.focusable');
+    symBtn._onclick = function () { symbols = !symbols; markTabs(); buildKeys(true); };
+    tabs.appendChild(layoutBtn);
+    tabs.appendChild(symBtn);
     function markTabs() {
-      U.$$('.kb-tab', tabs).forEach(function (b) { b.classList.toggle('active', b.dataset.kb === layout); });
+      layoutBtn.innerHTML = UI.icon('keyboard') + '<span>' + U.esc(layoutOf(layout)[1]) + '</span><span class="kb-caret">&#9662;</span>';
+      symBtn.textContent = symbols ? layoutOf(layout)[2] : '123';
+      symBtn.classList.toggle('active', symbols);
     }
 
     function key(label, cls, fn, html) {
       var k = h('div.kb-key.focusable' + (cls ? '.' + cls : ''), html ? { html: html } : { text: label });
-      k._onclick = fn;
+      k._onclick = function () { lastKey = k; fn(); };
       keys.appendChild(k);
       return k;
     }
 
-    function buildKeys() {
-      var hadFocus = Nav.current && keys.contains(Nav.current);
+    function buildKeys(keepFocus) {
+      var hadFocus = keepFocus || (Nav.current && keys.contains(Nav.current));
       keys.innerHTML = '';
-      var letters = KB[layout].slice();
-      // добиваем цифрами до ровной сетки 7×5
-      var digits = (layout === 'en' ? '1234567890-._' : '-._').split('');
-      while (letters.length % 7 && layout !== 'num' && digits.length) letters.push(digits.shift());
+      lastKey = null;
+      var letters = (symbols ? KB_NUM : KB[layout]).slice();
+      // добиваем цифрами до ровной сетки по 7 в ряд
+      var digits = '1234567890-._'.split('');
+      while (letters.length % 7 && !symbols && digits.length) letters.push(digits.shift());
       letters.forEach(function (ch) { key(ch, null, function () { type(ch); }); });
       keys.appendChild(h('div.kb-row'));
-      key('', 'kb-wide', function () { type(' '); }, UI.icon('space') + '<span>' + tr('Пробел') + '</span>');
-      key('', 'kb-wide', backspace, UI.icon('backspace') + '<span>' + tr('Стереть') + '</span>');
+      key('', 'kb-wide', function () { type(' '); }, UI.icon('space') + '<span>' + U.esc(tr('Пробел')) + '</span>');
+      key('', 'kb-wide', backspace, UI.icon('backspace') + '<span>' + U.esc(tr('Стереть')) + '</span>');
       key(tr('Очистить'), 'kb-wide.kb-full', function () { setQuery(''); });
-      if (hadFocus) Nav.focus(keys.firstChild);
+      if (hadFocus && App.topLayer() === App.base) Nav.focus(keys.firstChild);
     }
 
     function type(ch) { setQuery(query + ch); }
     function backspace() { setQuery(query.slice(0, -1)); }
 
     function setQuery(q) {
-      query = q.slice(0, 40);
+      q = q.slice(0, 40);
+      if (q === query && resultsContent.children.length) return;
+      query = q;
       U.$('.search-text', field).textContent = query;
       field.classList.toggle('empty', !query);
       field.classList.toggle('typing', !!query);
       runSearch();
+    }
+
+    // Результаты перерисовались, а фокус был в них — возвращаем на клавиатуру, а не теряем
+    function keepFocus() {
+      var cur = Nav.current;
+      if (App.topLayer() !== App.base || !el.isConnected) return;
+      if (!cur || !cur.isConnected) Nav.focus(lastKey && lastKey.isConnected ? lastKey : keys.firstChild);
+    }
+
+    function remembered(make) {
+      return function (data) {
+        var card = make(data);
+        var orig = card._onclick;
+        card._onclick = function () { remember(query.trim()); orig(card); };
+        return card;
+      };
     }
 
     var seq = 0;
@@ -643,8 +706,10 @@
       var q = query.trim();
       resultsContent.innerHTML = '';
       resultsContent.style.transform = '';
-      if (q.length < 2) { renderHistory(); return; }
+      results._y = 0;
+      if (q.length < 2) { renderHistory(); keepFocus(); return; }
       resultsContent.appendChild(UI.loading());
+      keepFocus();
       Twitch.search(q).then(function (r) {
         if (my !== seq) return;
         resultsContent.innerHTML = '';
@@ -652,35 +717,33 @@
         if (r.live.length) {
           any = true;
           var s1 = UI.shelf(tr('Трансляции'));
-          s1.add(r.live.map(streamCard));
+          s1.add(r.live.map(remembered(streamCard)));
           resultsContent.appendChild(s1);
         }
         if (r.channels.length) {
           any = true;
           var s2 = UI.shelf(tr('Каналы'));
-          s2.add(r.channels.map(function (u) {
-            var c = channelCard(u);
-            var orig = c._onclick;
-            c._onclick = function () { remember(q); orig(); };
-            return c;
-          }));
+          s2.add(r.channels.map(remembered(channelCard)));
           resultsContent.appendChild(s2);
         }
         if (r.games.length) {
           any = true;
           var s3 = UI.shelf(tr('Категории'));
-          s3.add(r.games.map(gameCard));
+          s3.add(r.games.map(remembered(gameCard)));
           resultsContent.appendChild(s3);
         }
         if (!any) resultsContent.appendChild(UI.empty(tr('Ничего не найдено'), tr('Попробуйте другой запрос')));
+        keepFocus();
       }, function (e) {
         if (my !== seq) return;
         resultsContent.innerHTML = '';
-        resultsContent.appendChild(UI.error(e, runSearch));
+        resultsContent.appendChild(UI.error(e, function () { runSearch(); }));
+        keepFocus();
       });
     }, 450);
 
     function remember(q) {
+      if (!q || q.length < 2) return;
       var hist = U.store.get('searchHistory', []).filter(function (x) { return x !== q; });
       hist.unshift(q);
       U.store.set('searchHistory', hist.slice(0, 12));
@@ -705,10 +768,26 @@
     setQuery('');
     return {
       el: el, nav: 'search',
-      firstFocus: function () { return keys.firstChild; },
+      firstFocus: function () { return lastKey && lastKey.isConnected ? lastKey : keys.firstChild; },
       onKey: function (k, e) {
+        var cur = Nav.current;
+        var inResults = !!cur && results.contains(cur);
+        var inKb = !!cur && kb.contains(cur);
+        // вверх/вниз — только внутри своей колонки: из результатов не прыгаем на клавиатуру и наоборот
+        if ((k === 'UP' || k === 'DOWN') && (inResults || inKb)) {
+          var sc = Nav.scope;
+          Nav.setScope(inResults ? results : kb);
+          Nav.move(k.toLowerCase());
+          Nav.setScope(sc);
+          return true;
+        }
+        // «Назад» из результатов — к клавиатуре (как в YouTube TV), а не в боковое меню
+        if (k === 'BACK' && inResults) {
+          Nav.focus(lastKey && lastKey.isConnected ? lastKey : keys.firstChild);
+          return true;
+        }
         // физическая клавиатура / пульт с клавиатурой
-        if (e && e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey) { type(e.key); return true; }
+        if (e && e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) { type(e.key); return true; }
         return false;
       }
     };
@@ -722,7 +801,9 @@
 
     if (u && !params.add) {
       el.content.appendChild(header(tr('Аккаунт')));
+      var expired = Auth.needsLogin();
       var actions = h('div.account-actions', { 'data-group': 'free' }, [
+        expired ? UI.button(tr('Войти снова'), 'refresh', function () { App.go('account', { add: true }); }, 'primary') : null,
         UI.button(tr('Сменить профиль'), 'person', function () { App.showProfiles(); }),
         UI.button(tr('Добавить аккаунт'), null, function () { App.go('account', { add: true }); }),
         UI.button(tr('Обновить подписки'), 'refresh', function () {
@@ -736,7 +817,7 @@
         h('img.account-avatar', { src: u.profileImageURL || '', alt: '' }),
         h('div.account-info', null, [
           h('div.account-name', { text: u.displayName }),
-          h('div.account-sub', { text: tr('Подписок: ') + Auth.cachedFollows().length }),
+          h('div.account-sub' + (expired ? '.account-expired' : ''), { text: expired ? tr('Вход в Twitch устарел. Избранное и подписки сохранены — просто войдите снова по коду.') : tr('Подписок: ') + Auth.cachedFollows().length }),
           actions
         ])
       ]));
@@ -806,37 +887,38 @@
 
     function section(title) { list.appendChild(h('h2.set-section.row', { text: title })); }
 
+    // Параметр: OK открывает список значений справа (как в YouTube TV), а не листание ← →
     function opt(label, key, values, hint, onChange) {
       var valueEl = h('div.set-value');
       var row = h('div.set-row.row.focusable', null, [
         h('div.set-text', null, [h('div.set-label', { text: label }), hint ? h('div.set-hint', { text: hint }) : null]),
-        h('div.set-control', null, [h('span.set-arrow', { html: '&#8249;' }), valueEl, h('span.set-arrow', { html: '&#8250;' })])
+        h('div.set-control', null, [valueEl, h('span.set-go', { html: '&#8250;' })])
       ]);
-      function idx() {
+      function current() {
         var v = Settings.get(key);
-        for (var i = 0; i < values.length; i++) if (String(values[i][0]) === String(v)) return i;
-        return 0;
+        for (var i = 0; i < values.length; i++) if (String(values[i][0]) === String(v)) return values[i];
+        return values[0];
       }
-      function show() { valueEl.textContent = values[idx()][1]; }
-      function step(d) {
-        var i = (idx() + d + values.length) % values.length;
-        Settings.set(key, values[i][0]);
-        show();
-        if (onChange) onChange(values[i][0]);
-      }
-      row._onclick = function () { step(1); };
-      row._onkey = function (k) {
-        if (k === 'LEFT') { step(-1); return true; }
-        if (k === 'RIGHT') { step(1); return true; }
-        return false;
+      function show() { valueEl.textContent = current()[1]; }
+      row._onclick = function () {
+        var cur = current();
+        UI.menu(label, values.map(function (v) {
+          return { label: v[1], sub: v[2] || null, selected: v === cur, onSelect: function () {
+            if (String(v[0]) === String(Settings.get(key))) return;
+            Settings.set(key, v[0]);
+            show();
+            if (onChange) onChange(v[0]);
+          } };
+        }), { cls: 'menu-right' });
       };
       show();
       list.appendChild(row);
+      return row;
     }
 
     function action(label, hint, fn) {
       var row = h('div.set-row.row.focusable', null, [
-        h('div.set-text', null, [h('div.set-label', { text: label }), hint ? h('div.set-hint', { text: hint }) : null]),
+        h('div.set-text', null, [h('div.set-label', { text: label }), hint !== null && hint !== undefined ? h('div.set-hint', { text: hint }) : null]),
         h('div.set-control', null, h('span.set-go', { html: '&#8250;' }))
       ]);
       row._onclick = fn;
@@ -848,17 +930,17 @@
     var u = Auth.user();
 
     section(tr('Аккаунт'));
-    action(u ? u.displayName : tr('Войти в Twitch'), u ? tr('Профили, подписки, выход') : tr('Вход по коду на twitch.tv/activate — подписки подтянутся сами'), function () { App.go('account', {}, { root: true }); });
+    action(u ? u.displayName : tr('Войти в Twitch'), u ? (Auth.needsLogin() ? tr('Вход устарел — нажмите, чтобы войти снова') : tr('Профили, подписки, выход')) : tr('Вход по коду на twitch.tv/activate — подписки подтянутся сами'), function () { App.go('account', {}, { root: true }); });
     if (Auth.accounts.length > 1) action(tr('Сменить профиль'), tr('Кто смотрит?'), function () { App.showProfiles(); });
     opt(tr('Смотреть от своего аккаунта'), 'useAccount', [['on', tr('Да')], ['off', tr('Нет')]],
       tr('С Turbo или подпиской на канал — без рекламы и с доступом к записям для подписчиков'));
 
     section(tr('Язык'));
-    opt(tr('Язык интерфейса'), 'uiLang', [['ru', 'Русский'], ['uk', 'Українська'], ['en', 'English']], null, function () {
+    opt(tr('Язык интерфейса'), 'uiLang', I18N.LANGS, null, function () {
       App.reload();
     });
     opt(tr('Язык трансляций на главной'), 'lang', LANGS, null, function () { Twitch.clearCache(); });
-    opt(tr('Раскладка клавиатуры поиска'), 'kb', [['ru', 'РУС'], ['uk', 'УКР'], ['en', 'ENG']]);
+    opt(tr('Раскладка клавиатуры поиска'), 'kb', KB_LAYOUTS.map(function (l) { return [l[0], l[1]]; }));
 
     section(tr('Видео'));
     opt(tr('Качество видео'), 'quality', [['auto', tr('Авто')], ['1440p60', '1440p60'], ['1080p60', '1080p60'], ['1080p', '1080p'], ['720p60', '720p60'], ['720p', '720p'], ['480p', '480p'], ['360p', '360p'], ['160p', '160p']],
@@ -866,6 +948,8 @@
     opt(tr('Кодек (улучшенное качество)'), 'codec', [['auto', tr('Авто: HEVC/AV1, если ТВ умеет')], ['hevc', tr('HEVC + H.264')], ['h264', tr('Только H.264 (максимум стабильности)')]],
       tr('Twitch Enhanced Broadcasting: до 1440p и чётче картинка при той же скорости. Ваш ТВ: ') +
       'H.264 ' + (sup.h264 ? '✓' : '✗') + ', HEVC ' + (sup.hevc ? '✓' : '✗') + ', AV1 ' + (sup.av1 ? '✓' : '✗'));
+    opt(tr('Пропуск рекламы Twitch'), 'adblock', [['on', tr('Включён')], ['off', tr('Выключен')]],
+      tr('Во время рекламной паузы («Commercial break in progress») плеер переключается на резервный поток Twitch без рекламы.'));
     opt(tr('Задержка эфира'), 'latency', [['low', tr('Минимальная')], ['normal', tr('Обычная')], ['stable', tr('Стабильная (большой буфер)')]],
       tr('Стабильная — меньше подвисаний при слабом Wi‑Fi, но отставание от эфира больше.'));
     opt(tr('Видеодвижок'), 'engine', [['hls', tr('hls.js (рекомендуется)')], ['native', tr('Встроенный в ТВ')]],
@@ -888,7 +972,11 @@
     opt(tr('Звук в превью'), 'previewSound', [['on', tr('Включён')], ['off', tr('Выключен')]], tr('Превью в карточке играет со звуком, как в YouTube.'));
     opt(tr('Облегчённый режим'), 'lite', [['auto', tr('Авто')], ['off', tr('Выключен')], ['on', tr('Включён')]],
       tr('Без анимаций и превью — максимально плавно на слабых ТВ.'), function () { App.applyLite(); });
+    opt(tr('Уведомления о прогнозах и голосованиях'), 'eventsNotify', [['on', tr('Включены')], ['off', tr('Выключены')]],
+      tr('Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.'));
     opt(tr('Уведомления о начале эфиров'), 'notify', [['on', tr('Включены')], ['off', tr('Выключены')]], tr('Когда ваш канал начинает эфир — всплывает подсказка.'));
+    opt(tr('При запуске'), 'resume', [['on', tr('Продолжить с того же места')], ['off', tr('Открывать главную')]],
+      tr('Приложение откроется там, где вы из него вышли, — на той же странице или в том же эфире.'));
     opt(tr('Масштаб интерфейса'), 'scale', [['90', '90%'], ['100', '100%'], ['110', '110%'], ['120', '120%']], null, function () { App.applyScale(); });
 
     section(tr('Телевизор'));
@@ -906,17 +994,30 @@
     })));
 
     section(tr('Данные'));
+    var blockedRow = action(tr('Заблокированные каналы'), '', function () {
+      var list = App.blocked();
+      if (!list.length) { UI.toast(tr('Список пуст')); return; }
+      UI.menu(tr('Разблокировать канал'), list.map(function (login) {
+        return { label: login, onSelect: function () { App.setBlocked(login, false); UI.toast(login + tr(' разблокирован')); showBlocked(); } };
+      }), { cls: 'menu-right' });
+    });
+    function showBlocked() { U.$('.set-hint', blockedRow).textContent = App.blocked().length ? tr('Заблокировано: ') + App.blocked().length : tr('Никого не заблокировано'); }
+    showBlocked();
     action(tr('Очистить избранное'), tr('Удалить все каналы из избранного'), function () {
       UI.confirm(tr('Очистить избранное?'), tr('Список каналов будет удалён.'), tr('Очистить'), function () { App.setFavs([]); UI.toast(tr('Избранное очищено')); });
     });
     action(tr('Очистить историю'), tr('История просмотров, поиска и позиции записей'), function () {
       U.store.set('searchHistory', []); U.store.set('vodpos', {}); U.store.set('watchHistory', []); UI.toast(tr('История очищена'));
     });
+    action(tr('Сообщить о проблеме'), tr('QR-код на страницу GitHub — опишите, что не работает'), function () { App.reportProblem('settings'); });
     action(tr('Перезапустить приложение'), null, function () { location.reload(); });
 
     var url = location.href.split('#')[0].split('?')[0];
     el.content.appendChild(h('div.about.row', null, [
       h('div.about-title', { text: 'Twitch TV ' + tr('для Hisense VIDAA • версия ') + App.VERSION }),
+      h('div.about-text', { text: tr('Разработчик: ') + 'github.com/PainFrenemy2' + ' • ' + tr('Издатель: ') + 'Null/Code' }),
+      h('div.about-text', { text: tr('Работает на телевизорах Hisense и других ТВ с системой VIDAA (Toshiba, Sharp, Loewe и др.).') }),
+      h('div.about-text', { text: tr('Источник видео, чата и данных — Twitch (twitch.tv). Twitch и логотип Twitch — товарные знаки Twitch Interactive, Inc. Это неофициальное приложение: оно не связано с Twitch и не одобрено им. Все права на трансляции, записи и клипы принадлежат их авторам и Twitch.') }),
       h('div.about-text', { text: tr('Адрес приложения: ') + url }),
       h('div.about-text', { text: tr('Кнопки пульта: OK — выбор, Назад — назад, CH+/CH− — переключение эфиров, красная — качество, зелёная — чат, жёлтая — избранное, синяя — перезагрузить поток.') })
     ]));

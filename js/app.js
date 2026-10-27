@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.4.1',
+    VERSION: '1.5.0',
     layers: [],
     history: [],
     pendingFocus: false
@@ -97,6 +97,29 @@
     return i < 0;
   };
 
+  // ---------- заблокированные каналы (локально: скрываются из всех списков, чата и «Другие каналы») ----------
+  App.blocked = function () { return U.store.get('blocked', []); };
+  App.isBlocked = function (login) { return !!login && App.blocked().indexOf(String(login).toLowerCase()) >= 0; };
+  App.setBlocked = function (login, on) {
+    login = String(login).toLowerCase();
+    var list = App.blocked().filter(function (x) { return x !== login; });
+    if (on) list.unshift(login);
+    U.store.set('blocked', list);
+    if (on) UI.dropCards(login);
+  };
+
+  // «Сообщить о проблеме»: ссылка на новый issue в GitHub с данными о ТВ и о том, что смотрели
+  App.ISSUES = 'https://github.com/PainFrenemy2/TVAppTwitch-Hisense-/issues/new';
+  App.reportProblem = function (context) {
+    var ua = navigator.userAgent || '';
+    var m = /(Hisense[^;)]*|VIDAA[^;)]*)/i.exec(ua);
+    var chrome = /Chrome\/(\d+)/.exec(ua);
+    var body = 'v' + App.VERSION + ' | ' + (m ? m[1].trim() : 'TV') + ' | ' + (chrome ? 'Chromium ' + chrome[1] : '') + ' | ' + I18N.lang +
+      (context ? ' | ' + context : '') + '\n\n';
+    var url = App.ISSUES + '?title=' + encodeURIComponent(tr('Проблема: ')) + '&body=' + encodeURIComponent(body.slice(0, 300));
+    UI.qrDialog(tr('Сообщить о проблеме'), tr('Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.'), url, 'github.com/PainFrenemy2/TVAppTwitch-Hisense-/issues');
+  };
+
   // Все «мои» каналы: подписки аккаунта + локальное избранное
   App.myChannels = function () {
     var list = App.favs().slice();
@@ -178,8 +201,11 @@
     if (layer.onClose) layer.onClose();
     var top = App.topLayer();
     Nav.setScope(top.scope || top.el);
-    if (top.lastFocus && top.lastFocus.isConnected && top.lastFocus.offsetParent !== null) Nav.focus(top.lastFocus, { noScroll: true });
-    else if (top === App.base) App.refocus(true);
+    var lf = top.lastFocus;
+    var ok = lf && lf.isConnected && lf.offsetParent !== null;
+    // под плеером/меню фокус был в боковом меню (например, эфир открылся сразу при запуске) — ставим на контент
+    if (top === App.base && (!ok || inSidebar(lf))) App.refocus(true);
+    else if (ok) Nav.focus(lf, { noScroll: true });
     else if (top.el === Player.el) { /* плеер сам покажет OSD */ }
   };
 
@@ -217,6 +243,7 @@
     var u = window.Auth && Auth.user();
     acc.innerHTML = (u && u.profileImageURL ? '<img class="side-avatar" src="' + U.esc(u.profileImageURL) + '" alt="">' : UI.icon('person')) +
       '<span class="side-label">' + U.esc(u ? u.displayName : tr('Войти')) + '</span>';
+    acc.classList.toggle('needs-login', !!(window.Auth && Auth.needsLogin()));
   };
 
   function inSidebar(el) { return !!el && sidebar.contains(el); }
@@ -265,6 +292,7 @@
     while (App.history.length > 6) removePage(App.history.splice(1, 1)[0].page);
     markSidebar();
     focusPage(page, true);
+    App.saveState();
   };
 
   App.replace = function (name, params) {
@@ -324,6 +352,7 @@
       if (prev.page.onShow) prev.page.onShow();
       markSidebar();
       focusPage(prev.page);
+      App.saveState();
       return;
     }
     if (!inSidebar(Nav.current)) { Nav.focus(activeSideItem()); return; }
@@ -440,8 +469,41 @@
     } catch (e) { /* ignore */ }
   }
 
+  // ---------- где остановились: страница + открытый эфир/запись ----------
+  // Сохраняем при каждом переходе и при открытии/закрытии плеера; при запуске возвращаемся туда же.
+  var RESUMABLE = { home: 1, browse: 1, following: 1, history: 1, settings: 1, search: 1, channel: 1, game: 1 };
+  App.saveState = function () {
+    var cur = App.history[App.history.length - 1];
+    var it = Player.item;
+    var st = U.store.get('lastState', {}) || {};
+    if (cur && RESUMABLE[cur.name]) { st.page = cur.name; st.params = cur.params || {}; }
+    st.player = it ? { kind: it.kind, login: it.login, name: it.name, avatar: it.avatar, id: it.id, slug: it.slug, title: it.title,
+      length: it.length, thumb: it.thumb, game: it.game, roomId: it.roomId, createdAt: it.createdAt } : null;
+    st.at = Date.now();
+    U.store.set('lastState', st);
+  };
+
+  function resume() {
+    var st = U.store.get('lastState', null);
+    if (!st || Settings.get('resume') === 'off') return false;
+    var name = st.page;
+    if (!name || !Pages[name] || !RESUMABLE[name]) return false;
+    if (name === 'channel' || name === 'game') {
+      // «Назад» с канала/категории ведёт на главную, как обычно
+      App.go('home', {}, { root: true });
+      App.go(name, st.params || {});
+    } else App.go(name, st.params || {}, { root: true });
+    // плеер открываем снова, только если вышли недавно (эфир мог закончиться давно)
+    if (st.player && st.player.kind && Date.now() - (st.at || 0) < 12 * 3600 * 1000) {
+      App.play(st.player);
+      return 'player';
+    }
+    return 'page';
+  }
+
   // ---------- старт ----------
   function init() {
+    U.store.restore();
     App.applyScale();
     App.applyLite();
     U.$$('[data-i18n]').forEach(function (el) { el.textContent = tr(el.textContent); });
@@ -468,7 +530,9 @@
     trapHistory();
 
     // ТВ свернул приложение — ставим на паузу, при возврате эфир перезапускаем с «живой» точки
+    window.addEventListener('pagehide', function () { App.saveState(); Player.saveNow(); U.store.flush(); });
     document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { App.saveState(); Player.saveNow(); U.store.flush(); }
       if (!Player.isOpen()) return;
       if (document.hidden) { Player.bgPaused = true; try { Player.video.pause(); } catch (e) { /* ignore */ } }
       else {
@@ -495,9 +559,16 @@
       Auth.ensure().then(function () { return Auth.syncFollows(); }).catch(function () {});
     }
 
-    var start = (location.hash || '').replace('#', '');
-    App.go(Pages[start] && start !== 'channel' && start !== 'game' ? start : 'home', {}, { root: true });
-    if (Auth.accounts.length > 1) App.showProfiles();
+    var hashPage = (location.hash || '').replace('#', '');
+    var resumed = false;
+    if (Pages[hashPage] && hashPage !== 'channel' && hashPage !== 'game') App.go(hashPage, {}, { root: true });
+    else {
+      try { resumed = resume(); } catch (e) { resumed = false; }
+      if (!resumed) App.go('home', {}, { root: true });
+    }
+    // «Кто смотрит?» — только при обычном запуске; если вернулись к эфиру, не перебиваем его
+    if (Auth.accounts.length > 1 && resumed !== 'player') App.showProfiles();
+    if (Auth.needsLogin()) setTimeout(function () { UI.toast(tr('Вход в Twitch устарел — войдите снова в разделе «Аккаунт»'), 6000); }, 1500);
     setTimeout(checkLive, 20000);
     setInterval(checkLive, 3 * 60 * 1000);
   }
@@ -550,9 +621,9 @@
   var knownLive = null;
   function checkLive() {
     if (Settings.get('notify') === 'off') return;
-    var p = Auth.loggedIn() ? Auth.followedLive() : Twitch.users(App.favs()).then(function (us) {
+    var p = (Auth.loggedIn() ? Auth.followedLiveSafe() : Twitch.users(App.favs()).then(function (us) {
       return us.filter(function (u) { return u.stream; }).map(function (u) { var st = u.stream; st.broadcaster = st.broadcaster || u; return st; });
-    });
+    })).then(function (list) { return list.filter(function (st) { return !App.isBlocked(st.broadcaster.login); }); });
     p.then(function (streams) {
       var now = {};
       streams.forEach(function (st) { now[st.broadcaster.login] = st; });
