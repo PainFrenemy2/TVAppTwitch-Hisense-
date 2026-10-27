@@ -118,8 +118,29 @@
   // С входом — от имени аккаунта (рекомендации под вас), без входа — общие ряды главной Twitch.
   // Возвращает [{id, title, items:[{type:'Stream'|'Game'|'Clip'|'Video', data}]}] или [] (тогда — обычная главная).
   // Запрос рядов главной — как у сайта twitch.tv (с context), и запасной — без него.
+  // В объединении (union) одноимённые поля разных типов конфликтуют, если типы различаются
+  // (Clip.title — String!, Stream.title — String), поэтому у Game/Clip/Video каждому полю верхнего
+  // уровня даём псевдоним «p_поле», а после ответа возвращаем обычные имена (unalias).
+  function alias(p, fields) {
+    var out = [], depth = 0, tok = '';
+    for (var i = 0; i <= fields.length; i++) {
+      var c = fields.charAt(i);
+      if (c === '{' || c === '(') depth++;
+      else if (c === '}' || c === ')') depth--;
+      if ((c === ' ' || c === '') && depth === 0) {
+        if (tok) out.push(p + tok.match(/^\w+/)[0] + ':' + tok);
+        tok = '';
+      } else tok += c;
+    }
+    return out.join(' ');
+  }
+  function unalias(x) {
+    var m = /^(Game|Clip|Video)$/.test(x.__typename) && x.__typename.charAt(0).toLowerCase() + '_';
+    if (m) for (var k in x) if (k.indexOf(m) === 0) x[k.slice(2)] = x[k];
+    return x;
+  }
   var SHELF_ITEMS = 'edges{node{id title{fallbackLocalizedTitle} content{edges{node{__typename ' +
-    '... on Stream{' + STREAM + '} ... on Game{' + GAME + '} ... on Clip{' + CLIP + '} ... on Video{' + VIDEO + '}}}}}}';
+    '... on Stream{' + STREAM + '} ... on Game{' + alias('g_', GAME) + '} ... on Clip{' + alias('c_', CLIP) + '} ... on Video{' + alias('v_', VIDEO) + '}}}}}}';
   // Варианты от «как у сайта» до минимального: если Twitch ругается на какой-то аргумент
   // (как было с «Unknown argument imageWidth»), следующий вариант обходится без него.
   var CTX = 'context:{clientApp:"twilight",location:"home",referrerDomain:"",viewportHeight:1080,viewportWidth:1920}';
@@ -138,7 +159,7 @@
   function shelvesFrom(d) {
     var out = [];
     edges(d && d.shelves).forEach(function (n) {
-      var items = edges(n.content).filter(function (x) {
+      var items = edges(n.content).map(function (x) { return x && unalias(x); }).filter(function (x) {
         return x && /^(Stream|Game|Clip|Video)$/.test(x.__typename) && (x.__typename !== 'Stream' || x.broadcaster);
       }).map(function (x) { return { type: x.__typename, data: x }; });
       var title = n.title && n.title.fallbackLocalizedTitle;

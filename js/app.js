@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.8.5',
+    VERSION: '1.8.6',
     layers: [],
     history: [],
     pendingFocus: false
