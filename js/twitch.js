@@ -161,7 +161,7 @@
     ['shelves', shelvesQ('web', false, TITLE_SIMPLE)]
   ];
   // элементы раздела — объединение типов (union), поэтому канал выбираем через фрагмент
-  var RECS_Q = 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"web"}}){' +
+  var RECS_Q = 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"android"}}){' +
     'type title{localizedFallback} items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}';
   var personal = { at: 0, key: '', p: null };
   // что ответил Twitch — для экрана «Диагностика аккаунта»
@@ -256,10 +256,14 @@
 
   // Рекомендованные эфиры для ленты «Эфир» — как в приложении Twitch на телефоне. Какой запрос Twitch отдаст
   // входу с телевизора, заранее неизвестно, поэтому пробуем по очереди; итог каждого — в T.recsDiag (для диагностики).
+  function recQ(loc, platform, app) {
+    return 'query($id:String!){recommendedStreams(first:40,recRequestID:$id,location:' + loc + ',context:{platform:"' + platform + '",clientApp:"' + app + '"}){edges{node{' + STREAM + '}}}}';
+  }
   var REC_VARIANTS = [
-    ['recommendedStreams android', 'query($id:String!){recommendedStreams(first:40,recRequestID:$id,context:{platform:"android",clientApp:"android",location:"discover"}){edges{node{' + STREAM + '}}}}'],
-    ['recommendedStreams web', 'query($id:String!){recommendedStreams(first:40,recRequestID:$id,context:{platform:"web",clientApp:"twilight",location:"home"}){edges{node{' + STREAM + '}}}}'],
-    ['personalSections android', 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"android"}}){items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}']
+    ['personalSections android', 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"android"}}){items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}'],
+    ['recommendedStreams HOME android', recQ('HOME', 'android', 'android')],
+    ['recommendedStreams "HOME" android', recQ('"HOME"', 'android', 'android')],
+    ['recommendedStreams HOME web', recQ('HOME', 'web', 'twilight')]
   ];
   var recsMemo = { at: 0, key: '', p: null };
   T.recsDiag = [];
@@ -269,10 +273,13 @@
     if (recsMemo.p && recsMemo.key === key && Date.now() - recsMemo.at < 120000) return recsMemo.p;
     var run = function (q, v) { return signed ? Auth.gql(q, v) : gql(q, v, { retries: 0 }); };
     T.recsDiag = [];
+    // сначала — вариант, который сработал в прошлый раз (лишние запросы с ошибкой не шлём)
+    var good = U.store.get('recsVariant', '');
+    var order = REC_VARIANTS.slice().sort(function (a, b) { return (b[0] === good) - (a[0] === good); });
     var i = 0;
     function next() {
-      if (i >= REC_VARIANTS.length) return Promise.resolve([]);
-      var rv = REC_VARIANTS[i++], t0 = Date.now();
+      if (i >= order.length) return Promise.resolve([]);
+      var rv = order[i++], t0 = Date.now();
       return run(rv[1], { id: U.uid(32) }).then(function (d) {
         var list;
         if (d && d.recommendedStreams) list = edges(d.recommendedStreams);
@@ -285,6 +292,7 @@
         }));
         list = list.filter(function (st) { return st && st.broadcaster; });
         T.recsDiag.push({ name: rv[0], ok: !!list.length, info: list.length + ' streams', ms: Date.now() - t0 });
+        if (list.length) U.store.set('recsVariant', rv[0]);
         return list.length ? list : next();
       }, function (e) {
         T.recsDiag.push({ name: rv[0], ok: false, info: 'error: ' + ((e && e.message) || e), ms: Date.now() - t0 });
