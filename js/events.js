@@ -138,6 +138,7 @@
     Ev.prediction = null;
     Ev.poll = null;
     Ev.balance = null;
+    Ev.banned = null;
     hideBanner();
     removeCorner();
   };
@@ -378,10 +379,12 @@
   Ev.openPrediction = function () {
     if (!Ev.prediction) { UI.toast(tr('Сейчас прогноза нет')); return; }
     var login = Ev.login;
-    loadBalance(login).then(function (balance) {
+    Promise.all([loadBalance(login), Auth.loggedIn() ? loadBan(login) : null]).then(function (r) {
+      var balance = r[0];
       // пока ждали баланс, плеер закрыли или переключили канал — окно не показываем
       if (Ev.login !== login || !Player.isOpen()) return;
       Ev.balance = balance;
+      Ev.banned = r[1];
       openPanel('prediction', tr('Прогноз'));
     });
   };
@@ -462,6 +465,7 @@
     var foot = tr('Прогноз начался: ') + U.ago(p.createdAt);
     if (p.status === 'LOCKED') foot += '\n' + tr('Ожидание результата');
     if (Ev.balance !== null && Ev.balance !== undefined) foot += '\n' + tr('ваши баллы: ') + U.num(Ev.balance);
+    if (Ev.banned) foot += '\n' + banText(Ev.banned);
     refs2.foot.textContent = foot;
 
     // кнопки ставок — только пока приём открыт
@@ -478,7 +482,38 @@
     });
   }
 
+  // Бан в чате канала: Twitch тогда не принимает ни ставки, ни голоса — проверяем заранее и говорим прямо.
+  // null — не забанен или Twitch не ответил (тогда не мешаем, причину покажет сам ответ на ставку).
+  var banMemo = {};
+  function loadBan(login) {
+    var m = banMemo[login];
+    if (m && Date.now() - m.at < 60000) return m.p;
+    var p = Auth.gql('query($login:String!){user(login:$login){self{banStatus{isPermanent expiresAt}}}}', { login: login })
+      .then(function (d) { var u = d && d.user; return (u && u.self && u.self.banStatus) || null; })
+      .catch(function () { return null; });
+    banMemo[login] = { at: Date.now(), p: p };
+    return p;
+  }
+  function banText(b) {
+    var t = tr('Вы забанены в чате этого канала — Twitch не принимает от вас ставки и голоса.');
+    if (b && !b.isPermanent && b.expiresAt) t += ' ' + tr('Бан до: ') + new Date(b.expiresAt).toLocaleString();
+    return t;
+  }
+  // проверка перед действием: забанен — сообщаем и ничего не отправляем
+  function unlessBanned(fn) {
+    var login = Ev.login;
+    loadBan(login).then(function (b) {
+      if (Ev.login !== login) return;
+      if (b) { UI.confirm(tr('Нельзя участвовать'), banText(b), tr('Понятно'), function () {}); return; }
+      fn();
+    });
+  }
+  function isBanErr(code) { return /BAN|SUSPEND|RESTRICT|FORBIDDEN|NOT_ALLOWED/i.test(code || ''); }
+
   function pickPoints(eventId, o, balance) {
+    unlessBanned(function () { pickPointsNow(eventId, o, balance); });
+  }
+  function pickPointsNow(eventId, o, balance) {
     var amounts = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
     if (balance !== null && balance !== undefined) amounts = amounts.filter(function (a) { return a <= balance; });
     var items = amounts.map(function (a) { return { label: tr('Баллы: ') + U.num(a), onSelect: function () { predict(eventId, o, a); } }; });
@@ -519,6 +554,7 @@
         // понятные причины вместо кода Twitch
         if (/NOT_ENOUGH_POINTS|INSUFFICIENT/i.test(code)) { UI.toast(tr('Недостаточно баллов канала'), 5000); return; }
         if (/EVENT_NOT_ACTIVE|LOCKED|ENDED|NOT_ACTIVE/i.test(code)) { UI.toast(tr('Прогноз закрыт'), 5000); return; }
+        if (isBanErr(code)) { UI.toast(banText(null), 7000); return; }
         UI.toast(tr('Twitch не принял ставку') + (code ? ': ' + code : ''), 7000);
       });
   }
@@ -579,6 +615,9 @@
   }
 
   function vote(pollId, c) {
+    unlessBanned(function () { voteNow(pollId, c); });
+  }
+  function voteNow(pollId, c) {
     var p = Ev.poll, u = Auth.user();
     if (!p || p.id !== pollId || p.status !== 'ACTIVE') { UI.toast(tr('Голосование завершено')); return; }
     Auth.gql('mutation($input:VoteInPollInput!){voteInPoll(input:$input){error{code}}}',
@@ -589,7 +628,10 @@
         UI.toast(tr('Голос учтён: ') + c.title);
         refresh('poll');
       })
-      .catch(function (e) { UI.toast(tr('Twitch не принял голос') + (e && e.message ? ': ' + e.message : ''), 5000); });
+      .catch(function (e) {
+        if (isBanErr(e && e.message)) { UI.toast(banText(null), 7000); return; }
+        UI.toast(tr('Twitch не принял голос') + (e && e.message ? ': ' + e.message : ''), 5000);
+      });
   }
 
   window.Events = Ev;
