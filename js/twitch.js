@@ -120,13 +120,17 @@
   // Запрос рядов главной — как у сайта twitch.tv (с context), и запасной — без него.
   var SHELF_ITEMS = 'edges{node{id title{fallbackLocalizedTitle} content{edges{node{__typename ' +
     '... on Stream{' + STREAM + '} ... on Game{' + GAME + '} ... on Clip{' + CLIP + '} ... on Video{' + VIDEO + '}}}}}}';
+  // Варианты от «как у сайта» до минимального: если Twitch ругается на какой-то аргумент
+  // (как было с «Unknown argument imageWidth»), следующий вариант обходится без него.
+  var CTX = 'context:{clientApp:"twilight",location:"home",referrerDomain:"",viewportHeight:1080,viewportWidth:1920}';
   var SHELVES_VARIANTS = [
     ['shelves+context', 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"web",requestID:$requestID,' +
-      'imageWidth:50,langWeightedCCU:true,verbose:false,context:{clientApp:"twilight",location:"home",referrerDomain:"",viewportHeight:1080,viewportWidth:1920}){' + SHELF_ITEMS + '}}'],
-    ['shelves', 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"web",requestID:$requestID,imageWidth:50,langWeightedCCU:true){' + SHELF_ITEMS + '}}']
+      'langWeightedCCU:true,verbose:false,' + CTX + '){' + SHELF_ITEMS + '}}'],
+    ['shelves', 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"web",requestID:$requestID){' + SHELF_ITEMS + '}}']
   ];
+  // элементы раздела — объединение типов (union), поэтому канал выбираем через фрагмент
   var RECS_Q = 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"web"}}){' +
-    'type title{localizedFallback} items{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}';
+    'type title{localizedFallback} items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}';
   var personal = { at: 0, key: '', p: null };
   // что ответил Twitch — для экрана «Диагностика аккаунта»
   T.diag = {};
