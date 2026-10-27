@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.8.8',
+    VERSION: '1.8.9',
     layers: [],
     history: [],
     pendingFocus: false
@@ -525,7 +525,27 @@
   // ---------- старт ----------
   function init() {
     U.store.restore(function (restarting) { if (!restarting) start(); });
+    checkUpdate();
   }
+
+  // Самообновление: ТВ держит приложение (и index.html) в кеше и часто не перезапускает его, а только
+  // сворачивает. Поэтому при запуске и при возврате на экран спрашиваем version.txt с GitHub и,
+  // если вышла новая версия, перезагружаемся с новым адресом — тогда ТВ берёт свежие файлы.
+  var updChecked = 0;
+  function checkUpdate() {
+    if (Date.now() - updChecked < 10 * 60 * 1000) return;
+    updChecked = Date.now();
+    if (!window.fetch) return;
+    fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+      var v = parseInt(t, 10), cur = parseInt(window.APP_V, 10);
+      if (!v || !cur || v <= cur) return;
+      var m = /[?&]u=(\d+)/.exec(location.search);
+      if (m && +m[1] >= v) return; // уже перезагружались ради этой версии — второй раз не крутимся
+      try { if (App.base) App.saveState(); if (window.Player && Player.saveNow) Player.saveNow(); U.store.flush(); } catch (e) { /* не страшно */ }
+      location.replace(location.pathname + '?u=' + v + location.hash);
+    }).catch(function () {});
+  }
+  App.checkUpdate = checkUpdate;
 
   function start() {
     App.applyScale();
@@ -557,7 +577,10 @@
     window.addEventListener('pagehide', function () { App.saveState(); Player.saveNow(); U.store.flush(); });
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) { App.saveState(); Player.saveNow(); U.store.flush(); }
-      else if (Auth.loggedIn() && !Auth.needsLogin()) Auth.ensure().catch(function () {}); // вернулись — продлеваем вход сейчас
+      else {
+        if (Auth.loggedIn() && !Auth.needsLogin()) Auth.ensure().catch(function () {}); // вернулись — продлеваем вход сейчас
+        checkUpdate();
+      }
       if (!Player.isOpen()) return;
       if (document.hidden) { Player.bgPaused = true; try { Player.video.pause(); } catch (e) { /* ignore */ } }
       else {
