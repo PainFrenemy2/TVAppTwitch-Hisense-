@@ -10,6 +10,12 @@
   var PRED_TOP = PRED.replace('totalUsers}', 'totalUsers topPredictors{points}}');
   var KEEP_ENDED = 60000;
 
+  // «сохранённые» запросы Twitch (persisted queries) — так ставки и бонусы отправляют сами приложения Twitch
+  var PERSISTED = {
+    predict: { op: 'MakePrediction', hash: 'b44682ecc88358817009f20e69d75081b1e58825bb40aa53d5dbadcc17c881d8' },
+    claim: { op: 'ClaimCommunityPoints', hash: '46aaeebe02c99afdf4fc97c7c0cba964124bf6b0af229395f1f6d1feed05b3d0' }
+  };
+
   var Ev = { login: null, timer: null, prediction: null, poll: null, balance: null, seen: {}, banner: null, bannerTimer: null };
   var noTop = false; // Twitch не знает поля topPredictors — больше не спрашиваем
 
@@ -58,8 +64,10 @@
     });
   }
   function claimBonus(login, pts) {
-    Auth.gql('mutation($input:ClaimCommunityPointsInput!){claimCommunityPoints(input:$input){currentPoints error{code}}}',
-      { input: { channelID: pts.channelID, claimID: pts.claim } }).then(function (d) {
+    var input = { channelID: pts.channelID, claimID: pts.claim };
+    Auth.gql(PERSISTED.claim, { input: input }, false, { strict: true }).catch(function () {
+      return Auth.gql('mutation($input:ClaimCommunityPointsInput!){claimCommunityPoints(input:$input){currentPoints error{code}}}', { input: input }, false, { strict: true });
+    }).then(function (d) {
       var r = d && d.claimCommunityPoints;
       if (!r || r.error || Ev.login !== login) return;
       var before = Ev.balance;
@@ -475,6 +483,10 @@
     if (balance !== null && balance !== undefined) amounts = amounts.filter(function (a) { return a <= balance; });
     var items = amounts.map(function (a) { return { label: tr('Баллы: ') + U.num(a), onSelect: function () { predict(eventId, o, a); } }; });
     if (balance) items.push({ label: tr('Все баллы') + ': ' + U.num(balance), onSelect: function () { predict(eventId, o, balance); } });
+    // своя сумма — цифрами на экране или кнопками пульта
+    if (balance !== 0) items.unshift({ label: tr('Своя сумма…'), onSelect: function () {
+      UI.numberInput(tr('Ставка: ') + o.title, balance ? tr('ваши баллы: ') + U.num(balance) : null, balance || 0, function (n) { predict(eventId, o, n); });
+    } });
     if (!items.length) { UI.toast(tr('Недостаточно баллов канала')); return; }
     UI.menu(tr('Ставка: ') + o.title, items, { cls: 'menu-right' });
   }
@@ -483,8 +495,17 @@
     // пока выбирали сумму, Twitch мог закрыть приём ставок
     var p = Ev.prediction;
     if (!p || p.id !== eventId || p.status !== 'ACTIVE') { UI.toast(tr('Прогноз закрыт')); if (panel) panel.update(); return; }
-    Auth.gql('mutation($input:MakePredictionInput!){makePrediction(input:$input){error{code} prediction{id}}}',
-      { input: { eventID: eventId, outcomeID: o.id, points: points, transactionID: U.uid(32) } })
+    var input = { eventID: eventId, outcomeID: o.id, points: points, transactionID: U.uid(32) };
+    // сначала — как это делают приложения Twitch (сохранённый запрос MakePrediction), не вышло — обычным запросом
+    Auth.gql(PERSISTED.predict, { input: input }, false, { strict: true })
+      .catch(function (e1) {
+        // ошибка самого запроса (не ответ «нельзя») — пробуем обычный; не вышло и так — покажем обе причины
+        return Auth.gql('mutation($input:MakePredictionInput!){makePrediction(input:$input){error{code} prediction{id}}}', { input: input }, false, { strict: true })
+          .catch(function (e2) {
+            var a = (e1 && e1.message) || '', b = (e2 && e2.message) || '';
+            throw new Error(a === b ? a : a + ' / ' + b);
+          });
+      })
       .then(function (d) {
         var r = d && d.makePrediction;
         if (!r || r.error) throw new Error(r && r.error ? r.error.code : '');
@@ -493,7 +514,13 @@
         renderCorner();
         refresh('prediction');
       })
-      .catch(function (e) { UI.toast(tr('Twitch не принял ставку') + (e && e.message ? ': ' + e.message : ''), 5000); });
+      .catch(function (e) {
+        var code = (e && e.message) || '';
+        // понятные причины вместо кода Twitch
+        if (/NOT_ENOUGH_POINTS|INSUFFICIENT/i.test(code)) { UI.toast(tr('Недостаточно баллов канала'), 5000); return; }
+        if (/EVENT_NOT_ACTIVE|LOCKED|ENDED|NOT_ACTIVE/i.test(code)) { UI.toast(tr('Прогноз закрыт'), 5000); return; }
+        UI.toast(tr('Twitch не принял ставку') + (code ? ': ' + code : ''), 7000);
+      });
   }
 
   // ---------- голосование ----------

@@ -300,6 +300,44 @@
     App.openLayer({ el: h('div.overlay.center', null, box), root: U.$('#modal-root'), focus: cancel });
   };
 
+  // Ввод числа: экранная цифровая клавиатура (и цифры на пульте). onOk(n) — когда нажали «Готово».
+  UI.numberInput = function (title, sub, max, onOk) {
+    var val = '';
+    var shown = h('div.num-value');
+    function upd() { shown.textContent = val ? val.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : '0'; shown.classList.toggle('over', max > 0 && +val > max); }
+    function press(d) { if (val.length < 9 && !(val === '' && d === '0')) { val += d; upd(); } }
+    function back() { val = val.slice(0, -1); upd(); }
+    function done() {
+      var n = +val;
+      if (!n) return;
+      if (max > 0 && n > max) { UI.toast(tr('Недостаточно баллов канала')); return; }
+      App.closeLayer();
+      onOk(n);
+    }
+    var keys = h('div.num-keys', { 'data-group': 'free' });
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].forEach(function (k) {
+      var b = h('div.num-key.focusable' + (k === 'ok' ? '.num-ok' : ''), k === 'del' ? { html: UI.icon('backspace') } : { text: k === 'ok' ? tr('Готово') : k });
+      b._onclick = k === 'del' ? back : k === 'ok' ? done : function () { press(k); };
+      keys.appendChild(b);
+    });
+    var box = h('div.dialog.num-dialog', null, [
+      h('div.dialog-title', { text: title }),
+      sub ? h('div.dialog-text', { text: sub }) : null,
+      shown, keys
+    ]);
+    upd();
+    App.openLayer({
+      el: h('div.overlay.center', null, box), root: U.$('#modal-root'), focus: keys.children[0],
+      // цифры на пульте: 0–9 (и цифровой блок клавиатуры)
+      onKey: function (k, e) {
+        var c = e && e.keyCode;
+        if (c >= 48 && c <= 57) { press(String(c - 48)); return true; }
+        if (c >= 96 && c <= 105) { press(String(c - 96)); return true; }
+        return false;
+      }
+    });
+  };
+
   // Окно с QR-кодом: действие, которое можно сделать только на сайте Twitch/GitHub — с телефона
   UI.qrDialog = function (title, text, url, shortUrl) {
     var qr = '';

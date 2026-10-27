@@ -238,23 +238,28 @@
   };
 
   // GQL от имени пользователя
-  Auth.gql = function (query, variables, retried) {
+  // query — текст запроса или { op, hash } — «сохранённый» запрос Twitch (persisted query), как шлют сами приложения Twitch.
+  // opts.strict — ошибка Twitch даже при частичном ответе (для действий: ставка, бонус), с текстом ошибки.
+  Auth.gql = function (query, variables, retried, opts) {
+    var body = typeof query === 'string' ? { query: query, variables: variables || {} }
+      : { operationName: query.op, variables: variables || {}, extensions: { persistedQuery: { version: 1, sha256Hash: query.hash } } };
     return Auth.ensure().then(function () {
       return fetchTimeout('https://gql.twitch.tv/gql', {
         method: 'POST',
-        headers: { 'Client-ID': CLIENT_ID, 'Authorization': 'OAuth ' + Auth.data.token, 'Content-Type': 'text/plain;charset=UTF-8', 'Accept-Language': I18N.lang },
-        body: JSON.stringify({ query: query, variables: variables || {} })
+        headers: { 'Client-ID': CLIENT_ID, 'Authorization': 'OAuth ' + Auth.data.token, 'Content-Type': 'text/plain;charset=UTF-8',
+          'Accept-Language': I18N.lang, 'X-Device-Id': U.store.get('deviceId', '') || U.uid(32) },
+        body: JSON.stringify(body)
       });
     }).then(function (r) {
       if (r.status === 401 && !retried) {
         var acc = Auth.data;
-        return Auth.refresh().then(function () { return Auth.gql(query, variables, true); }, function (e) {
+        return Auth.refresh().then(function () { return Auth.gql(query, variables, true, opts); }, function (e) {
           if (e.invalid && acc) markExpired(acc);
           throw e;
         });
       }
       return r.json().then(function (j) {
-        if (j.errors && !j.data) throw new Error(j.errors[0].message);
+        if (j.errors && (!j.data || (opts && opts.strict))) throw new Error(j.errors[0].message || 'GQL error');
         return j.data;
       });
     });
