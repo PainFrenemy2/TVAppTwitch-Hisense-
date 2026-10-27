@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (rekommenderas)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitch-reklamavbrott — sändningen fortsätter snart
 идёт	pågår
 пропускается	hoppas över
- баллов	 poäng
- заблокирован	 blockerad
- из всех списков	 från alla listor
- разблокирован	 avblockerad
 OK — участвовать	OK — delta
 QR-код на страницу GitHub — опишите, что не работает	QR-kod till GitHub-sidan — beskriv vad som är fel
 Twitch не принял голос	Twitch godtog inte rösten
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch godtog inte förutsägelsen
 Заблокированные каналы	Blockerade kanaler
 Заблокировано: 	Blockerade: 
 Заблокировать	Blockera
-Заблокировать 	Blockera 
 Заблокировать канал	Blockera kanal
 Закрыть	Stäng
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanalen försvinner från startsidan, sök, rekommendationer och notiser. Du kan avblockera den under Inställningar → Blockerade kanaler.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch godtog inte förutsägelsen
 Нужен вход в Twitch	Inloggning på Twitch krävs
 Плеер, звук, зависания, ошибки	Spelare, ljud, frysningar, fel
 Пожаловаться	Anmäl
-Пожаловаться на 	Anmäl 
 Проблема: 	Problem: 
 Прогноз	Förutsägelse
 Разблокировать	Avblockera
 Разблокировать канал	Avblockera kanal
 Сейчас голосования нет	Ingen omröstning just nu
 Сейчас прогноза нет	Ingen förutsägelse just nu
-Скрыть 	Dölj 
 Сообщить о проблеме	Rapportera ett problem
 Ставка: 	Satsa: 
 Ставка принята: 	Förutsägelse lagd: 
-Ставки уже закрыты	Förutsägelserna är stängda
 Уведомления о прогнозах и голосованиях	Notiser om förutsägelser och omröstningar
 ваши баллы: 	dina poäng: 
 завершён	avslutad
-приём ставок	öppen
 ставки закрыты	låst
- участников	 deltagare
+Баллы: 	Poäng: 
+Канал заблокирован: 	Kanal blockerad: 
+Канал разблокирован: 	Kanal avblockerad: 
+Заблокировать канал?	Blockera den här kanalen?
+Скрыть канал из всех списков	Dölj kanalen i alla listor
+В тренде	Trendar
+Голосов: 	Röster: 
+За 24 часа	Senaste 24 timmarna
+За всё время	Genom tiderna
+За месяц	Senaste månaden
+За неделю	Senaste veckan
+Клипы ваших подписок	Klipp från kanaler du följer
+Ожидание результата	Väntar på resultatet
+Осталось: 	Tid kvar: 
+Победил: 	Vinnare: 
+Приём ставок	Förutsägelser öppna
+Прогноз закрыт	Förutsägelsen stängd
+Прогноз начался: 	Förutsägelsen startade: 
+Самые популярные клипы Twitch	De populäraste klippen på Twitch

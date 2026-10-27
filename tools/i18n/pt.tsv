@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (recomendado)
 Рекламная пауза Twitch — эфир скоро продолжится	Intervalo comercial da Twitch — a transmissão já volta
 идёт	em andamento
 пропускается	pulando
- баллов	 pontos
- заблокирован	 bloqueado
- из всех списков	 de todas as listas
- разблокирован	 desbloqueado
 OK — участвовать	OK — participar
 QR-код на страницу GitHub — опишите, что не работает	QR code para a página do GitHub — descreva o que não funciona
 Twitch не принял голос	A Twitch não aceitou o voto
@@ -324,7 +320,6 @@ Twitch не принял ставку	A Twitch não aceitou o palpite
 Заблокированные каналы	Canais bloqueados
 Заблокировано: 	Bloqueados: 
 Заблокировать	Bloquear
-Заблокировать 	Bloquear 
 Заблокировать канал	Bloquear canal
 Закрыть	Fechar
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	O canal sumirá do Início, da busca, das recomendações e das notificações. Para desbloquear: Configurações → Canais bloqueados.
@@ -335,21 +330,35 @@ Twitch не принял ставку	A Twitch não aceitou o palpite
 Нужен вход в Twitch	É preciso entrar na Twitch
 Плеер, звук, зависания, ошибки	Player, som, travamentos, erros
 Пожаловаться	Denunciar
-Пожаловаться на 	Denunciar 
 Проблема: 	Problema: 
 Прогноз	Palpite
 Разблокировать	Desbloquear
 Разблокировать канал	Desbloquear canal
 Сейчас голосования нет	Nenhuma enquete agora
 Сейчас прогноза нет	Nenhum palpite agora
-Скрыть 	Ocultar 
 Сообщить о проблеме	Relatar um problema
 Ставка: 	Palpite: 
 Ставка принята: 	Palpite registrado: 
-Ставки уже закрыты	Os palpites estão fechados
 Уведомления о прогнозах и голосованиях	Avisos de palpites e enquetes
 ваши баллы: 	seus pontos: 
 завершён	encerrado
-приём ставок	aberto
 ставки закрыты	travado
- участников	 participantes
+Баллы: 	Pontos: 
+Канал заблокирован: 	Canal bloqueado: 
+Канал разблокирован: 	Canal desbloqueado: 
+Заблокировать канал?	Bloquear este canal?
+Скрыть канал из всех списков	Ocultar o canal de todas as listas
+В тренде	Em alta
+Голосов: 	Votos: 
+За 24 часа	Últimas 24 horas
+За всё время	Todos os tempos
+За месяц	Último mês
+За неделю	Última semana
+Клипы ваших подписок	Clipes dos canais que você segue
+Ожидание результата	Aguardando o resultado
+Осталось: 	Tempo restante: 
+Победил: 	Vencedor: 
+Приём ставок	Palpites abertos
+Прогноз закрыт	Palpite encerrado
+Прогноз начался: 	Palpite iniciado: 
+Самые популярные клипы Twitch	Os clipes mais populares da Twitch

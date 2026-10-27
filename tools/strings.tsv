@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (рекомендовано)	hls.js (
 Рекламная пауза Twitch — эфир скоро продолжится	Рекламна пауза Twitch — ефір скоро продовжиться	Twitch ad break — the stream will continue shortly
 идёт	триває	in progress
 пропускается	пропускається	skipping
- баллов	 балів	 points
- заблокирован	 заблоковано	 blocked
- из всех списков	 з усіх списків	 from all lists
- разблокирован	 розблоковано	 unblocked
 OK — участвовать	OK — взяти участь	OK — join in
 QR-код на страницу GitHub — опишите, что не работает	QR-код на сторінку GitHub — опишіть, що не працює	QR code to the GitHub page — describe what is wrong
 Twitch не принял голос	Twitch не прийняв голос	Twitch did not accept the vote
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch не прийняв ставку	Tw
 Заблокированные каналы	Заблоковані канали	Blocked channels
 Заблокировано: 	Заблоковано: 	Blocked: 
 Заблокировать	Заблокувати	Block
-Заблокировать 	Заблокувати 	Block 
 Заблокировать канал	Заблокувати канал	Block channel
 Закрыть	Закрити	Close
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Канал зникне з головної, пошуку, рекомендацій і сповіщень. Розблокувати можна в Налаштуваннях → Заблоковані канали.	The channel will disappear from Home, search, recommendations and notifications. You can unblock it in Settings → Blocked channels.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch не прийняв ставку	Tw
 Нужен вход в Twitch	Потрібен вхід у Twitch	Twitch sign-in required
 Плеер, звук, зависания, ошибки	Плеєр, звук, зависання, помилки	Player, sound, freezes, errors
 Пожаловаться	Поскаржитися	Report
-Пожаловаться на 	Поскаржитися на 	Report 
 Проблема: 	Проблема: 	Problem: 
 Прогноз	Прогноз	Prediction
 Разблокировать	Розблокувати	Unblock
 Разблокировать канал	Розблокувати канал	Unblock channel
 Сейчас голосования нет	Зараз голосування немає	No poll right now
 Сейчас прогноза нет	Зараз прогнозу немає	No prediction right now
-Скрыть 	Приховати 	Hide 
 Сообщить о проблеме	Повідомити про проблему	Report a problem
 Ставка: 	Ставка: 	Predict: 
 Ставка принята: 	Ставку прийнято: 	Prediction placed: 
-Ставки уже закрыты	Ставки вже закрито	Predictions are closed
 Уведомления о прогнозах и голосованиях	Сповіщення про прогнози й голосування	Prediction and poll alerts
 ваши баллы: 	ваші бали: 	your points: 
 завершён	завершено	ended
-приём ставок	приймання ставок	open
 ставки закрыты	ставки закрито	locked
- участников	 учасників	 people
+Баллы: 	Бали: 	Points: 
+Канал заблокирован: 	Канал заблоковано: 	Channel blocked: 
+Канал разблокирован: 	Канал розблоковано: 	Channel unblocked: 
+Заблокировать канал?	Заблокувати канал?	Block this channel?
+Скрыть канал из всех списков	Приховати канал з усіх списків	Hide the channel from all lists
+В тренде	У тренді	Trending
+Голосов: 	Голосів: 	Votes: 
+За 24 часа	За 24 години	Last 24 hours
+За всё время	За весь час	All time
+За месяц	За місяць	Last month
+За неделю	За тиждень	Last week
+Клипы ваших подписок	Кліпи ваших підписок	Clips from channels you follow
+Ожидание результата	Очікування результату	Waiting for the result
+Осталось: 	Залишилось: 	Time left: 
+Победил: 	Переміг: 	Winner: 
+Приём ставок	Приймання ставок	Taking predictions
+Прогноз закрыт	Прогноз закрито	Prediction closed
+Прогноз начался: 	Прогноз почався: 	Prediction started: 
+Самые популярные клипы Twitch	Найпопулярніші кліпи Twitch	The most popular clips on Twitch

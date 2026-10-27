@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (suositus)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitchin mainostauko — lähetys jatkuu pian
 идёт	käynnissä
 пропускается	ohitetaan
- баллов	 pistettä
- заблокирован	 estetty
- из всех списков	 kaikista listoista
- разблокирован	 esto poistettu
 OK — участвовать	OK — osallistu
 QR-код на страницу GitHub — опишите, что не работает	QR-koodi GitHub-sivulle — kerro, mikä ei toimi
 Twitch не принял голос	Twitch ei hyväksynyt ääntä
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch ei hyväksynyt ennustetta
 Заблокированные каналы	Estetyt kanavat
 Заблокировано: 	Estetty: 
 Заблокировать	Estä
-Заблокировать 	Estä 
 Заблокировать канал	Estä kanava
 Закрыть	Sulje
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanava katoaa etusivulta, hausta, suosituksista ja ilmoituksista. Eston voi poistaa kohdassa Asetukset → Estetyt kanavat.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch ei hyväksynyt ennustetta
 Нужен вход в Twitch	Twitch-kirjautuminen vaaditaan
 Плеер, звук, зависания, ошибки	Soitin, ääni, jumit, virheet
 Пожаловаться	Ilmoita
-Пожаловаться на 	Ilmoita 
 Проблема: 	Ongelma: 
 Прогноз	Ennuste
 Разблокировать	Poista esto
 Разблокировать канал	Poista kanavan esto
 Сейчас голосования нет	Ei äänestystä nyt
 Сейчас прогноза нет	Ei ennustetta nyt
-Скрыть 	Piilota 
 Сообщить о проблеме	Ilmoita ongelmasta
 Ставка: 	Panos: 
 Ставка принята: 	Ennuste tehty: 
-Ставки уже закрыты	Ennusteet on suljettu
 Уведомления о прогнозах и голосованиях	Ennuste- ja äänestysilmoitukset
 ваши баллы: 	pisteesi: 
 завершён	päättynyt
-приём ставок	avoin
 ставки закрыты	lukittu
- участников	 osallistujaa
+Баллы: 	Pisteet: 
+Канал заблокирован: 	Kanava estetty: 
+Канал разблокирован: 	Kanavan esto poistettu: 
+Заблокировать канал?	Estetäänkö tämä kanava?
+Скрыть канал из всех списков	Piilota kanava kaikista listoista
+В тренде	Nousussa
+Голосов: 	Ääniä: 
+За 24 часа	Viimeiset 24 tuntia
+За всё время	Kaikkien aikojen
+За месяц	Viimeinen kuukausi
+За неделю	Viimeinen viikko
+Клипы ваших подписок	Seuraamiesi kanavien klipit
+Ожидание результата	Odotetaan tulosta
+Осталось: 	Aikaa jäljellä: 
+Победил: 	Voittaja: 
+Приём ставок	Ennusteet auki
+Прогноз закрыт	Ennuste suljettu
+Прогноз начался: 	Ennuste alkoi: 
+Самые популярные клипы Twitch	Twitchin suosituimmat klipit

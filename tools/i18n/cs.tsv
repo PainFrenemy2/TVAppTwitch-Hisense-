@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (doporučeno)
 Рекламная пауза Twitch — эфир скоро продолжится	Reklamní přestávka Twitch — vysílání brzy pokračuje
 идёт	probíhá
 пропускается	přeskakuje se
- баллов	 bodů
- заблокирован	 zablokován
- из всех списков	 ze všech seznamů
- разблокирован	 odblokován
 OK — участвовать	OK — zapojit se
 QR-код на страницу GitHub — опишите, что не работает	QR kód na stránku GitHub — popište, co nefunguje
 Twitch не принял голос	Twitch hlas nepřijal
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch tip nepřijal
 Заблокированные каналы	Zablokované kanály
 Заблокировано: 	Zablokováno: 
 Заблокировать	Zablokovat
-Заблокировать 	Zablokovat 
 Заблокировать канал	Zablokovat kanál
 Закрыть	Zavřít
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanál zmizí z hlavní stránky, hledání, doporučení a oznámení. Odblokovat ho můžete v Nastavení → Zablokované kanály.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch tip nepřijal
 Нужен вход в Twitch	Je potřeba přihlášení k Twitchi
 Плеер, звук, зависания, ошибки	Přehrávač, zvuk, zasekávání, chyby
 Пожаловаться	Nahlásit
-Пожаловаться на 	Nahlásit 
 Проблема: 	Problém: 
 Прогноз	Tipovačka
 Разблокировать	Odblokovat
 Разблокировать канал	Odblokovat kanál
 Сейчас голосования нет	Teď žádné hlasování
 Сейчас прогноза нет	Teď žádná tipovačka
-Скрыть 	Skrýt 
 Сообщить о проблеме	Nahlásit problém
 Ставка: 	Tip: 
 Ставка принята: 	Tip přijat: 
-Ставки уже закрыты	Tipy jsou uzavřeny
 Уведомления о прогнозах и голосованиях	Upozornění na tipovačky a hlasování
 ваши баллы: 	vaše body: 
 завершён	skončila
-приём ставок	otevřená
 ставки закрыты	uzamčená
- участников	 účastníků
+Баллы: 	Body: 
+Канал заблокирован: 	Kanál zablokován: 
+Канал разблокирован: 	Kanál odblokován: 
+Заблокировать канал?	Zablokovat tento kanál?
+Скрыть канал из всех списков	Skrýt kanál ze všech seznamů
+В тренде	Trendy
+Голосов: 	Hlasů: 
+За 24 часа	Posledních 24 hodin
+За всё время	Za celou dobu
+За месяц	Poslední měsíc
+За неделю	Poslední týden
+Клипы ваших подписок	Klipy sledovaných kanálů
+Ожидание результата	Čeká se na výsledek
+Осталось: 	Zbývá: 
+Победил: 	Vítěz: 
+Приём ставок	Přijímají se tipy
+Прогноз закрыт	Tipovačka uzavřena
+Прогноз начался: 	Tipovačka začala: 
+Самые популярные клипы Twitch	Nejoblíbenější klipy na Twitchi

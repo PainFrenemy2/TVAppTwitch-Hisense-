@@ -706,13 +706,13 @@
     items.push({ label: tr('Таймер сна'), sub: left ? tr('Выключится через ') + left + tr(' мин') : tr('Выключен'), onSelect: sleepMenu });
     var who = it.name || it.login;
     items.push({ label: tr('Пожаловаться'), sub: who, onSelect: function () {
-      UI.qrDialog(tr('Пожаловаться на ') + who, tr('Жалобы принимает только Twitch. Откройте канал на телефоне по QR-коду и выберите «⋮ → Пожаловаться».'),
+      UI.qrDialog(tr('Пожаловаться') + ': ' + who, tr('Жалобы принимает только Twitch. Откройте канал на телефоне по QR-коду и выберите «⋮ → Пожаловаться».'),
         'https://www.twitch.tv/' + encodeURIComponent(it.login) + (it.kind === 'vod' ? '/videos' : ''), 'twitch.tv/' + it.login);
     } });
-    items.push({ label: tr('Заблокировать канал'), sub: tr('Скрыть ') + who + tr(' из всех списков'), onSelect: function () {
-      UI.confirm(tr('Заблокировать ') + who + '?', tr('Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.'), tr('Заблокировать'), function () {
+    items.push({ label: tr('Заблокировать канал'), sub: tr('Скрыть канал из всех списков'), onSelect: function () {
+      UI.confirm(tr('Заблокировать канал?'), who + ' — ' + tr('Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.'), tr('Заблокировать'), function () {
         App.setBlocked(it.login, true);
-        UI.toast(who + tr(' заблокирован'));
+        UI.toast(tr('Канал заблокирован: ') + who);
         P.close();
       });
     } });
@@ -859,7 +859,7 @@
       case 'INFO': showOSD(); return true;
     }
     P.extendSleep();
-    if (!P.osdVisible && Events.onKey(k)) return true;
+    if (!P.osdVisible && !(P.failed && k === 'ENTER') && Events.onKey(k)) return true;
     if (!P.osdVisible) {
       if (k === 'BACK') { P.close(); return true; }
       if ((k === 'LEFT' || k === 'RIGHT') && it.kind !== 'live') {

@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.5.0',
+    VERSION: '1.6.0',
     layers: [],
     history: [],
     pendingFocus: false
@@ -98,13 +98,18 @@
   };
 
   // ---------- заблокированные каналы (локально: скрываются из всех списков, чата и «Другие каналы») ----------
-  App.blocked = function () { return U.store.get('blocked', []); };
-  App.isBlocked = function (login) { return !!login && App.blocked().indexOf(String(login).toLowerCase()) >= 0; };
+  // список держим в памяти: isBlocked вызывается на каждое сообщение чата и каждую карточку
+  var blockedList = U.store.get('blocked', []), blockedSet = {};
+  blockedList.forEach(function (l) { blockedSet[l] = 1; });
+  App.blocked = function () { return blockedList.slice(); };
+  App.isBlocked = function (login) { return !!login && blockedSet[String(login).toLowerCase()] === 1; };
   App.setBlocked = function (login, on) {
     login = String(login).toLowerCase();
-    var list = App.blocked().filter(function (x) { return x !== login; });
-    if (on) list.unshift(login);
-    U.store.set('blocked', list);
+    blockedList = blockedList.filter(function (x) { return x !== login; });
+    if (on) blockedList.unshift(login);
+    blockedSet = {};
+    blockedList.forEach(function (l) { blockedSet[l] = 1; });
+    U.store.set('blocked', blockedList);
     if (on) UI.dropCards(login);
   };
 
@@ -203,8 +208,9 @@
     Nav.setScope(top.scope || top.el);
     var lf = top.lastFocus;
     var ok = lf && lf.isConnected && lf.offsetParent !== null;
-    // под плеером/меню фокус был в боковом меню (например, эфир открылся сразу при запуске) — ставим на контент
-    if (top === App.base && (!ok || inSidebar(lf))) App.refocus(true);
+    // закрыли плеер, а под ним фокус был в боковом меню (эфир открылся сразу при запуске) — ставим на контент.
+    // Для обычных диалогов из меню (например, «Выйти?») фокус возвращается в меню.
+    if (top === App.base && (!ok || (inSidebar(lf) && layer.el === Player.el))) App.refocus(true);
     else if (ok) Nav.focus(lf, { noScroll: true });
     else if (top.el === Player.el) { /* плеер сам покажет OSD */ }
   };
@@ -214,6 +220,7 @@
     ['search', 'search', tr('Поиск')],
     ['home', 'home', tr('Главная')],
     ['browse', 'browse', tr('Категории')],
+    ['clips', 'clip', tr('Клипы')],
     ['following', 'following', tr('Подписки')],
     ['history', 'history', tr('История')],
     ['settings', 'settings', tr('Настройки')]
@@ -355,6 +362,8 @@
       App.saveState();
       return;
     }
+    var only = App.history[0];
+    if (only && only.backHome) { App.go('home', {}, { root: true }); return; }
     if (!inSidebar(Nav.current)) { Nav.focus(activeSideItem()); return; }
     var page = currentPage();
     if (page && page.nav !== 'home') { App.go('home', {}, { root: true }); return; }
@@ -370,8 +379,10 @@
   // ---------- клавиши ----------
   var lastBackAt = 0, lastKeyAt = 0;
 
+  App.keyCount = 0;
   function onKeyDown(e) {
     var k = Nav.keyName(e);
+    App.keyCount++;
     // зажатая кнопка: не даём нажатиям копиться быстрее, чем ТВ успевает рисовать
     var now = Date.now();
     if (e.repeat && k && now - lastKeyAt < 110) { e.preventDefault(); return; }
@@ -471,7 +482,7 @@
 
   // ---------- где остановились: страница + открытый эфир/запись ----------
   // Сохраняем при каждом переходе и при открытии/закрытии плеера; при запуске возвращаемся туда же.
-  var RESUMABLE = { home: 1, browse: 1, following: 1, history: 1, settings: 1, search: 1, channel: 1, game: 1 };
+  var RESUMABLE = { home: 1, browse: 1, clips: 1, following: 1, history: 1, settings: 1, search: 1, channel: 1, game: 1 };
   App.saveState = function () {
     var cur = App.history[App.history.length - 1];
     var it = Player.item;
@@ -488,22 +499,29 @@
     if (!st || Settings.get('resume') === 'off') return false;
     var name = st.page;
     if (!name || !Pages[name] || !RESUMABLE[name]) return false;
-    if (name === 'channel' || name === 'game') {
-      // «Назад» с канала/категории ведёт на главную, как обычно
-      App.go('home', {}, { root: true });
-      App.go(name, st.params || {});
-    } else App.go(name, st.params || {}, { root: true });
-    // плеер открываем снова, только если вышли недавно (эфир мог закончиться давно)
-    if (st.player && st.player.kind && Date.now() - (st.at || 0) < 12 * 3600 * 1000) {
-      App.play(st.player);
-      return 'player';
-    }
-    return 'page';
+    App.go(name, st.params || {}, { root: true });
+    // «Назад» с канала/категории ведёт на главную (её строим только тогда — запуск быстрее)
+    if (name === 'channel' || name === 'game') App.history[0].backHome = true;
+    // плеер открываем снова, только если вышли недавно
+    var it = st.player;
+    if (!it || !it.kind || Date.now() - (st.at || 0) > 12 * 3600 * 1000) return 'page';
+    if (it.kind !== 'live') { App.play(it); return 'player'; }
+    // эфир мог уже закончиться — сначала проверяем, что канал в сети, и что пользователь ещё никуда не ушёл
+    var keys = App.keyCount;
+    Twitch.user(it.login).then(function (u) {
+      if (App.keyCount !== keys || Player.isOpen() || App.topLayer() !== App.base) return;
+      if (u && u.stream) { u.stream.broadcaster = u.stream.broadcaster || u; App.play(App.itemFromStream(u.stream)); }
+      else if (Auth.accounts.length > 1) App.showProfiles();
+    }).catch(function () { if (Auth.accounts.length > 1 && App.keyCount === keys) App.showProfiles(); });
+    return 'player';
   }
 
   // ---------- старт ----------
   function init() {
-    U.store.restore();
+    U.store.restore(function (restarting) { if (!restarting) start(); });
+  }
+
+  function start() {
     App.applyScale();
     App.applyLite();
     U.$$('[data-i18n]').forEach(function (el) { el.textContent = tr(el.textContent); });
@@ -556,7 +574,9 @@
       if (Auth.loggedIn()) Auth.syncFollows().catch(function () {});
     });
     if (Auth.loggedIn()) {
-      Auth.ensure().then(function () { return Auth.syncFollows(); }).catch(function () {});
+      // при каждом запуске освежаем профиль (аватарка и ник могли смениться на Twitch);
+      // после него Auth.onChange сам обновит подписки
+      Auth.ensure().then(function () { return Auth.loadUser(); }).catch(function () {});
     }
 
     var hashPage = (location.hash || '').replace('#', '');

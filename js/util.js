@@ -4,6 +4,13 @@
 
   var U = {};
 
+  // Node.isConnected появился в Chromium 54 — на старых прошивках VIDAA подставляем свой
+  if (window.Node && !('isConnected' in Node.prototype)) {
+    Object.defineProperty(Node.prototype, 'isConnected', {
+      get: function () { return document.documentElement.contains(this); }
+    });
+  }
+
   U.$ = function (sel, root) { return (root || document).querySelector(sel); };
   U.$$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
@@ -115,15 +122,23 @@
     flush: function () { Backup.flush(); },
     // При запуске (параллельно, не задерживая интерфейс): если каких-то сохранённых ключей нет в localStorage,
     // а в копии они есть — ТВ стёр данные. Возвращаем их и перезапускаемся (обычно ещё под заставкой).
-    restore: function () {
-      if (/[?&]restored=1/.test(location.search)) return;
+    // При запуске, пока видна заставка: если каких-то сохранённых ключей нет в localStorage, а в копии они есть —
+    // ТВ стёр данные. Возвращаем их и перезапускаемся. cb(true) — идёт перезапуск, дальше ничего не делать.
+    // Ждём копию не дольше 700 мс; опоздавший ответ игнорируем, чтобы не перезапускать уже работающее приложение.
+    restore: function (cb) {
+      if (/[?&]restored=1/.test(location.search)) return cb(false);
+      var done = false;
+      var timer = setTimeout(function () { done = true; cb(false); }, 700);
       Backup.all(function (all) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
         var lost = Object.keys(all).filter(function (k) { return k.indexOf(PREFIX) === 0 && !initialKeys[k]; });
-        if (!lost.length) return;
-        var ok = true;
+        var ok = lost.length > 0;
         lost.forEach(function (k) { if (!lsSet(k, all[k])) ok = false; });
-        if (!ok) return;
+        if (!ok) return cb(false);
         location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'restored=1' + location.hash);
+        cb(true);
       });
     }
   };
@@ -140,6 +155,12 @@
     if (n >= 1e6) return f(n / 1e6, n >= 1e7 ? 0 : 1) + w.m;
     if (n >= 1e3) return f(n / 1e3, n >= 1e4 ? 0 : 1) + w.k;
     return String(n);
+  };
+
+  // дробное число по правилам языка: 2,05 / 2.05
+  U.dec = function (x, d) {
+    var t = Number(x).toFixed(d);
+    return /^(en|ja|ko|th|zh)/.test(I18N.lang) ? t : t.replace('.', ',');
   };
 
   U.viewers = function (n) {

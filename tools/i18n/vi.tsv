@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (khuyên dùng)
 Рекламная пауза Twitch — эфир скоро продолжится	Giờ quảng cáo Twitch — buổi phát sẽ tiếp tục ngay
 идёт	đang diễn ra
 пропускается	đang bỏ qua
- баллов	 điểm
- заблокирован	 đã bị chặn
- из всех списков	 khỏi mọi danh sách
- разблокирован	 đã bỏ chặn
 OK — участвовать	OK — tham gia
 QR-код на страницу GitHub — опишите, что не работает	Mã QR tới trang GitHub — mô tả lỗi gặp phải
 Twitch не принял голос	Twitch không nhận phiếu bầu
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch không nhận dự đoán
 Заблокированные каналы	Kênh đã chặn
 Заблокировано: 	Đã chặn: 
 Заблокировать	Chặn
-Заблокировать 	Chặn 
 Заблокировать канал	Chặn kênh
 Закрыть	Đóng
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kênh sẽ biến mất khỏi trang chủ, tìm kiếm, đề xuất và thông báo. Bạn có thể bỏ chặn trong Cài đặt → Kênh đã chặn.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch không nhận dự đoán
 Нужен вход в Twitch	Cần đăng nhập Twitch
 Плеер, звук, зависания, ошибки	Trình phát, âm thanh, giật, lỗi
 Пожаловаться	Báo cáo
-Пожаловаться на 	Báo cáo 
 Проблема: 	Sự cố: 
 Прогноз	Dự đoán
 Разблокировать	Bỏ chặn
 Разблокировать канал	Bỏ chặn kênh
 Сейчас голосования нет	Hiện không có bình chọn
 Сейчас прогноза нет	Hiện không có dự đoán
-Скрыть 	Ẩn 
 Сообщить о проблеме	Báo cáo sự cố
 Ставка: 	Đặt cược: 
 Ставка принята: 	Đã dự đoán: 
-Ставки уже закрыты	Dự đoán đã đóng
 Уведомления о прогнозах и голосованиях	Thông báo dự đoán và bình chọn
 ваши баллы: 	điểm của bạn: 
 завершён	đã kết thúc
-приём ставок	đang mở
 ставки закрыты	đã khóa
- участников	 người tham gia
+Баллы: 	Điểm: 
+Канал заблокирован: 	Đã chặn kênh: 
+Канал разблокирован: 	Đã bỏ chặn kênh: 
+Заблокировать канал?	Chặn kênh này?
+Скрыть канал из всех списков	Ẩn kênh khỏi mọi danh sách
+В тренде	Thịnh hành
+Голосов: 	Số phiếu: 
+За 24 часа	24 giờ qua
+За всё время	Mọi thời đại
+За месяц	Tháng qua
+За неделю	Tuần qua
+Клипы ваших подписок	Clip từ kênh bạn theo dõi
+Ожидание результата	Đang chờ kết quả
+Осталось: 	Còn lại: 
+Победил: 	Thắng: 
+Приём ставок	Đang nhận dự đoán
+Прогноз закрыт	Đã đóng dự đoán
+Прогноз начался: 	Dự đoán bắt đầu: 
+Самые популярные клипы Twitch	Những clip nổi tiếng nhất trên Twitch

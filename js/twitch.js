@@ -169,9 +169,9 @@
       .then(function (d) { return edges(d.user && d.user.clips); });
   };
 
-  T.gameClips = function (name, first) {
-    var q = 'query($name:String!,$first:Int){game(name:$name){clips(first:$first,criteria:{period:LAST_WEEK,sort:VIEWS_DESC}){edges{node{' + CLIP + '}}}}}';
-    return gql(q, { name: name, first: first || 20 }, { cache: true, retries: 0 })
+  T.gameClips = function (name, first, period) {
+    var q = 'query($name:String!,$first:Int,$period:ClipsPeriod){game(name:$name){clips(first:$first,criteria:{period:$period,sort:VIEWS_DESC}){edges{node{' + CLIP + '}}}}}';
+    return gql(q, { name: name, first: first || 20, period: period || 'LAST_WEEK' }, { cache: true, retries: 0 })
       .then(function (d) { return edges(d.game && d.game.clips); });
   };
 
@@ -421,9 +421,25 @@
   }
 
   // Медиаплейлист без рекламы того же качества (или ближайшего ниже). null — не нашли.
+  // Ждём не дольше 2,5 с: иначе hls.js без нового плейлиста опустошит буфер. Не успели — отдаём
+  // исходный плейлист, а поиск доводим в фоне (результат пригодится на следующем обновлении).
+  // Не нашли поток без рекламы — минуту не ищем снова, чтобы не нагружать ТВ и сеть.
   T.adFreePlaylist = function (login, height) {
     login = login.toLowerCase();
-    if (backup.login !== login) { backup.login = login; backup.good = null; backup.masters = {}; }
+    if (backup.login !== login) { backup.login = login; backup.good = null; backup.masters = {}; backup.failUntil = 0; backup.job = null; }
+    if (backup.failUntil > Date.now()) return Promise.resolve(null);
+    if (!backup.job) {
+      var job = backup.job = findClean(login, height).then(function (txt) {
+        if (backup.job === job) backup.job = null;
+        if (!txt) backup.failUntil = Date.now() + 60000;
+        return txt;
+      });
+    }
+    var limit = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 2500); });
+    return Promise.race([backup.job, limit]);
+  };
+
+  function findClean(login, height) {
     var types = BACKUP_TYPES.slice();
     if (backup.good) { types.splice(types.indexOf(backup.good), 1); types.unshift(backup.good); }
     var i = 0;
@@ -447,7 +463,12 @@
       }).catch(function () { return next(); });
     }
     return next();
-  };
+  }
+
+  function mediaSeq(txt) {
+    var m = /#EXT-X-MEDIA-SEQUENCE:(\d+)/.exec(txt);
+    return m ? +m[1] : 0;
+  }
 
   // Загрузчик плейлистов для hls.js: пропускает всё как есть, кроме медиаплейлистов эфира с рекламой
   T.adLoader = function (getInfo, onAd) {
@@ -457,6 +478,8 @@
       Object.defineProperty(L.prototype, k, { get: function () { return this.inner[k]; } });
     });
     L.prototype.abort = function () { this.dead = true; this.inner.abort(); };
+    L.prototype.getCacheAge = function () { return this.inner.getCacheAge ? this.inner.getCacheAge() : null; };
+    L.prototype.getResponseHeader = function (n) { return this.inner.getResponseHeader ? this.inner.getResponseHeader(n) : null; };
     L.prototype.destroy = function () { this.dead = true; this.inner.destroy(); };
     L.prototype.load = function (context, config, callbacks) {
       var self = this;
@@ -469,6 +492,9 @@
         if (!text || !T.isAdPlaylist(text)) { if (onAd) onAd(false); return callbacks.onSuccess(response, stats, ctx, net); }
         T.adFreePlaylist(info.login, info.height(ctx.level)).then(function (clean) {
           if (self.dead) return;
+          // резервный поток должен идти «в ногу» с основным (те же номера сегментов),
+          // иначе hls.js при склейке плейлистов пропустит или повторит куски
+          if (clean && Math.abs(mediaSeq(clean) - mediaSeq(text)) > 30) clean = null;
           if (onAd) onAd(true, !!clean);
           if (clean) response.data = clean;
           callbacks.onSuccess(response, stats, ctx, net);

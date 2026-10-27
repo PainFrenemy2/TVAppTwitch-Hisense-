@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (anbefalt)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitch-reklamepause — sendingen fortsetter straks
 идёт	pågår
 пропускается	hoppes over
- баллов	 poeng
- заблокирован	 blokkert
- из всех списков	 fra alle lister
- разблокирован	 fjernet fra blokkering
 OK — участвовать	OK — bli med
 QR-код на страницу GitHub — опишите, что не работает	QR-kode til GitHub-siden — beskriv hva som er feil
 Twitch не принял голос	Twitch godtok ikke stemmen
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch godtok ikke spådommen
 Заблокированные каналы	Blokkerte kanaler
 Заблокировано: 	Blokkert: 
 Заблокировать	Blokker
-Заблокировать 	Blokkere 
 Заблокировать канал	Blokker kanal
 Закрыть	Lukk
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanalen forsvinner fra startsiden, søk, anbefalinger og varsler. Du kan oppheve blokkeringen under Innstillinger → Blokkerte kanaler.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch godtok ikke spådommen
 Нужен вход в Twitch	Pålogging på Twitch kreves
 Плеер, звук, зависания, ошибки	Spiller, lyd, frysing, feil
 Пожаловаться	Rapporter
-Пожаловаться на 	Rapporter 
 Проблема: 	Problem: 
 Прогноз	Spådom
 Разблокировать	Opphev blokkering
 Разблокировать канал	Opphev blokkering av kanal
 Сейчас голосования нет	Ingen avstemning nå
 Сейчас прогноза нет	Ingen spådom nå
-Скрыть 	Skjul 
 Сообщить о проблеме	Rapporter et problem
 Ставка: 	Innsats: 
 Ставка принята: 	Spådom lagt inn: 
-Ставки уже закрыты	Spådommene er stengt
 Уведомления о прогнозах и голосованиях	Varsler om spådommer og avstemninger
 ваши баллы: 	poengene dine: 
 завершён	avsluttet
-приём ставок	åpen
 ставки закрыты	låst
- участников	 deltakere
+Баллы: 	Poeng: 
+Канал заблокирован: 	Kanal blokkert: 
+Канал разблокирован: 	Kanal fjernet fra blokkering: 
+Заблокировать канал?	Blokkere denne kanalen?
+Скрыть канал из всех списков	Skjul kanalen fra alle lister
+В тренде	Populært nå
+Голосов: 	Stemmer: 
+За 24 часа	Siste 24 timer
+За всё время	Gjennom tidene
+За месяц	Siste måned
+За неделю	Siste uke
+Клипы ваших подписок	Klipp fra kanaler du følger
+Ожидание результата	Venter på resultatet
+Осталось: 	Tid igjen: 
+Победил: 	Vinner: 
+Приём ставок	Spådommer åpne
+Прогноз закрыт	Spådommen er stengt
+Прогноз начался: 	Spådommen startet: 
+Самые популярные клипы Twitch	De mest populære klippene på Twitch

@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (önerilen)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitch reklam arası — yayın birazdan devam edecek
 идёт	sürüyor
 пропускается	atlanıyor
- баллов	 puan
- заблокирован	 engellendi
- из всех списков	 tüm listelerden
- разблокирован	 engeli kaldırıldı
 OK — участвовать	OK — katıl
 QR-код на страницу GitHub — опишите, что не работает	GitHub sayfasına QR kod — sorunu anlatın
 Twitch не принял голос	Twitch oyu kabul etmedi
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch tahmini kabul etmedi
 Заблокированные каналы	Engellenen kanallar
 Заблокировано: 	Engellenen: 
 Заблокировать	Engelle
-Заблокировать 	Engellensin mi: 
 Заблокировать канал	Kanalı engelle
 Закрыть	Kapat
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanal ana sayfadan, aramadan, önerilerden ve bildirimlerden kaybolacak. Engeli Ayarlar → Engellenen kanallar bölümünden kaldırabilirsiniz.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch tahmini kabul etmedi
 Нужен вход в Twitch	Twitch girişi gerekli
 Плеер, звук, зависания, ошибки	Oynatıcı, ses, donmalar, hatalar
 Пожаловаться	Şikâyet et
-Пожаловаться на 	Şikâyet et: 
 Проблема: 	Sorun: 
 Прогноз	Tahmin
 Разблокировать	Engeli kaldır
 Разблокировать канал	Kanalın engelini kaldır
 Сейчас голосования нет	Şu an anket yok
 Сейчас прогноза нет	Şu an tahmin yok
-Скрыть 	Gizle: 
 Сообщить о проблеме	Sorun bildir
 Ставка: 	Tahmin: 
 Ставка принята: 	Tahmin yapıldı: 
-Ставки уже закрыты	Tahminler kapandı
 Уведомления о прогнозах и голосованиях	Tahmin ve anket uyarıları
 ваши баллы: 	puanlarınız: 
 завершён	bitti
-приём ставок	açık
 ставки закрыты	kilitli
- участников	 katılımcı
+Баллы: 	Puan: 
+Канал заблокирован: 	Kanal engellendi: 
+Канал разблокирован: 	Kanalın engeli kaldırıldı: 
+Заблокировать канал?	Bu kanal engellensin mi?
+Скрыть канал из всех списков	Kanalı tüm listelerden gizle
+В тренде	Gündemde
+Голосов: 	Oy: 
+За 24 часа	Son 24 saat
+За всё время	Tüm zamanlar
+За месяц	Son ay
+За неделю	Son hafta
+Клипы ваших подписок	Takip ettiğin kanalların klipleri
+Ожидание результата	Sonuç bekleniyor
+Осталось: 	Kalan süre: 
+Победил: 	Kazanan: 
+Приём ставок	Tahminler açık
+Прогноз закрыт	Tahmin kapandı
+Прогноз начался: 	Tahmin başladı: 
+Самые популярные клипы Twitch	Twitch'teki en popüler klipler

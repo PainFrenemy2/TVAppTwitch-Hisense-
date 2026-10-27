@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (aanbevolen)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitch-reclameblok — de stream gaat zo verder
 идёт	bezig
 пропускается	wordt overgeslagen
- баллов	 punten
- заблокирован	 geblokkeerd
- из всех списков	 uit alle lijsten
- разблокирован	 gedeblokkeerd
 OK — участвовать	OK — meedoen
 QR-код на страницу GitHub — опишите, что не работает	QR-code naar de GitHub-pagina — beschrijf wat er misgaat
 Twitch не принял голос	Twitch heeft de stem niet geaccepteerd
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch heeft de voorspelling niet geaccept
 Заблокированные каналы	Geblokkeerde kanalen
 Заблокировано: 	Geblokkeerd: 
 Заблокировать	Blokkeren
-Заблокировать 	Blokkeren: 
 Заблокировать канал	Kanaal blokkeren
 Закрыть	Sluiten
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Het kanaal verdwijnt van start, zoeken, aanbevelingen en meldingen. Deblokkeren kan via Instellingen → Geblokkeerde kanalen.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch heeft de voorspelling niet geaccept
 Нужен вход в Twitch	Inloggen bij Twitch vereist
 Плеер, звук, зависания, ошибки	Speler, geluid, haperingen, fouten
 Пожаловаться	Melden
-Пожаловаться на 	Melden: 
 Проблема: 	Probleem: 
 Прогноз	Voorspelling
 Разблокировать	Deblokkeren
 Разблокировать канал	Kanaal deblokkeren
 Сейчас голосования нет	Nu geen peiling
 Сейчас прогноза нет	Nu geen voorspelling
-Скрыть 	Verbergen: 
 Сообщить о проблеме	Probleem melden
 Ставка: 	Inzet: 
 Ставка принята: 	Voorspelling geplaatst: 
-Ставки уже закрыты	Voorspellingen zijn gesloten
 Уведомления о прогнозах и голосованиях	Meldingen voor voorspellingen en peilingen
 ваши баллы: 	jouw punten: 
 завершён	afgelopen
-приём ставок	open
 ставки закрыты	vergrendeld
- участников	 deelnemers
+Баллы: 	Punten: 
+Канал заблокирован: 	Kanaal geblokkeerd: 
+Канал разблокирован: 	Kanaal gedeblokkeerd: 
+Заблокировать канал?	Dit kanaal blokkeren?
+Скрыть канал из всех списков	Kanaal verbergen in alle lijsten
+В тренде	Trending
+Голосов: 	Stemmen: 
+За 24 часа	Afgelopen 24 uur
+За всё время	Aller tijden
+За месяц	Afgelopen maand
+За неделю	Afgelopen week
+Клипы ваших подписок	Clips van gevolgde kanalen
+Ожидание результата	Wachten op de uitslag
+Осталось: 	Resterend: 
+Победил: 	Winnaar: 
+Приём ставок	Voorspellingen open
+Прогноз закрыт	Voorspelling gesloten
+Прогноз начался: 	Voorspelling gestart: 
+Самые популярные клипы Twitch	De populairste clips op Twitch

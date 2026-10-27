@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (zalecany)
 Рекламная пауза Twitch — эфир скоро продолжится	Przerwa reklamowa Twitcha — transmisja zaraz wróci
 идёт	trwa
 пропускается	pomijana
- баллов	 punktów
- заблокирован	 zablokowany
- из всех списков	 ze wszystkich list
- разблокирован	 odblokowany
 OK — участвовать	OK — weź udział
 QR-код на страницу GitHub — опишите, что не работает	Kod QR do strony GitHub — opisz, co nie działa
 Twitch не принял голос	Twitch nie przyjął głosu
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch nie przyjął przewidywania
 Заблокированные каналы	Zablokowane kanały
 Заблокировано: 	Zablokowano: 
 Заблокировать	Zablokuj
-Заблокировать 	Zablokować 
 Заблокировать канал	Zablokuj kanał
 Закрыть	Zamknij
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanał zniknie ze strony głównej, wyszukiwania, rekomendacji i powiadomień. Odblokujesz go w Ustawienia → Zablokowane kanały.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch nie przyjął przewidywania
 Нужен вход в Twitch	Wymagane logowanie do Twitcha
 Плеер, звук, зависания, ошибки	Odtwarzacz, dźwięk, zacięcia, błędy
 Пожаловаться	Zgłoś
-Пожаловаться на 	Zgłoś 
 Проблема: 	Problem: 
 Прогноз	Przewidywanie
 Разблокировать	Odblokuj
 Разблокировать канал	Odblokuj kanał
 Сейчас голосования нет	Teraz nie ma ankiety
 Сейчас прогноза нет	Teraz nie ma przewidywania
-Скрыть 	Ukryj 
 Сообщить о проблеме	Zgłoś problem
 Ставка: 	Typ: 
 Ставка принята: 	Przewidywanie przyjęte: 
-Ставки уже закрыты	Przewidywania są zamknięte
 Уведомления о прогнозах и голосованиях	Powiadomienia o przewidywaniach i ankietach
 ваши баллы: 	twoje punkty: 
 завершён	zakończone
-приём ставок	otwarte
 ставки закрыты	zablokowane
- участников	 uczestników
+Баллы: 	Punkty: 
+Канал заблокирован: 	Kanał zablokowany: 
+Канал разблокирован: 	Kanał odblokowany: 
+Заблокировать канал?	Zablokować ten kanał?
+Скрыть канал из всех списков	Ukryj kanał na wszystkich listach
+В тренде	Na topie
+Голосов: 	Głosy: 
+За 24 часа	Ostatnie 24 godziny
+За всё время	Wszech czasów
+За месяц	Ostatni miesiąc
+За неделю	Ostatni tydzień
+Клипы ваших подписок	Klipy obserwowanych kanałów
+Ожидание результата	Oczekiwanie na wynik
+Осталось: 	Pozostało: 
+Победил: 	Wygrało: 
+Приём ставок	Przyjmowanie typów
+Прогноз закрыт	Przewidywanie zamknięte
+Прогноз начался: 	Przewidywanie rozpoczęte: 
+Самые популярные клипы Twitch	Najpopularniejsze klipy na Twitchu

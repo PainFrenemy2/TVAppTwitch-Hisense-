@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (empfohlen)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitch-Werbepause — der Stream geht gleich weiter
 идёт	läuft
 пропускается	wird übersprungen
- баллов	 Punkte
- заблокирован	 blockiert
- из всех списков	 aus allen Listen
- разблокирован	 entsperrt
 OK — участвовать	OK — mitmachen
 QR-код на страницу GitHub — опишите, что не работает	QR-Code zur GitHub-Seite — beschreibe, was nicht funktioniert
 Twitch не принял голос	Twitch hat die Stimme nicht angenommen
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch hat die Vorhersage nicht angenommen
 Заблокированные каналы	Blockierte Kanäle
 Заблокировано: 	Blockiert: 
 Заблокировать	Blockieren
-Заблокировать 	Blockieren: 
 Заблокировать канал	Kanal blockieren
 Закрыть	Schließen
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Der Kanal verschwindet von Startseite, Suche, Empfehlungen und Benachrichtigungen. Entsperren kannst du ihn unter Einstellungen → Blockierte Kanäle.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch hat die Vorhersage nicht angenommen
 Нужен вход в Twitch	Twitch-Anmeldung erforderlich
 Плеер, звук, зависания, ошибки	Player, Ton, Hänger, Fehler
 Пожаловаться	Melden
-Пожаловаться на 	Melden: 
 Проблема: 	Problem: 
 Прогноз	Vorhersage
 Разблокировать	Entsperren
 Разблокировать канал	Kanal entsperren
 Сейчас голосования нет	Gerade keine Umfrage
 Сейчас прогноза нет	Gerade keine Vorhersage
-Скрыть 	Ausblenden: 
 Сообщить о проблеме	Problem melden
 Ставка: 	Tipp: 
 Ставка принята: 	Vorhersage abgegeben: 
-Ставки уже закрыты	Vorhersagen sind geschlossen
 Уведомления о прогнозах и голосованиях	Hinweise zu Vorhersagen und Umfragen
 ваши баллы: 	deine Punkte: 
 завершён	beendet
-приём ставок	offen
 ставки закрыты	gesperrt
- участников	 Teilnehmer
+Баллы: 	Punkte: 
+Канал заблокирован: 	Kanal blockiert: 
+Канал разблокирован: 	Kanal entsperrt: 
+Заблокировать канал?	Kanal blockieren?
+Скрыть канал из всех списков	Kanal aus allen Listen ausblenden
+В тренде	Im Trend
+Голосов: 	Stimmen: 
+За 24 часа	Letzte 24 Stunden
+За всё время	Alle Zeiten
+За месяц	Letzter Monat
+За неделю	Letzte Woche
+Клипы ваших подписок	Clips gefolgter Kanäle
+Ожидание результата	Warte auf das Ergebnis
+Осталось: 	Verbleibend: 
+Победил: 	Gewonnen: 
+Приём ставок	Vorhersagen offen
+Прогноз закрыт	Vorhersage geschlossen
+Прогноз начался: 	Vorhersage gestartet: 
+Самые популярные клипы Twitch	Die beliebtesten Clips auf Twitch

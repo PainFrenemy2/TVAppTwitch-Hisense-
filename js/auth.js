@@ -117,10 +117,12 @@
   // Одно обновление за раз: refresh-токен одноразовый, второй параллельный запрос его бы «сжёг»
   Auth.refresh = function () {
     if (!Auth.data || !Auth.data.refresh) return Promise.reject(new Error(tr('Нет refresh-токена')));
-    if (Auth._rp) return Auth._rp;
     var acc = Auth.data;
-    Auth._rp = post(ID + 'token', { client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: acc.refresh }).then(function (j) {
-      Auth._rp = null;
+    // общий запрос — только для того же аккаунта: после смены профиля нельзя отдать чужой токен
+    if (Auth._rp && Auth._rpAcc === acc) return Auth._rp;
+    Auth._rpAcc = acc;
+    var rp = Auth._rp = post(ID + 'token', { client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: acc.refresh }).then(function (j) {
+      if (Auth._rp === rp) Auth._rp = null;
       if (!j.access_token) {
         var e = new Error(j.message || tr('Не удалось обновить вход'));
         e.invalid = j._status === 400 || j._status === 401; // Twitch прямо отверг токен
@@ -131,8 +133,8 @@
       acc.expires = Date.now() + (j.expires_in || 3600) * 1000;
       acc.needsLogin = false;
       save();
-    }, function (e) { Auth._rp = null; throw e; });
-    return Auth._rp;
+    }, function (e) { if (Auth._rp === rp) Auth._rp = null; throw e; });
+    return rp;
   };
 
   // Проверка токена (и заодно логин) — заранее обновляем, если скоро истечёт.
@@ -162,9 +164,10 @@
   Auth.needsLogin = function () { return !!(Auth.data && Auth.data.needsLogin); };
 
   Auth.loadUser = function () {
-    return Auth.gql('query{currentUser{id login displayName profileImageURL(width:70)}}').then(function (d) {
+    var acc = Auth.data; // ответ относится к этому аккаунту, даже если профиль успели сменить
+    return Auth.gql('query{currentUser{id login displayName profileImageURL(width:300)}}').then(function (d) {
       if (!d || !d.currentUser) throw new Error(tr('Не удалось получить профиль'));
-      Auth.data.user = d.currentUser;
+      acc.user = d.currentUser;
       save();
       changed();
       return d.currentUser;

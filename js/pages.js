@@ -9,7 +9,9 @@
     chatWidth: 'normal', chatFont: 'normal', chatHeight: 'full', lang: I18N.tvLang().split('-')[0], uiLang: I18N.tvLang(),
     resume: 'on', adblock: 'on', eventsNotify: 'on',
     engine: 'hls', playerType: 'site', scale: '100', preview: 'on', codec: 'auto', useAccount: 'on',
-    notify: 'on', lite: 'auto', previewSound: 'on', kb: I18N.tvLang() === 'en' ? 'en' : I18N.tvLang()
+    notify: 'on', lite: 'auto', previewSound: 'on',
+    // экранная клавиатура — на языке ТВ, если для него есть раскладка (для японского, китайского и т.п. — латиница)
+    kb: /^(ru|uk|en|de|fr|es|pt|it|pl|cs|sk|hu|ro|tr|nl|sv|da|no|fi|vi|el|bg)$/.test(I18N.tvLang()) ? I18N.tvLang() : 'en'
   };
   var Settings = {
     data: U.store.get('settings', {}),
@@ -293,7 +295,8 @@
             return recent.map(function (x) { return byLogin[x.login]; }).filter(Boolean);
           });
         }, function (u) {
-          return u.stream ? streamCard(Object.assign(u.stream, { broadcaster: u.stream.broadcaster || u })) : channelCard(u);
+          if (u.stream) u.stream.broadcaster = u.stream.broadcaster || u;
+          return u.stream ? streamCard(u.stream) : channelCard(u);
         });
       });
       var langName = (LANGS.filter(function (l) { return l[0] === lang; })[0] || ['', ''])[1];
@@ -409,6 +412,84 @@
     return { el: el, nav: 'browse', firstFocus: function () { return U.$('.grid .card', el) || (U.$('.empty', body) ? t1 : null); } };
   };
 
+  // ---------- Клипы: в тренде + клипы ваших подписок ----------
+  // Общего списка «популярные клипы» у Twitch нет, поэтому «В тренде» — лучшие клипы самых популярных
+  // категорий, сведённые вместе по просмотрам. С аккаунтом — ещё ряд клипов каналов, на которые вы подписаны.
+  var CLIP_PERIODS = [['LAST_DAY', tr('За 24 часа')], ['LAST_WEEK', tr('За неделю')], ['LAST_MONTH', tr('За месяц')], ['ALL_TIME', tr('За всё время')]];
+
+  function byViews(lists, limit) {
+    var seen = {}, out = [];
+    [].concat.apply([], lists).forEach(function (c) { if (c && c.slug && !seen[c.slug]) { seen[c.slug] = 1; out.push(c); } });
+    return out.sort(function (a, b) { return (b.viewCount || 0) - (a.viewCount || 0); }).slice(0, limit);
+  }
+
+  Pages.clips = function () {
+    var el = pageShell('page-clips');
+    el.content.appendChild(header(tr('Клипы'), tr('Самые популярные клипы Twitch')));
+    var chipsInner = h('div.chips-inner');
+    var chips = h('div.chips.row.h-scroll', { 'data-group': 'chips' }, chipsInner);
+    el.content.appendChild(chips);
+    var body = h('div');
+    el.content.appendChild(body);
+    var period = Settings.get('clipsPeriod') || 'LAST_WEEK';
+    var gen = 0;
+
+    // Один запрос на категорию: его же используют и «В тренде», и ряд категории (кэш ответов Twitch).
+    // Ряды категорий строим порциями по мере прокрутки, как на главной, — меньше запросов и DOM на слабом ТВ.
+    var queue = [];
+    body.setAttribute('data-lazy', '1');
+    body._lazy = function (n) { var k = n || 2; while (k-- > 0 && queue.length) queue.shift()(); };
+    function gameClips(g) { return Twitch.gameClips(g.name, 20, period); }
+
+    function render() {
+      var my = ++gen;
+      body.innerHTML = '';
+      queue = [];
+      var games = Twitch.topGames(8).then(function (p) { return p.items; });
+      autoShelf(body, tr('В тренде'), function () {
+        return games.then(function (gs) {
+          return Promise.all(gs.slice(0, 6).map(function (g) { return gameClips(g).catch(function () { return []; }); }));
+        }).then(function (lists) { return byViews(lists, 30); });
+      }, clipCard);
+      if (Auth.loggedIn() && !Auth.needsLogin()) {
+        autoShelf(body, tr('Клипы ваших подписок'), function () {
+          var logins = Auth.cachedFollows().slice(0, 12);
+          return Promise.all(logins.map(function (l) { return Twitch.clips(l, period, 6).catch(function () { return []; }); }))
+            .then(function (lists) { return byViews(lists, 30); });
+        }, clipCard);
+      }
+      games.then(function (gs) {
+        if (my !== gen) return;
+        gs.forEach(function (g) {
+          queue.push(function () { autoShelf(body, g.displayName || g.name, function () { return gameClips(g); }, clipCard); });
+        });
+        body._lazy(2);
+      }).catch(function () {});
+    }
+
+    CLIP_PERIODS.forEach(function (pr) {
+      var c = h('div.chip.focusable' + (pr[0] === period ? '.active' : ''), { text: pr[1] });
+      c._onclick = function () {
+        if (period === pr[0]) return;
+        period = pr[0];
+        Settings.set('clipsPeriod', period);
+        U.$$('.chip', chipsInner).forEach(function (x) { x.classList.toggle('active', x === c); });
+        render();
+      };
+      chipsInner.appendChild(c);
+    });
+    render();
+    return {
+      el: el, nav: 'clips',
+      firstFocus: function () {
+        var shelf = U.$('.shelf', body);
+        if (!shelf || U.$('.skeleton', shelf)) return null;
+        return U.$('.card.focusable', shelf);
+      },
+      refresh: render
+    };
+  };
+
   // ---------- Подписки ----------
   Pages.following = function () {
     var el = pageShell('page-following');
@@ -421,16 +502,19 @@
     function render() {
       body.innerHTML = '';
       var mine = App.myChannels();
-      if (!Auth.loggedIn()) {
-        var login = UI.button(tr('Войти в Twitch'), 'person', function () { App.go('account', {}, { root: true }); }, 'primary');
+      // вход устарел — как без входа: баннер «войти снова», а не ошибка с бесполезным «Повторить»
+      var expired = Auth.needsLogin();
+      var active = Auth.loggedIn() && !expired;
+      if (!active) {
+        var login = UI.button(expired ? tr('Войти снова') : tr('Войти в Twitch'), 'person', function () { App.go('account', expired ? { add: true } : {}, { root: true }); }, 'primary');
         body.appendChild(h('div.row.login-banner', { 'data-group': 'free' }, [
-          h('div.login-banner-text', null, [h('div.login-banner-title', { text: tr('Ваши подписки — на телевизоре') }),
+          h('div.login-banner-text', null, [h('div.login-banner-title', { text: expired ? tr('Вход в Twitch устарел — войдите снова') : tr('Ваши подписки — на телевизоре') }),
             h('div.login-banner-sub', { text: tr('Войдите по коду на twitch.tv/activate — подписки появятся здесь автоматически') })]),
           login
         ]));
       }
       if (!mine.length) {
-        if (Auth.loggedIn()) {
+        if (active) {
           body.appendChild(UI.loading());
           Auth.syncFollows().then(function (l) { if (l.length) render(); else { body.innerHTML = ''; body.appendChild(UI.empty(tr('Вы пока ни на кого не подписаны')));
             body.appendChild(h('div.row.empty-actions', { 'data-group': 'free' }, UI.button(tr('Найти каналы'), 'search', function () { App.go('search', {}, { root: true }); }, 'primary'))); App.refocus(); } },
@@ -541,7 +625,7 @@
       var blockBtn = UI.button(App.isBlocked(u.login) ? tr('Разблокировать') : tr('Заблокировать'), null, function () {
         var on = !App.isBlocked(u.login);
         App.setBlocked(u.login, on);
-        UI.toast(u.displayName + (on ? tr(' заблокирован') : tr(' разблокирован')));
+        UI.toast((on ? tr('Канал заблокирован: ') : tr('Канал разблокирован: ')) + u.displayName);
         U.$('span', blockBtn).textContent = on ? tr('Разблокировать') : tr('Заблокировать');
       });
       buttons.push(blockBtn);
@@ -896,11 +980,12 @@
         h('div.set-text', null, [h('div.set-label', { text: label }), hint ? h('div.set-hint', { text: hint }) : null]),
         h('div.set-control', null, [valueEl, h('span.set-go', { html: '&#8250;' })])
       ]);
-      function current() {
-        var v = Settings.get(key);
+      function find(v) {
         for (var i = 0; i < values.length; i++) if (String(values[i][0]) === String(v)) return values[i];
-        return values[0];
+        return null;
       }
+      // неизвестное сохранённое значение — показываем то, что приложение реально использует (значение по умолчанию)
+      function current() { return find(Settings.get(key)) || find(DEFAULTS[key]) || values[0]; }
       function show() { valueEl.textContent = current()[1]; }
       row._onclick = function () {
         var cur = current();
@@ -1000,7 +1085,7 @@
       var list = App.blocked();
       if (!list.length) { UI.toast(tr('Список пуст')); return; }
       UI.menu(tr('Разблокировать канал'), list.map(function (login) {
-        return { label: login, onSelect: function () { App.setBlocked(login, false); UI.toast(login + tr(' разблокирован')); showBlocked(); } };
+        return { label: login, onSelect: function () { App.setBlocked(login, false); UI.toast(tr('Канал разблокирован: ') + login); showBlocked(); } };
       }), { cls: 'menu-right' });
     });
     function showBlocked() { U.$('.set-hint', blockedRow).textContent = App.blocked().length ? tr('Заблокировано: ') + App.blocked().length : tr('Никого не заблокировано'); }

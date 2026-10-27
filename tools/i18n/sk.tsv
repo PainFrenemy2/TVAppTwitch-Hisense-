@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (odporúčané)
 Рекламная пауза Twitch — эфир скоро продолжится	Reklamná prestávka Twitch — vysielanie čoskoro pokračuje
 идёт	prebieha
 пропускается	preskakuje sa
- баллов	 bodov
- заблокирован	 zablokovaný
- из всех списков	 zo všetkých zoznamov
- разблокирован	 odblokovaný
 OK — участвовать	OK — zapojiť sa
 QR-код на страницу GitHub — опишите, что не работает	QR kód na stránku GitHub — opíšte, čo nefunguje
 Twitch не принял голос	Twitch hlas neprijal
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch tip neprijal
 Заблокированные каналы	Zablokované kanály
 Заблокировано: 	Zablokované: 
 Заблокировать	Zablokovať
-Заблокировать 	Zablokovať 
 Заблокировать канал	Zablokovať kanál
 Закрыть	Zavrieť
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanál zmizne z hlavnej stránky, hľadania, odporúčaní a upozornení. Odblokovať ho môžete v Nastavenia → Zablokované kanály.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch tip neprijal
 Нужен вход в Twitch	Je potrebné prihlásenie do Twitchu
 Плеер, звук, зависания, ошибки	Prehrávač, zvuk, sekanie, chyby
 Пожаловаться	Nahlásiť
-Пожаловаться на 	Nahlásiť 
 Проблема: 	Problém: 
 Прогноз	Tipovačka
 Разблокировать	Odblokovať
 Разблокировать канал	Odblokovať kanál
 Сейчас голосования нет	Teraz žiadne hlasovanie
 Сейчас прогноза нет	Teraz žiadna tipovačka
-Скрыть 	Skryť 
 Сообщить о проблеме	Nahlásiť problém
 Ставка: 	Tip: 
 Ставка принята: 	Tip prijatý: 
-Ставки уже закрыты	Tipy sú uzavreté
 Уведомления о прогнозах и голосованиях	Upozornenia na tipovačky a hlasovania
 ваши баллы: 	vaše body: 
 завершён	skončená
-приём ставок	otvorená
 ставки закрыты	uzamknutá
- участников	 účastníkov
+Баллы: 	Body: 
+Канал заблокирован: 	Kanál zablokovaný: 
+Канал разблокирован: 	Kanál odblokovaný: 
+Заблокировать канал?	Zablokovať tento kanál?
+Скрыть канал из всех списков	Skryť kanál zo všetkých zoznamov
+В тренде	Trendy
+Голосов: 	Hlasov: 
+За 24 часа	Posledných 24 hodín
+За всё время	Za celý čas
+За месяц	Posledný mesiac
+За неделю	Posledný týždeň
+Клипы ваших подписок	Klipy sledovaných kanálov
+Ожидание результата	Čaká sa na výsledok
+Осталось: 	Zostáva: 
+Победил: 	Víťaz: 
+Приём ставок	Prijímajú sa tipy
+Прогноз закрыт	Tipovačka uzavretá
+Прогноз начался: 	Tipovačka začala: 
+Самые популярные клипы Twitch	Najobľúbenejšie klipy na Twitchi

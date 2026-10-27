@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (ajánlott)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitch-reklámszünet — a közvetítés hamarosan folytatódik
 идёт	folyamatban
 пропускается	átugrás
- баллов	 pont
- заблокирован	 letiltva
- из всех списков	 minden listából
- разблокирован	 letiltás feloldva
 OK — участвовать	OK — részvétel
 QR-код на страницу GitHub — опишите, что не работает	QR-kód a GitHub-oldalra — írd le, mi nem működik
 Twitch не принял голос	A Twitch nem fogadta el a szavazatot
@@ -324,7 +320,6 @@ Twitch не принял ставку	A Twitch nem fogadta el a tippet
 Заблокированные каналы	Letiltott csatornák
 Заблокировано: 	Letiltva: 
 Заблокировать	Letiltás
-Заблокировать 	Letiltás: 
 Заблокировать канал	Csatorna letiltása
 Закрыть	Bezárás
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	A csatorna eltűnik a kezdőlapról, a keresésből, az ajánlásokból és az értesítésekből. A letiltást a Beállítások → Letiltott csatornák menüben oldhatod fel.
@@ -335,21 +330,35 @@ Twitch не принял ставку	A Twitch nem fogadta el a tippet
 Нужен вход в Twitch	Twitch-bejelentkezés szükséges
 Плеер, звук, зависания, ошибки	Lejátszó, hang, akadás, hibák
 Пожаловаться	Jelentés
-Пожаловаться на 	Jelentés: 
 Проблема: 	Probléma: 
 Прогноз	Tippjáték
 Разблокировать	Letiltás feloldása
 Разблокировать канал	Csatorna letiltásának feloldása
 Сейчас голосования нет	Most nincs szavazás
 Сейчас прогноза нет	Most nincs tippjáték
-Скрыть 	Elrejtés: 
 Сообщить о проблеме	Probléma jelentése
 Ставка: 	Tipp: 
 Ставка принята: 	Tipp leadva: 
-Ставки уже закрыты	A tippek lezárultak
 Уведомления о прогнозах и голосованиях	Tippjáték- és szavazásértesítések
 ваши баллы: 	pontjaid: 
 завершён	lezárult
-приём ставок	nyitott
 ставки закрыты	zárolva
- участников	 résztvevő
+Баллы: 	Pontok: 
+Канал заблокирован: 	Csatorna letiltva: 
+Канал разблокирован: 	Csatorna letiltása feloldva: 
+Заблокировать канал?	Letiltod ezt a csatornát?
+Скрыть канал из всех списков	Csatorna elrejtése minden listából
+В тренде	Felkapott
+Голосов: 	Szavazatok: 
+За 24 часа	Elmúlt 24 óra
+За всё время	Minden idők
+За месяц	Elmúlt hónap
+За неделю	Elmúlt hét
+Клипы ваших подписок	Követett csatornák klipjei
+Ожидание результата	Várakozás az eredményre
+Осталось: 	Hátralévő idő: 
+Победил: 	Nyertes: 
+Приём ставок	Tippek leadhatók
+Прогноз закрыт	Tippjáték lezárva
+Прогноз начался: 	Tippjáték kezdete: 
+Самые популярные клипы Twitch	A legnépszerűbb Twitch-klipek

@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (recomandat)
 Рекламная пауза Twitch — эфир скоро продолжится	Pauză publicitară Twitch — transmisiunea revine imediat
 идёт	în desfășurare
 пропускается	se sare
- баллов	 puncte
- заблокирован	 blocat
- из всех списков	 din toate listele
- разблокирован	 deblocat
 OK — участвовать	OK — participă
 QR-код на страницу GitHub — опишите, что не работает	Cod QR către pagina GitHub — descrie ce nu merge
 Twitch не принял голос	Twitch nu a acceptat votul
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch nu a acceptat predicția
 Заблокированные каналы	Canale blocate
 Заблокировано: 	Blocate: 
 Заблокировать	Blochează
-Заблокировать 	Blochezi 
 Заблокировать канал	Blochează canalul
 Закрыть	Închide
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Canalul va dispărea din pagina principală, căutare, recomandări și notificări. Îl poți debloca în Setări → Canale blocate.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch nu a acceptat predicția
 Нужен вход в Twitch	E nevoie de conectare la Twitch
 Плеер, звук, зависания, ошибки	Player, sunet, blocări, erori
 Пожаловаться	Raportează
-Пожаловаться на 	Raportează 
 Проблема: 	Problemă: 
 Прогноз	Predicție
 Разблокировать	Deblochează
 Разблокировать канал	Deblochează canalul
 Сейчас голосования нет	Niciun sondaj acum
 Сейчас прогноза нет	Nicio predicție acum
-Скрыть 	Ascunde 
 Сообщить о проблеме	Raportează o problemă
 Ставка: 	Pariu: 
 Ставка принята: 	Predicție plasată: 
-Ставки уже закрыты	Predicțiile sunt închise
 Уведомления о прогнозах и голосованиях	Notificări despre predicții și sondaje
 ваши баллы: 	punctele tale: 
 завершён	încheiată
-приём ставок	deschisă
 ставки закрыты	blocată
- участников	 participanți
+Баллы: 	Puncte: 
+Канал заблокирован: 	Canal blocat: 
+Канал разблокирован: 	Canal deblocat: 
+Заблокировать канал?	Blochezi acest canal?
+Скрыть канал из всех списков	Ascunde canalul din toate listele
+В тренде	În tendințe
+Голосов: 	Voturi: 
+За 24 часа	Ultimele 24 de ore
+За всё время	Din toate timpurile
+За месяц	Ultima lună
+За неделю	Ultima săptămână
+Клипы ваших подписок	Clipuri de la canalele urmărite
+Ожидание результата	Se așteaptă rezultatul
+Осталось: 	Timp rămas: 
+Победил: 	Câștigător: 
+Приём ставок	Se primesc predicții
+Прогноз закрыт	Predicție închisă
+Прогноз начался: 	Predicție începută: 
+Самые популярные клипы Twitch	Cele mai populare clipuri de pe Twitch

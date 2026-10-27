@@ -308,10 +308,6 @@ hls.js (рекомендуется)	hls.js (anbefalet)
 Рекламная пауза Twitch — эфир скоро продолжится	Twitch-reklamepause — streamen fortsætter om lidt
 идёт	i gang
 пропускается	springes over
- баллов	 point
- заблокирован	 blokeret
- из всех списков	 fra alle lister
- разблокирован	 fjernet fra blokering
 OK — участвовать	OK — deltag
 QR-код на страницу GitHub — опишите, что не работает	QR-kode til GitHub-siden — beskriv, hvad der er galt
 Twitch не принял голос	Twitch accepterede ikke stemmen
@@ -324,7 +320,6 @@ Twitch не принял ставку	Twitch accepterede ikke forudsigelsen
 Заблокированные каналы	Blokerede kanaler
 Заблокировано: 	Blokeret: 
 Заблокировать	Bloker
-Заблокировать 	Bloker 
 Заблокировать канал	Bloker kanal
 Закрыть	Luk
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanalen forsvinder fra forsiden, søgning, anbefalinger og notifikationer. Du kan fjerne blokeringen under Indstillinger → Blokerede kanaler.
@@ -335,21 +330,35 @@ Twitch не принял ставку	Twitch accepterede ikke forudsigelsen
 Нужен вход в Twitch	Login på Twitch kræves
 Плеер, звук, зависания, ошибки	Afspiller, lyd, frysninger, fejl
 Пожаловаться	Anmeld
-Пожаловаться на 	Anmeld 
 Проблема: 	Problem: 
 Прогноз	Forudsigelse
 Разблокировать	Fjern blokering
 Разблокировать канал	Fjern blokering af kanal
 Сейчас голосования нет	Ingen afstemning lige nu
 Сейчас прогноза нет	Ingen forudsigelse lige nu
-Скрыть 	Skjul 
 Сообщить о проблеме	Rapportér et problem
 Ставка: 	Indsats: 
 Ставка принята: 	Forudsigelse afgivet: 
-Ставки уже закрыты	Forudsigelserne er lukket
 Уведомления о прогнозах и голосованиях	Notifikationer om forudsigelser og afstemninger
 ваши баллы: 	dine point: 
 завершён	afsluttet
-приём ставок	åben
 ставки закрыты	låst
- участников	 deltagere
+Баллы: 	Point: 
+Канал заблокирован: 	Kanal blokeret: 
+Канал разблокирован: 	Kanal fjernet fra blokering: 
+Заблокировать канал?	Bloker denne kanal?
+Скрыть канал из всех списков	Skjul kanalen fra alle lister
+В тренде	Populært nu
+Голосов: 	Stemmer: 
+За 24 часа	Seneste 24 timer
+За всё время	Gennem tiden
+За месяц	Seneste måned
+За неделю	Seneste uge
+Клипы ваших подписок	Klip fra kanaler, du følger
+Ожидание результата	Venter på resultatet
+Осталось: 	Tid tilbage: 
+Победил: 	Vinder: 
+Приём ставок	Forudsigelser åbne
+Прогноз закрыт	Forudsigelsen er lukket
+Прогноз начался: 	Forudsigelsen startede: 
+Самые популярные клипы Twitch	De mest populære klip på Twitch
