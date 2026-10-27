@@ -86,10 +86,14 @@
     // постоял на карточке — в ней начинается живое превью без звука, как в YouTube
     card._onfocus = function () {
       if (!b.login) return;
-      var thumb = U.$('.thumb', card);
-      var v = U.$('video', thumb);
-      if (!v) { v = h('video.thumb-video', { playsinline: '' }); thumb.insertBefore(v, thumb.children[1] || null); }
-      Preview.start(v, b.login);
+      // <video> создаём, только когда превью действительно запускается (постояли на карточке),
+      // а не на каждый шаг по полке — на слабом ТВ это заметно ускоряет листание
+      Preview.start(function () {
+        var thumb = U.$('.thumb', card);
+        var v = U.$('video', thumb);
+        if (!v) { v = h('video.thumb-video', { playsinline: '' }); thumb.insertBefore(v, thumb.children[1] || null); }
+        return v;
+      }, b.login);
     };
     card._onblur = function () { Preview.stop(); };
     return card;

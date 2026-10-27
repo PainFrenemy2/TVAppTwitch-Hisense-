@@ -177,6 +177,7 @@
       if (Settings.get('preview') === 'off' || App.isLite() || !window.Hls || !Hls.isSupported() || Player.isOpen()) return;
       var gen = Preview.gen;
       Preview.timer = setTimeout(function () {
+        if (typeof video === 'function') video = video(); // элемент видео — по требованию
         Twitch.liveUrl(login, Settings.get('playerType')).then(function (url) {
           // пока ждали токен, фокус ушёл / открылся плеер или меню — не запускаем
           if (gen !== Preview.gen || Player.isOpen() || !video.isConnected || App.topLayer() !== App.base) return;

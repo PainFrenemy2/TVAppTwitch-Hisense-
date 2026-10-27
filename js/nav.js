@@ -152,6 +152,12 @@
 
   Nav.move = function (dir) {
     var cur = Nav.current;
+    var inScope = cur && cur.isConnected && Nav.scope.contains(cur) && visible(cur);
+    // быстрый путь — без сбора и замера всех элементов страницы
+    if (inScope && !cur.hasAttribute('data-nav-' + dir)) {
+      var fast = fastMove(cur, dir);
+      if (fast) { Nav.focus(fast); return true; }
+    }
     var list = Nav.focusables();
     if (!cur || list.indexOf(cur) < 0) {
       if (list.length) Nav.focus(list[0]);
@@ -169,6 +175,48 @@
       }
     }
 
+    return fullMove(cur, dir, list);
+  };
+
+  // Быстрый путь (слабый процессор ТВ): по полке влево/вправо — просто соседняя карточка,
+  // вверх/вниз с полки — ищем только в соседнем ряду. Полный перебор всех элементов — только на краях.
+
+  function focusableIn(el) { return el.classList.contains('focusable') && visible(el); }
+
+  function fastMove(cur, dir) {
+    var track = cur.parentNode && cur.parentNode.classList && cur.parentNode.classList.contains('shelf-track') ? cur.parentNode : null;
+    if (!track) return null;
+    if (dir === 'left' || dir === 'right') {
+      var sib = dir === 'right' ? cur.nextElementSibling : cur.previousElementSibling;
+      while (sib && !focusableIn(sib)) sib = dir === 'right' ? sib.nextElementSibling : sib.previousElementSibling;
+      return sib; // нет соседа — край полки: решает полный перебор (например, уход в боковое меню)
+    }
+    // вверх/вниз: соседняя полка в том же контейнере
+    var shelf = cur.closest('.shelf');
+    if (!shelf || !shelf.parentNode) return null;
+    var row = shelf;
+    for (var hop = 0; hop < 3; hop++) {
+      row = dir === 'down' ? row.nextElementSibling : row.previousElementSibling;
+      if (!row) return null;
+      var items = Nav.focusables(row);
+      if (!items.length) continue;
+      // не полка (баннер, сетка, кнопки) — пусть решает полный перебор
+      if (!row.classList.contains('shelf')) return null;
+      // в той полке уже были — возвращаемся к той же карточке (как в YouTube TV)
+      if (row._last && row._last.isConnected && visible(row._last)) return row._last;
+      // иначе — ближайшая по горизонтали к текущей
+      var cx = cur.getBoundingClientRect().left, best = null, bd = Infinity;
+      for (var i = 0; i < items.length; i++) {
+        var d = Math.abs(items[i].getBoundingClientRect().left - cx);
+        if (d < bd) { bd = d; best = items[i]; }
+        else if (best) break; // карточки идут слева направо — дальше только дальше
+      }
+      return best;
+    }
+    return null;
+  }
+
+  function fullMove(cur, dir, list) {
     var a = cur.getBoundingClientRect();
     var ac = center(a);
     var best = null, bestScore = Infinity;
@@ -206,7 +254,7 @@
     if (tg && tg !== curGroup && tg._last && visible(tg._last) && tg.dataset.group !== 'free') best = tg._last;
     Nav.focus(best);
     return true;
-  };
+  }
 
   window.Nav = Nav;
 })();

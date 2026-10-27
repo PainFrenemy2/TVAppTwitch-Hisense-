@@ -1096,3 +1096,5 @@ img.broken { visibility: hidden; }
 /* диагностика — одна колонка, строки по порядку */
 .diag-list { max-width: 110rem; margin-bottom: 2.4rem; }
 .diag-list .tv-info-row { padding: .6rem 0; border-bottom: .1rem solid rgba(255,255,255,.08); line-height: 1.4; }
+/* изоляция раскладки: смена фокуса карточки пересчитывает только её полку, а не всю страницу */
+.shelf, .card, .chips, .hero-wrap { contain: layout style; }
