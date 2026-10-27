@@ -231,7 +231,7 @@
         h('div.ev-row', null, [
           h('div.ev-stats', null, [
             stat('points', U.num(o.totalPoints || 0), color),
-            stat('ratio', '1:' + ratio, color),
+            stat('ratio', o.totalPoints ? '1:' + ratio : '—', color),
             stat('users', U.num(o.totalUsers || 0), color),
             stat('top', top, color)
           ]),

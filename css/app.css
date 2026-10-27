@@ -1045,3 +1045,16 @@ img.broken { visibility: hidden; }
 .event-split { display: flex; align-items: center; margin-top: 1rem; font-size: 1.3rem; font-weight: 600; }
 .event-split span { white-space: nowrap; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
 .event-split .ev-bar { flex: 1; margin: 0 1rem; }
+/* окно прогноза: ничего не наезжает — названия в 2 строки, проценты фиксированной ширины, кнопки без увеличения */
+.ev-name { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; font-size: 1.8rem; min-height: 4.5rem; }
+.ev-two .ev-outcome:first-child .ev-name { text-align: left; }
+.ev-two .ev-outcome:last-child .ev-name { text-align: right; }
+.ev-stat { white-space: nowrap; overflow: hidden; }
+.ev-stat span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.ev-pct { flex: none; width: 11rem; padding: 0; }
+.ev-pct-num { font-size: 3rem; line-height: 1.1; }
+.ev-pill { width: 6rem; }
+.ev-two .ev-outcome { padding: 0 1rem; }
+.ev-actions { display: block; padding: 1.8rem 2.6rem; }
+.ev-bet, .ev-bet.focused { display: flex; width: 100%; margin: 0 0 1rem; transform: none; box-sizing: border-box; }
+.ev-bet.focused { box-shadow: 0 0 0 .25rem #fff; }
