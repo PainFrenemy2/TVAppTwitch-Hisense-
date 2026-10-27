@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.8.7',
+    VERSION: '1.8.8',
     layers: [],
     history: [],
     pendingFocus: false
@@ -213,6 +213,7 @@
     if (top === App.base && (!ok || (inSidebar(lf) && layer.el === Player.el))) App.refocus(true);
     else if (ok) Nav.focus(lf, { noScroll: true });
     else if (top.el === Player.el) { /* плеер сам покажет OSD */ }
+    else { var f = Nav.focusables(top.scope || top.el)[0]; if (f) Nav.focus(f); } // запомненный элемент перестроили — первый в окне
   };
 
   // ---------- боковое меню ----------

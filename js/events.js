@@ -387,7 +387,10 @@
       var refs = panel.refs = { outcomes: [], bar: [] };
       var body = panel.body;
       // фокус стоял на строке исхода — после перестройки вернём его туда же (или на победителя)
+      // окно не наверху (открыт выбор суммы) — фокус вернётся на запомненный в слое элемент
+      var layer = App.layers.filter(function (l) { return l.el === panel.el; })[0];
       var picks = U.$$('.ev-pick', body), focusIdx = picks.indexOf(Nav.current);
+      var layerIdx = layer && !isTop() ? picks.indexOf(layer.lastFocus) : -1;
       body.innerHTML = '';
       U.$('.ev-title', panel.head).textContent = p.title;
       U.$('.ev-status', panel.head).textContent = predictionStatus(p);
@@ -426,10 +429,10 @@
       body.appendChild(bar);
       refs.foot = h('div.ev-foot');
       body.appendChild(refs.foot);
+      var rows = U.$$('.ev-pick', body);
       if (focusIdx >= 0 && isTop() && (!Nav.current || !Nav.current.isConnected)) {
-        var rows = U.$$('.ev-pick', body);
         Nav.focus(U.$('.ev-pick.ev-won', body) || rows[Math.min(focusIdx, rows.length - 1)] || U.$('.focusable', panel.el));
-      }
+      } else if (layerIdx >= 0 && rows.length) layer.lastFocus = U.$('.ev-pick.ev-won', body) || rows[Math.min(layerIdx, rows.length - 1)];
     }
     // числа — на месте, без перестройки DOM
     var refs2 = panel.refs;

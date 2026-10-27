@@ -139,15 +139,26 @@
     if (m) for (var k in x) if (k.indexOf(m) === 0) x[k.slice(2)] = x[k];
     return x;
   }
-  var SHELF_ITEMS = 'edges{node{id title{fallbackLocalizedTitle} content{edges{node{__typename ' +
-    '... on Stream{' + STREAM + '} ... on Game{' + alias('g_', GAME) + '} ... on Clip{' + alias('c_', CLIP) + '} ... on Video{' + alias('v_', VIDEO) + '}}}}}}';
+  // Заголовок ряда: у части рядов fallbackLocalizedTitle пустой, а текст собирается из «токенов»
+  // (например «Ещё в категории» + название игры) — как это делает сайт.
+  var TITLE_RICH = 'title{key fallbackLocalizedTitle localizedTitleTokens{node{__typename ... on TextToken{text} ... on Game{displayName} ... on User{displayName}}}}';
+  var TITLE_SIMPLE = 'title{key fallbackLocalizedTitle}';
+  function shelfItems(title) {
+    return 'edges{node{id ' + title + ' content{edges{node{__typename ' +
+      '... on Stream{' + STREAM + '} ... on Game{' + alias('g_', GAME) + '} ... on Clip{' + alias('c_', CLIP) + '} ... on Video{' + alias('v_', VIDEO) + '}}}}}}';
+  }
   // Варианты от «как у сайта» до минимального: если Twitch ругается на какой-то аргумент
   // (как было с «Unknown argument imageWidth»), следующий вариант обходится без него.
   var CTX = 'context:{clientApp:"twilight",location:"home",referrerDomain:"",viewportHeight:1080,viewportWidth:1920}';
+  function shelvesQ(platform, ctx, title) {
+    return 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"' + platform + '",requestID:$requestID' +
+      (ctx ? ',langWeightedCCU:true,verbose:false,' + CTX : '') + '){' + shelfItems(title) + '}}';
+  }
   var SHELVES_VARIANTS = [
-    ['shelves+context', 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"web",requestID:$requestID,' +
-      'langWeightedCCU:true,verbose:false,' + CTX + '){' + SHELF_ITEMS + '}}'],
-    ['shelves', 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"web",requestID:$requestID){' + SHELF_ITEMS + '}}']
+    ['shelves+context', shelvesQ('web', true, TITLE_RICH)],
+    ['shelves+context (simple title)', shelvesQ('web', true, TITLE_SIMPLE)],
+    ['shelves android', shelvesQ('android', false, TITLE_SIMPLE)],
+    ['shelves', shelvesQ('web', false, TITLE_SIMPLE)]
   ];
   // элементы раздела — объединение типов (union), поэтому канал выбираем через фрагмент
   var RECS_Q = 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"web"}}){' +
@@ -156,15 +167,33 @@
   // что ответил Twitch — для экрана «Диагностика аккаунта»
   T.diag = {};
 
+  function shelfTitle(t, items) {
+    if (!t) t = {};
+    var s = t.fallbackLocalizedTitle;
+    if (!s && t.localizedTitleTokens) {
+      s = t.localizedTitleTokens.map(function (e) {
+        var n = e && e.node;
+        return n ? (n.text || n.displayName || '') : '';
+      }).join('').replace(/\s+/g, ' ').trim();
+    }
+    if (s) return s;
+    // совсем без текста — подпись по содержимому ряда
+    var type = items[0].type;
+    return type === 'Game' ? tr('Рекомендуем для вас') : type === 'Clip' ? tr('Клипы') : type === 'Video' ? tr('Видео') : tr('Рекомендуемые каналы');
+  }
   function shelvesFrom(d) {
-    var out = [];
-    edges(d && d.shelves).forEach(function (n) {
-      var items = edges(n.content).map(function (x) { return x && unalias(x); }).filter(function (x) {
+    var out = [], shelves = edges(d && d.shelves), total = 0, types = {};
+    shelves.forEach(function (n) {
+      var raw = edges(n.content);
+      total += raw.length;
+      raw.forEach(function (x) { if (x) types[x.__typename] = 1; });
+      var items = raw.map(function (x) { return x && unalias(x); }).filter(function (x) {
         return x && /^(Stream|Game|Clip|Video)$/.test(x.__typename) && (x.__typename !== 'Stream' || x.broadcaster);
       }).map(function (x) { return { type: x.__typename, data: x }; });
-      var title = n.title && n.title.fallbackLocalizedTitle;
-      if (items.length && title) out.push({ id: n.id, title: title, items: items });
+      if (items.length) out.push({ id: n.id, title: shelfTitle(n.title, items), items: items });
     });
+    // для диагностики: что пришло, если рядов не получилось
+    out.raw = shelves.length + ' shelves, ' + total + ' items' + (total ? ' (' + Object.keys(types).join(',') + ')' : '');
     return out;
   }
   function recsFrom(d) {
@@ -203,7 +232,7 @@
       if (i >= steps.length) return Promise.resolve([]);
       var st = steps[i++], t0 = Date.now();
       return st.run().then(function (rows) {
-        T.diag.steps.push({ name: st.name, ok: !!rows.length, info: rows.length ? rows.length + ' rows: ' + rows.map(function (r) { return r.title; }).join(' | ') : 'empty', ms: Date.now() - t0 });
+        T.diag.steps.push({ name: st.name, ok: !!rows.length, info: rows.length ? rows.length + ' rows: ' + rows.map(function (r) { return r.title; }).join(' | ') : 'empty' + (rows.raw ? ': ' + rows.raw : ''), ms: Date.now() - t0 });
         return rows.length ? rows : next();
       }, function (e) {
         T.diag.steps.push({ name: st.name, ok: false, info: 'error: ' + ((e && e.message) || e), ms: Date.now() - t0 });

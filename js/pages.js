@@ -50,13 +50,14 @@
     if (opts.before) parent.insertBefore(shelf, opts.before); else parent.appendChild(shelf);
     var p = loader().then(function (items) {
       shelf.track.innerHTML = '';
-      if (!items || !items.length) { if (shelf.parentNode) shelf.parentNode.removeChild(shelf); return 0; }
+      if (!items || !items.length) { if (shelf.parentNode) shelf.parentNode.removeChild(shelf); App.refocus(); return 0; }
       shelf.add(items.map(makeCard));
       App.refocus();
       return items.length;
     }, function (e) {
       if (shelf.parentNode) shelf.parentNode.removeChild(shelf);
       if (window.console) console.warn(title, e);
+      App.refocus(); // полки сверху больше нет — фокус ждал её, переходим к следующей
       return 0;
     });
     shelf.ready = p;

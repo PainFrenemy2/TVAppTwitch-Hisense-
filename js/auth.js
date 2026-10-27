@@ -43,11 +43,12 @@
   }
 
   function post(url, body) {
-    return fetch(url, {
+    // с таймаутом: после сна ТВ Wi-Fi поднимается не сразу, и «вечный» запрос заблокировал бы весь вход
+    return fetchTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form(body)
-    }).then(function (r) {
+    }, 12000).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) { j._status = r.status; return j; });
     });
   }
@@ -141,12 +142,21 @@
   // (или уйдёт в сон) раньше, чем новый токен запишется на диск, при следующем запуске останется
   // «сожжённый» старый — и вход слетит. Поэтому: не продлеваем, пока приложение не на экране
   // (ТВ в режиме ожидания), а новый токен сразу записываем и в localStorage, и в резервную копию.
+  // «Скрыто» — только если и пульт давно не трогали: некоторые прошивки VIDAA ошибочно держат
+  // document.hidden = true, и тогда вход никогда бы не продлился
+  var lastKey = 0;
+  document.addEventListener('keydown', function () { lastKey = Date.now(); }, true);
+  function asleep() { return document.hidden && Date.now() - lastKey > 30000; }
+  Auth.asleep = asleep;
+
   Auth.refresh = function () {
     if (!Auth.data || !Auth.data.refresh) return Promise.reject(new Error(tr('Нет refresh-токена')));
-    if (document.hidden) return Promise.reject(new Error('hidden')); // не invalid: вход не трогаем
+    if (asleep()) return Promise.reject(new Error(tr('Не удалось обновить вход'))); // не invalid: вход не трогаем
     var acc = Auth.data;
     // общий запрос — только для того же аккаунта: после смены профиля нельзя отдать чужой токен
     if (Auth._rp && Auth._rpAcc === acc) return Auth._rp;
+    // недавно не удалось (сеть/сервер) — не долбим Twitch повторами, ждём 30 с
+    if (Auth._failAcc === acc && Date.now() - Auth._failAt < 30000) return Promise.reject(Auth._failErr);
     Auth._rpAcc = acc;
     var rp = Auth._rp = post(ID + 'token', { client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: acc.refresh }).then(function (j) {
       if (Auth._rp === rp) Auth._rp = null;
@@ -163,9 +173,18 @@
       acc.expires = Date.now() + (j.expires_in || 3600) * 1000;
       acc.needsLogin = false;
       acc.refreshLog = { at: Date.now(), ok: true, status: j._status, msg: '' };
+      Auth._failAcc = null;
       save();
       U.store.flush(); // новый refresh-токен — на диск немедленно (старый уже недействителен)
-    }, function (e) { if (Auth._rp === rp) Auth._rp = null; throw e; });
+    }, function (e) {
+      if (Auth._rp === rp) Auth._rp = null;
+      acc.refreshLog = { at: Date.now(), ok: false, status: 0, msg: String((e && e.message) || e) };
+      save();
+      throw e;
+    }).catch(function (e) {
+      if (!e.invalid) { Auth._failAcc = acc; Auth._failAt = Date.now(); Auth._failErr = e; }
+      throw e;
+    });
     return rp;
   };
 
@@ -178,7 +197,7 @@
     if (acc.needsLogin) return Promise.reject(new Error(tr('Вход в Twitch устарел — войдите снова')));
     if (acc.expires && acc.expires - Date.now() < 5 * 60 * 1000) {
       // приложение свёрнуто / ТВ в режиме ожидания — не продлеваем (см. Auth.refresh)
-      if (document.hidden) return acc.expires > Date.now() ? Promise.resolve() : Promise.reject(new Error('hidden'));
+      if (asleep()) return acc.expires > Date.now() ? Promise.resolve() : Promise.reject(new Error(tr('Не удалось обновить вход')));
       return Auth.refresh().catch(function (e) {
         if (e.invalid) { markExpired(acc); throw e; }
         // сеть ещё не поднялась после сна ТВ — пока токен жив, работаем с ним
