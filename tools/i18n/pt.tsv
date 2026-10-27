@@ -3,7 +3,7 @@
 Поиск	Buscar
 Главная	Início
 Категории	Explorar
-Подписки	Seguindo
+Отслеживаемое	Seguindo
 История	Histórico
 Настройки	Configurações
 Войти	Entrar
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — assistir • ← �
 Клипов нет	Nenhum clipe
 Записи	Vídeos
 Записей нет	Nenhum vídeo
-Каналы аккаунта 	Canais de 
- и ваше избранное	 e seus favoritos
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Canais favoritos. Entre na Twitch para ver quem você segue
 Войти в Twitch	Entrar na Twitch
 Ваши подписки — на телевизоре	Os canais que você segue na TV
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (recomendado)
 Показана	Visíveis
 Скрыта	Ocultas
 Таймер сна	Timer de desligamento
-Выключится через 	Desliga em 
  мин	 min
 15 минут	15 minutos
 30 минут	30 minutos
@@ -342,7 +339,6 @@ Twitch не принял ставку	A Twitch não aceitou o palpite
 Уведомления о прогнозах и голосованиях	Avisos de palpites e enquetes
 ваши баллы: 	seus pontos: 
 завершён	encerrado
-ставки закрыты	travado
 Баллы: 	Pontos: 
 Канал заблокирован: 	Canal bloqueado: 
 Канал разблокирован: 	Canal desbloqueado: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	A Twitch não aceitou o palpite
 Самые популярные клипы Twitch	Os clipes mais populares da Twitch
 Рекомендуем для вас	Recomendado para você
 Рекомендуемые каналы	Canais recomendados
+Ваши каналы и избранное	Seus canais e favoritos
+Вы не отслеживаете категории	Você não segue nenhuma categoria
+Диагностика аккаунта	Diagnóstico da conta
+Никто из ваших каналов сейчас не в эфире	Nenhum dos seus canais está ao vivo agora
+Обзор	Visão geral
+Покажите этот экран разработчику, если главная отличается от Twitch	Mostre esta tela ao desenvolvedor se o Início for diferente da Twitch
+Прямые трансляции	Canais ao vivo

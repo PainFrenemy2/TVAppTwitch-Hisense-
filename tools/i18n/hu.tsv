@@ -3,7 +3,7 @@
 Поиск	Keresés
 Главная	Kezdőlap
 Категории	Böngészés
-Подписки	Követett
+Отслеживаемое	Követett
 История	Előzmények
 Настройки	Beállítások
 Войти	Bejelentkezés
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — nézés • ← �
 Клипов нет	Nincsenek klipek
 Записи	Videók
 Записей нет	Nincsenek videók
-Каналы аккаунта 	Fiók csatornái: 
- и ваше избранное	 és a kedvenceid
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Kedvenc csatornák. Jelentkezz be a Twitchre, hogy lásd, kiket követsz
 Войти в Twitch	Bejelentkezés a Twitchre
 Ваши подписки — на телевизоре	A követett csatornáid a tévén
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (ajánlott)
 Показана	Látható
 Скрыта	Rejtett
 Таймер сна	Elalváskapcsoló
-Выключится через 	Kikapcsol: 
  мин	 perc múlva
 15 минут	15 perc
 30 минут	30 perc
@@ -342,7 +339,6 @@ Twitch не принял ставку	A Twitch nem fogadta el a tippet
 Уведомления о прогнозах и голосованиях	Tippjáték- és szavazásértesítések
 ваши баллы: 	pontjaid: 
 завершён	lezárult
-ставки закрыты	zárolva
 Баллы: 	Pontok: 
 Канал заблокирован: 	Csatorna letiltva: 
 Канал разблокирован: 	Csatorna letiltása feloldva: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	A Twitch nem fogadta el a tippet
 Самые популярные клипы Twitch	A legnépszerűbb Twitch-klipek
 Рекомендуем для вас	Neked ajánljuk
 Рекомендуемые каналы	Ajánlott csatornák
+Ваши каналы и избранное	Csatornáid és kedvenceid
+Вы не отслеживаете категории	Nem követsz kategóriát
+Диагностика аккаунта	Fiókdiagnosztika
+Никто из ваших каналов сейчас не в эфире	Egyik csatornád sem élő most
+Обзор	Áttekintés
+Покажите этот экран разработчику, если главная отличается от Twitch	Mutasd meg ezt a képernyőt a fejlesztőnek, ha a kezdőlap eltér a Twitchtől
+Прямые трансляции	Élő csatornák

@@ -25,9 +25,11 @@
     opts = opts || {};
     var key = opts.cache ? query + JSON.stringify(variables || {}) : null;
     if (key && cache[key] && Date.now() - cache[key].t < CACHE_MS) return Promise.resolve(cache[key].d);
+    // тот же запрос уже летит (например, «В тренде» и ряд категории на странице клипов) — ждём его, а не шлём второй
+    if (key && inflight[key]) return inflight[key];
 
     var body = JSON.stringify({ query: query, variables: variables || {} });
-    return request(GQL, {
+    var pr = request(GQL, {
       method: 'POST',
       headers: { 'Client-ID': CLIENT_ID, 'Content-Type': 'text/plain;charset=UTF-8', 'X-Device-Id': DEVICE_ID, 'Accept-Language': I18N.lang },
       body: body
@@ -49,7 +51,14 @@
       }
       return j.data;
     });
+    if (key) {
+      inflight[key] = pr;
+      var clear = function () { if (inflight[key] === pr) delete inflight[key]; };
+      pr.then(clear, clear);
+    }
+    return pr;
   }
+  var inflight = {};
 
   // fetch с таймаутом и повторами (сеть у ТВ по Wi-Fi часто «моргает»)
   function request(url, init, timeout, retries) {
@@ -108,44 +117,73 @@
   // ---------- Персональная главная, как на twitch.tv и в приложении Twitch ----------
   // С входом — от имени аккаунта (рекомендации под вас), без входа — общие ряды главной Twitch.
   // Возвращает [{id, title, items:[{type:'Stream'|'Game'|'Clip'|'Video', data}]}] или [] (тогда — обычная главная).
-  var SHELVES_Q = 'query($first:Int,$itemsPerRow:Int,$platform:String!,$requestID:String!,$imageWidth:Int){' +
-    'shelves(first:$first,itemsPerRow:$itemsPerRow,platform:$platform,requestID:$requestID,imageWidth:$imageWidth,langWeightedCCU:true){' +
-    'edges{node{id title{fallbackLocalizedTitle} content{edges{node{__typename ' +
-    '... on Stream{' + STREAM + '} ... on Game{' + GAME + '} ... on Clip{' + CLIP + '} ... on Video{' + VIDEO + '}}}}}}}}';
+  // Запрос рядов главной — как у сайта twitch.tv (с context), и запасной — без него.
+  var SHELF_ITEMS = 'edges{node{id title{fallbackLocalizedTitle} content{edges{node{__typename ' +
+    '... on Stream{' + STREAM + '} ... on Game{' + GAME + '} ... on Clip{' + CLIP + '} ... on Video{' + VIDEO + '}}}}}}';
+  var SHELVES_VARIANTS = [
+    ['shelves+context', 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"web",requestID:$requestID,' +
+      'imageWidth:50,langWeightedCCU:true,verbose:false,context:{clientApp:"twilight",location:"home",referrerDomain:"",viewportHeight:1080,viewportWidth:1920}){' + SHELF_ITEMS + '}}'],
+    ['shelves', 'query($first:Int,$itemsPerRow:Int,$requestID:String!){shelves(first:$first,itemsPerRow:$itemsPerRow,platform:"web",requestID:$requestID,imageWidth:50,langWeightedCCU:true){' + SHELF_ITEMS + '}}']
+  ];
   var RECS_Q = 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"web"}}){' +
     'type title{localizedFallback} items{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}';
   var personal = { at: 0, key: '', p: null };
+  // что ответил Twitch — для экрана «Диагностика аккаунта»
+  T.diag = {};
 
+  function shelvesFrom(d) {
+    var out = [];
+    edges(d && d.shelves).forEach(function (n) {
+      var items = edges(n.content).filter(function (x) {
+        return x && /^(Stream|Game|Clip|Video)$/.test(x.__typename) && (x.__typename !== 'Stream' || x.broadcaster);
+      }).map(function (x) { return { type: x.__typename, data: x }; });
+      var title = n.title && n.title.fallbackLocalizedTitle;
+      if (items.length && title) out.push({ id: n.id, title: title, items: items });
+    });
+    return out;
+  }
+  function recsFrom(d) {
+    var out = [];
+    ((d && d.personalSections) || []).forEach(function (sec) {
+      var items = (sec.items || []).map(function (it) { return it.user; }).filter(function (u) { return u && u.stream; }).map(function (u) {
+        var st = u.stream; st.broadcaster = st.broadcaster || { id: u.id, login: u.login, displayName: u.displayName, profileImageURL: u.profileImageURL };
+        return { type: 'Stream', data: st };
+      });
+      if (items.length) out.push({ id: sec.type, title: (sec.title && sec.title.localizedFallback) || tr('Рекомендуемые каналы'), items: items });
+    });
+    return out;
+  }
+
+  // Пробуем источники по очереди: ряды главной от аккаунта (оба варианта запроса), «Рекомендуемые каналы»
+  // от аккаунта; без входа — те же ряды анонимно. Каждый результат пишем в T.diag.
   T.personalShelves = function () {
     var signed = window.Auth && Auth.loggedIn() && !Auth.needsLogin();
     var key = signed ? Auth.user().id : 'anon';
     if (personal.p && personal.key === key && Date.now() - personal.at < 60000) return personal.p;
-    var ask = signed ? function (q, v) { return Auth.gql(q, v); } : function (q, v) { return gql(q, v, { retries: 0 }); };
-    var p = ask(SHELVES_Q, { first: 8, itemsPerRow: 16, platform: 'web', requestID: U.uid(16), imageWidth: 50 }).then(function (d) {
-      var out = [];
-      edges(d && d.shelves).forEach(function (n) {
-        var items = edges(n.content).filter(function (x) {
-          return x && /^(Stream|Game|Clip|Video)$/.test(x.__typename) && (x.__typename !== 'Stream' || x.broadcaster);
-        }).map(function (x) { return { type: x.__typename, data: x }; });
-        var title = n.title && n.title.fallbackLocalizedTitle;
-        if (items.length && title) out.push({ id: n.id, title: title, items: items });
+    var steps = [];
+    var asUser = function (q, v) { return Auth.gql(q, v); };
+    var asAnon = function (q, v) { return gql(q, v, { retries: 0 }); };
+    SHELVES_VARIANTS.forEach(function (sv) {
+      if (signed) steps.push({ name: sv[0] + ' (account)', run: function () { return asUser(sv[1], { first: 8, itemsPerRow: 16, requestID: U.uid(16) }).then(shelvesFrom); } });
+    });
+    if (signed) steps.push({ name: 'personalSections (account)', run: function () { return asUser(RECS_Q, {}).then(recsFrom); } });
+    SHELVES_VARIANTS.forEach(function (sv) {
+      if (!signed) steps.push({ name: sv[0] + ' (guest)', run: function () { return asAnon(sv[1], { first: 8, itemsPerRow: 16, requestID: U.uid(16) }).then(shelvesFrom); } });
+    });
+    T.diag = { signed: signed, steps: [] };
+    var i = 0;
+    function next() {
+      if (i >= steps.length) return Promise.resolve([]);
+      var st = steps[i++], t0 = Date.now();
+      return st.run().then(function (rows) {
+        T.diag.steps.push({ name: st.name, ok: !!rows.length, info: rows.length ? rows.length + ' rows: ' + rows.map(function (r) { return r.title; }).join(' | ') : 'empty', ms: Date.now() - t0 });
+        return rows.length ? rows : next();
+      }, function (e) {
+        T.diag.steps.push({ name: st.name, ok: false, info: 'error: ' + ((e && e.message) || e), ms: Date.now() - t0 });
+        return next();
       });
-      if (out.length) return out;
-      throw new Error('no shelves');
-    }).catch(function () {
-      // запасной вариант — «Рекомендуемые каналы» (как блок слева на twitch.tv)
-      return ask(RECS_Q, {}).then(function (d) {
-        var out = [];
-        ((d && d.personalSections) || []).forEach(function (sec) {
-          var items = (sec.items || []).map(function (it) { return it.user; }).filter(function (u) { return u && u.stream; }).map(function (u) {
-            var st = u.stream; st.broadcaster = st.broadcaster || { id: u.id, login: u.login, displayName: u.displayName, profileImageURL: u.profileImageURL };
-            return { type: 'Stream', data: st };
-          });
-          if (items.length) out.push({ id: sec.type, title: (sec.title && sec.title.localizedFallback) || tr('Рекомендуемые каналы'), items: items });
-        });
-        return out;
-      });
-    }).catch(function () { return []; });
+    }
+    var p = next();
     personal = { at: Date.now(), key: key, p: p };
     return p;
   };
@@ -466,22 +504,24 @@
   }
 
   // Медиаплейлист без рекламы того же качества (или ближайшего ниже). null — не нашли.
-  // Ждём не дольше 2,5 с: иначе hls.js без нового плейлиста опустошит буфер. Не успели — отдаём
-  // исходный плейлист, а поиск доводим в фоне (результат пригодится на следующем обновлении).
+  // Ждём не дольше 2,5 с: иначе hls.js без нового плейлиста опустошит буфер. Не успели — отдаём исходный
+  // плейлист; поиск при этом доводится в фоне, и найденный резервный тип плеера и список его качеств
+  // запоминаются — следующее обновление плейлиста (через 2 с) получает поток без рекламы сразу.
   // Не нашли поток без рекламы — минуту не ищем снова, чтобы не нагружать ТВ и сеть.
   T.adFreePlaylist = function (login, height) {
     login = login.toLowerCase();
-    if (backup.login !== login) { backup.login = login; backup.good = null; backup.masters = {}; backup.failUntil = 0; backup.job = null; }
+    if (backup.login !== login) { backup.login = login; backup.good = null; backup.masters = {}; backup.failUntil = 0; backup.jobs = {}; }
     if (backup.failUntil > Date.now()) return Promise.resolve(null);
-    if (!backup.job) {
-      var job = backup.job = findClean(login, height).then(function (txt) {
-        if (backup.job === job) backup.job = null;
+    var hk = height || 0; // у каждого качества — свой поиск
+    if (!backup.jobs[hk]) {
+      var job = backup.jobs[hk] = findClean(login, height).then(function (txt) {
+        if (backup.jobs[hk] === job) delete backup.jobs[hk];
         if (!txt) backup.failUntil = Date.now() + 60000;
         return txt;
       });
     }
     var limit = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 2500); });
-    return Promise.race([backup.job, limit]);
+    return Promise.race([backup.jobs[hk], limit]);
   };
 
   function findClean(login, height) {
@@ -514,6 +554,24 @@
     var m = /#EXT-X-MEDIA-SEQUENCE:(\d+)/.exec(txt);
     return m ? +m[1] : 0;
   }
+  function firstPdt(txt) {
+    var m = /#EXT-X-PROGRAM-DATE-TIME:([^\s]+)/.exec(txt);
+    var t = m ? Date.parse(m[1]) : NaN;
+    return isNaN(t) ? null : t;
+  }
+  // Номер первого сегмента резервного плейлиста подгоняем под основной по реальному времени сегментов
+  // (PROGRAM-DATE-TIME). Без меток времени принимаем только совпадающую нумерацию (±1).
+  function alignSeq(clean, orig) {
+    var a = mediaSeq(orig), b = mediaSeq(clean);
+    var ta = firstPdt(orig), tb = firstPdt(clean);
+    var dur = /#EXTINF:([\d.]+)/.exec(orig);
+    dur = dur ? parseFloat(dur[1]) : 2;
+    if (ta !== null && tb !== null && dur > 0) {
+      var want = a + Math.round((tb - ta) / 1000 / dur);
+      return clean.replace(/#EXT-X-MEDIA-SEQUENCE:\d+/, '#EXT-X-MEDIA-SEQUENCE:' + want);
+    }
+    return Math.abs(a - b) <= 1 ? clean : null;
+  }
 
   // Загрузчик плейлистов для hls.js: пропускает всё как есть, кроме медиаплейлистов эфира с рекламой
   T.adLoader = function (getInfo, onAd) {
@@ -537,9 +595,9 @@
         if (!text || !T.isAdPlaylist(text)) { if (onAd) onAd(false); return callbacks.onSuccess(response, stats, ctx, net); }
         T.adFreePlaylist(info.login, info.height(ctx.level)).then(function (clean) {
           if (self.dead) return;
-          // резервный поток должен идти «в ногу» с основным (те же номера сегментов),
-          // иначе hls.js при склейке плейлистов пропустит или повторит куски
-          if (clean && Math.abs(mediaSeq(clean) - mediaSeq(text)) > 30) clean = null;
+          // hls.js склеивает обновления плейлиста по номерам сегментов — резервный поток должен идти
+          // «в ногу» с основным, иначе пропустит или повторит куски
+          if (clean) clean = alignSeq(clean, text);
           if (onAd) onAd(true, !!clean);
           if (clean) response.data = clean;
           callbacks.onSuccess(response, stats, ctx, net);

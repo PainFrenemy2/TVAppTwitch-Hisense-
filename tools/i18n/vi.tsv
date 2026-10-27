@@ -3,7 +3,7 @@
 Поиск	Tìm kiếm
 Главная	Trang chủ
 Категории	Duyệt
-Подписки	Đang theo dõi
+Отслеживаемое	Đang theo dõi
 История	Lịch sử
 Настройки	Cài đặt
 Войти	Đăng nhập
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — xem • ← → �
 Клипов нет	Không có clip
 Записи	Video
 Записей нет	Không có video
-Каналы аккаунта 	Kênh của 
- и ваше избранное	 và mục yêu thích của bạn
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Kênh yêu thích. Đăng nhập Twitch để xem bạn đang theo dõi ai
 Войти в Twitch	Đăng nhập Twitch
 Ваши подписки — на телевизоре	Kênh bạn theo dõi trên TV
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (khuyên dùng)
 Показана	Đang hiện
 Скрыта	Đang ẩn
 Таймер сна	Hẹn giờ tắt
-Выключится через 	Tắt sau 
  мин	 phút
 15 минут	15 phút
 30 минут	30 phút
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch không nhận dự đoán
 Уведомления о прогнозах и голосованиях	Thông báo dự đoán và bình chọn
 ваши баллы: 	điểm của bạn: 
 завершён	đã kết thúc
-ставки закрыты	đã khóa
 Баллы: 	Điểm: 
 Канал заблокирован: 	Đã chặn kênh: 
 Канал разблокирован: 	Đã bỏ chặn kênh: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch không nhận dự đoán
 Самые популярные клипы Twitch	Những clip nổi tiếng nhất trên Twitch
 Рекомендуем для вас	Đề xuất cho bạn
 Рекомендуемые каналы	Kênh đề xuất
+Ваши каналы и избранное	Kênh và mục yêu thích của bạn
+Вы не отслеживаете категории	Bạn chưa theo dõi danh mục nào
+Диагностика аккаунта	Chẩn đoán tài khoản
+Никто из ваших каналов сейчас не в эфире	Hiện không kênh nào của bạn đang phát trực tiếp
+Обзор	Tổng quan
+Покажите этот экран разработчику, если главная отличается от Twitch	Hãy cho nhà phát triển xem màn hình này nếu trang chủ khác Twitch
+Прямые трансляции	Kênh trực tiếp

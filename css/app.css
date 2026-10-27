@@ -1058,3 +1058,17 @@ img.broken { visibility: hidden; }
 .ev-actions { display: block; padding: 1.8rem 2.6rem; }
 .ev-bet, .ev-bet.focused { display: flex; width: 100%; margin: 0 0 1rem; transform: none; box-sizing: border-box; }
 .ev-bet.focused { box-shadow: 0 0 0 .25rem #fff; }
+/* «Отслеживаемое» → вкладка «Каналы» */
+.grid-channels .card-channel { margin: 0 1.6rem 2.6rem 0; }
+.diag-list .tv-info-row b { white-space: normal; text-align: right; max-width: 70rem; word-break: break-word; }
+/* окно прогноза прокручивается (до 10 исходов); много исходов — компактные строки */
+.ev-panel .ev-scroll { top: 8rem; }
+.ev-content { padding-bottom: 6rem; }
+.ev-foot { white-space: pre-line; }
+.ev-many .ev-outcome { padding: .9rem 0; }
+.ev-many .ev-name { min-height: 0; -webkit-line-clamp: 1; font-size: 1.6rem; margin-bottom: .2rem; }
+.ev-many .ev-stats { display: flex; flex-wrap: wrap; }
+.ev-many .ev-stat { margin-right: 1.4rem; }
+.ev-many .ev-pct { width: 8rem; }
+.ev-many .ev-pct-num { font-size: 2.2rem; }
+.ev-many .ev-pill { height: .6rem; width: 5rem; }

@@ -3,7 +3,7 @@
 Поиск	Buscar
 Главная	Inicio
 Категории	Explorar
-Подписки	Siguiendo
+Отслеживаемое	Siguiendo
 История	Historial
 Настройки	Ajustes
 Войти	Iniciar sesión
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — ver • ← → �
 Клипов нет	No hay clips
 Записи	Vídeos
 Записей нет	No hay vídeos
-Каналы аккаунта 	Canales de 
- и ваше избранное	 y tus favoritos
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Canales favoritos. Inicia sesión en Twitch para ver a quién sigues
 Войти в Twitch	Iniciar sesión en Twitch
 Ваши подписки — на телевизоре	Tus canales seguidos en la TV
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (recomendado)
 Показана	Visibles
 Скрыта	Ocultas
 Таймер сна	Temporizador de apagado
-Выключится через 	Se apaga en 
  мин	 min
 15 минут	15 minutos
 30 минут	30 minutos
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch no aceptó la predicción
 Уведомления о прогнозах и голосованиях	Avisos de predicciones y encuestas
 ваши баллы: 	tus puntos: 
 завершён	finalizada
-ставки закрыты	cerrada
 Баллы: 	Puntos: 
 Канал заблокирован: 	Canal bloqueado: 
 Канал разблокирован: 	Canal desbloqueado: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch no aceptó la predicción
 Самые популярные клипы Twitch	Los clips más populares de Twitch
 Рекомендуем для вас	Recomendado para ti
 Рекомендуемые каналы	Canales recomendados
+Ваши каналы и избранное	Tus canales y favoritos
+Вы не отслеживаете категории	No sigues ninguna categoría
+Диагностика аккаунта	Diagnóstico de la cuenta
+Никто из ваших каналов сейчас не в эфире	Ninguno de tus canales está en directo
+Обзор	Resumen
+Покажите этот экран разработчику, если главная отличается от Twitch	Muestra esta pantalla al desarrollador si Inicio no coincide con Twitch
+Прямые трансляции	Canales en directo

@@ -703,7 +703,7 @@
     items = Events.menuItems().concat(items);
     items.push({ label: tr('Статистика для гиков'), sub: P.statsOn ? tr('Показана') : tr('Скрыта'), onSelect: function () { toggleStats(); } });
     var left = P.sleepAt ? Math.max(1, Math.round((P.sleepAt - Date.now()) / 60000)) : 0;
-    items.push({ label: tr('Таймер сна'), sub: left ? tr('Выключится через ') + left + tr(' мин') : tr('Выключен'), onSelect: sleepMenu });
+    items.push({ label: tr('Таймер сна'), sub: left ? tr('Осталось: ') + left + tr(' мин') : tr('Выключен'), onSelect: sleepMenu });
     var who = it.name || it.login;
     items.push({ label: tr('Пожаловаться'), sub: who, onSelect: function () {
       UI.qrDialog(tr('Пожаловаться') + ': ' + who, tr('Жалобы принимает только Twitch. Откройте канал на телефоне по QR-коду и выберите «⋮ → Пожаловаться».'),

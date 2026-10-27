@@ -34,7 +34,7 @@
   // Подключаем переводы до следующих скриптов (document.write во время разбора страницы — синхронно)
   window.I18N_DATA = window.I18N_DATA || {};
   if (I18N.lang !== 'ru') {
-    document.write('<script src="js/i18n/' + I18N.lang + '.js?v=' + (window.APP_V || '7') + '"><\/script>');
+    document.write('<script src="js/i18n/' + I18N.lang + '.js?v=' + (window.APP_V || '8') + '"><\/script>');
   }
 
   // английский — запасной перевод для строк, которых ещё нет на выбранном языке (собирается в каждый файл)

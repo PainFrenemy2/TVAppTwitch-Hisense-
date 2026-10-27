@@ -56,7 +56,7 @@
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] === undefined ? null : mem[k]; } }
   function lsSet(k, v) { mem[k] = v; try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
 
-  var Backup = { db: null, waiting: [], failed: false };
+  var Backup = { db: null, waiting: [], failed: false, ready: false };
   Backup.open = function (cb) {
     if (Backup.db) return cb(Backup.db);
     if (Backup.failed || !window.indexedDB) return cb(null);
@@ -79,6 +79,8 @@
   };
   Backup.flush = function () {
     clearTimeout(flushTimer); flushTimer = null;
+    // пока не проверили, не стёр ли ТВ данные, копию не трогаем — иначе свежий пустой запуск затрёт её
+    if (!Backup.ready) return;
     var batch = pending; pending = {};
     if (!Object.keys(batch).length) return;
     Backup.open(function (db) {
@@ -126,22 +128,33 @@
     // ТВ стёр данные. Возвращаем их и перезапускаемся. cb(true) — идёт перезапуск, дальше ничего не делать.
     // Ждём копию не дольше 700 мс; опоздавший ответ игнорируем, чтобы не перезапускать уже работающее приложение.
     restore: function (cb) {
-      if (/[?&]restored=1/.test(location.search)) return cb(false);
+      if (/[?&]restored=1/.test(location.search)) { Backup.ready = true; Backup.flush(); return cb(false); }
       var done = false;
+      // интерфейс ждёт не дольше 700 мс; копия при этом запишется только после проверки
       var timer = setTimeout(function () { done = true; cb(false); }, 700);
       Backup.all(function (all) {
-        if (done) return;
+        var lost = Object.keys(all).filter(function (k) { return k.indexOf(PREFIX) === 0 && !initialKeys[k]; });
+        if (done) {
+          // копия ответила поздно, приложение уже работает: перезапускать не будем, но и копию не затираем —
+          // недостающие ключи вернём в localStorage, они подхватятся при следующем запуске
+          lost.forEach(function (k) { if (lsGet(k) === null) lsSet(k, all[k]); });
+          Backup.ready = true; Backup.flush();
+          return;
+        }
         done = true;
         clearTimeout(timer);
-        var lost = Object.keys(all).filter(function (k) { return k.indexOf(PREFIX) === 0 && !initialKeys[k]; });
         var ok = lost.length > 0;
         lost.forEach(function (k) { if (!lsSet(k, all[k])) ok = false; });
-        if (!ok) return cb(false);
+        Backup.ready = true;
+        if (!ok) { Backup.flush(); return cb(false); }
         location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'restored=1' + location.hash);
         cb(true);
       });
     }
   };
+  // базу открываем сразу, чтобы к проверке при запуске она уже была готова
+  Backup.open(function () {});
+
   // при уходе из приложения дописываем копию сразу
   window.addEventListener('pagehide', Backup.flush);
   document.addEventListener('visibilitychange', function () { if (document.hidden) Backup.flush(); });
@@ -214,6 +227,19 @@
       clearTimeout(t);
       t = setTimeout(function () { fn.apply(self, a); }, ms);
     };
+  };
+
+  // Promise.all, но не больше n задач одновременно — чтобы не заваливать сеть ТВ пачкой запросов
+  U.pool = function (items, n, fn) {
+    var out = new Array(items.length), i = 0;
+    function worker() {
+      if (i >= items.length) return Promise.resolve();
+      var k = i++;
+      return Promise.resolve(fn(items[k], k)).then(function (r) { out[k] = r; }, function () { out[k] = undefined; }).then(worker);
+    }
+    var ws = [];
+    for (var w = 0; w < Math.min(n, items.length); w++) ws.push(worker());
+    return Promise.all(ws).then(function () { return out; });
   };
 
   U.uid = function (len) {

@@ -167,6 +167,8 @@
     var acc = Auth.data; // ответ относится к этому аккаунту, даже если профиль успели сменить
     return Auth.gql('query{currentUser{id login displayName profileImageURL(width:300)}}').then(function (d) {
       if (!d || !d.currentUser) throw new Error(tr('Не удалось получить профиль'));
+      // пока ждали ответ, сменили профиль — ответ мог прийти по токену другого аккаунта
+      if (Auth.data !== acc || (acc.user && acc.user.id !== d.currentUser.id)) return acc.user;
       acc.user = d.currentUser;
       save();
       changed();
@@ -242,6 +244,16 @@
         return us.filter(function (u) { return u.stream; }).map(function (u) { var st = u.stream; st.broadcaster = st.broadcaster || u; return st; });
       });
     });
+  };
+
+  // Категории, которые отслеживает пользователь (вкладка «Категории» в «Отслеживаемом»)
+  Auth.followedGames = function () {
+    if (!Auth.loggedIn() || Auth.needsLogin()) return Promise.resolve([]);
+    return Auth.gql('query{currentUser{followedGames(first:100,type:ALL){nodes{id name displayName viewersCount boxArtURL(width:188,height:250)}}}}')
+      .then(function (d) {
+        var f = d && d.currentUser && d.currentUser.followedGames;
+        return (f && f.nodes) || [];
+      });
   };
 
   // Логины для избранного: подписки аккаунта (кэш) + локальные

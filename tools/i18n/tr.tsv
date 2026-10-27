@@ -3,7 +3,7 @@
 Поиск	Ara
 Главная	Ana Sayfa
 Категории	Göz At
-Подписки	Takip Edilenler
+Отслеживаемое	Takip Edilenler
 История	Geçmiş
 Настройки	Ayarlar
 Войти	Giriş yap
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — izle • ← → �
 Клипов нет	Klip yok
 Записи	Videolar
 Записей нет	Video yok
-Каналы аккаунта 	Kanallar: 
- и ваше избранное	 ve favorileriniz
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Favori kanallar. Takip ettiklerinizi görmek için Twitch'e giriş yapın
 Войти в Twitch	Twitch'e giriş yap
 Ваши подписки — на телевизоре	Takip ettikleriniz televizyonda
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (önerilen)
 Показана	Gösteriliyor
 Скрыта	Gizli
 Таймер сна	Uyku zamanlayıcısı
-Выключится через 	Kapanmasına: 
  мин	 dk
 15 минут	15 dakika
 30 минут	30 dakika
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch tahmini kabul etmedi
 Уведомления о прогнозах и голосованиях	Tahmin ve anket uyarıları
 ваши баллы: 	puanlarınız: 
 завершён	bitti
-ставки закрыты	kilitli
 Баллы: 	Puan: 
 Канал заблокирован: 	Kanal engellendi: 
 Канал разблокирован: 	Kanalın engeli kaldırıldı: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch tahmini kabul etmedi
 Самые популярные клипы Twitch	Twitch'teki en popüler klipler
 Рекомендуем для вас	Senin için önerilenler
 Рекомендуемые каналы	Önerilen kanallar
+Ваши каналы и избранное	Kanalların ve favorilerin
+Вы не отслеживаете категории	Hiçbir kategoriyi takip etmiyorsun
+Диагностика аккаунта	Hesap tanılama
+Никто из ваших каналов сейчас не в эфире	Kanallarından hiçbiri şu an yayında değil
+Обзор	Genel bakış
+Покажите этот экран разработчику, если главная отличается от Twitch	Ana sayfa Twitch'ten farklıysa bu ekranı geliştiriciye göster
+Прямые трансляции	Canlı kanallar

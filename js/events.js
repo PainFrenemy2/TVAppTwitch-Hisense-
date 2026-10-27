@@ -1,37 +1,39 @@
 /* Прогнозы (ставки баллами канала) и голосования во время эфира — как на twitch.tv.
    Раз в 30 секунд спрашиваем Twitch, идёт ли сейчас прогноз/голосование; о новом — всплывающая подсказка
    (отключается в настройках). Сделать ставку или проголосовать можно из «Параметров» плеера или кнопкой OK
-   на подсказке. Для участия нужен вход в Twitch. */
+   на подсказке. Для участия нужен вход в Twitch. Закончившееся событие ещё минуту показывает итог. */
 (function () {
   'use strict';
   var h = U.h;
 
   var PRED = 'id title status predictionWindowSeconds createdAt outcomes{id title color totalPoints totalUsers} winningOutcome{id}';
   var PRED_TOP = PRED.replace('totalUsers}', 'totalUsers topPredictors{points}}');
+  var KEEP_ENDED = 60000;
 
   var Ev = { login: null, timer: null, prediction: null, poll: null, balance: null, seen: {}, banner: null, bannerTimer: null };
+  var noTop = false; // Twitch не знает поля topPredictors — больше не спрашиваем
 
   function anon(query, vars) { return Twitch.gqlRaw(query, vars); }
   function asUser(query, vars) { return Auth.loggedIn() && !Auth.needsLogin() ? Auth.gql(query, vars) : anon(query, vars); }
 
   function loadPrediction(login) {
     var q = function (fields) { return 'query($login:String!){user(login:$login){id channel{id activePredictionEvents{' + fields + '} lockedPredictionEvents{' + fields + '}}}}'; };
-    // с крупнейшими ставками, а если Twitch не знает этого поля — без них
-    return asUser(q(PRED_TOP), { login: login }).catch(function () { return asUser(q(PRED), { login: login }); })
-      .then(function (d) {
-        var ch = d && d.user && d.user.channel;
-        if (!ch) return null;
-        var list = [].concat(ch.activePredictionEvents || [], ch.lockedPredictionEvents || []);
-        return list[0] || null;
-      }).catch(function () { return null; });
+    // с крупнейшими ставками, а если Twitch не знает этого поля — без них (и запоминаем это)
+    var first = noTop ? asUser(q(PRED), { login: login }) : asUser(q(PRED_TOP), { login: login }).catch(function () {
+      noTop = true;
+      return asUser(q(PRED), { login: login });
+    });
+    return first.then(function (d) {
+      var ch = d && d.user && d.user.channel;
+      if (!ch) return null;
+      var list = [].concat(ch.activePredictionEvents || [], ch.lockedPredictionEvents || []);
+      return list[0] || null;
+    });
   }
 
   function loadPoll(login) {
     return asUser('query($login:String!){channel(name:$login){id viewablePoll{id title status remainingDurationMilliseconds choices{id title votes{total}} votes{total}}}}', { login: login })
-      .then(function (d) {
-        var p = d && d.channel && d.channel.viewablePoll;
-        return p && p.status === 'ACTIVE' ? p : null;
-      }).catch(function () { return null; });
+      .then(function (d) { return (d && d.channel && d.channel.viewablePoll) || null; });
   }
 
   function loadBalance(login) {
@@ -40,6 +42,29 @@
       var c = d && d.user && d.user.channel;
       return c && c.self && c.self.communityPoints ? c.self.communityPoints.balance : null;
     }).catch(function () { return null; });
+  }
+
+  // Новое состояние события с учётом прошлого: закончившееся (пропало из ответа или не ACTIVE)
+  // держим минуту с итогом; у голосования сохраняем момент окончания, чтобы таймер не прыгал.
+  function mergePrediction(prev, next) {
+    if (next) return next;
+    if (!prev) return null;
+    if (!prev._endedAt) { prev._endedAt = Date.now(); if (prev.status === 'ACTIVE' || prev.status === 'LOCKED') prev.status = 'ENDED'; }
+    return Date.now() - prev._endedAt < KEEP_ENDED ? prev : null;
+  }
+  function mergePoll(prev, next) {
+    if (next && next.status === 'ACTIVE') {
+      next._endAt = prev && prev.id === next.id && prev._endAt ? prev._endAt
+        : (next.remainingDurationMilliseconds ? Date.now() + next.remainingDurationMilliseconds : 0);
+      return next;
+    }
+    var ended = next || prev;
+    if (!ended) return null;
+    if (prev && prev.id === ended.id && prev._endedAt) ended._endedAt = prev._endedAt;
+    ended._endedAt = ended._endedAt || Date.now();
+    ended._endAt = 0;
+    if (ended.status === 'ACTIVE') ended.status = 'COMPLETED';
+    return Date.now() - ended._endedAt < KEEP_ENDED ? ended : null;
   }
 
   Ev.start = function (login) {
@@ -60,18 +85,23 @@
     hideBanner();
   };
 
+  var checking = false;
   function check() {
     var login = Ev.login;
-    // ТВ свернул приложение — не дёргаем Twitch впустую
-    if (!login || document.hidden || Player.bgPaused) return;
-    Promise.all([loadPrediction(login), loadPoll(login)]).then(function (r) {
+    // ТВ свернул приложение или прошлый запрос ещё идёт — не дёргаем Twitch впустую
+    if (!login || document.hidden || Player.bgPaused || checking) return;
+    checking = true;
+    Promise.all([loadPrediction(login).catch(function () { return undefined; }), loadPoll(login).catch(function () { return undefined; })]).then(function (r) {
+      checking = false;
       if (Ev.login !== login) return;
-      Ev.prediction = r[0];
-      Ev.poll = r[1];
+      // undefined — ошибка сети: оставляем то, что было
+      if (r[0] !== undefined) Ev.prediction = mergePrediction(Ev.prediction, r[0]);
+      if (r[1] !== undefined) Ev.poll = mergePoll(Ev.poll, r[1]);
       var fresh = null;
       if (Ev.prediction && Ev.prediction.status === 'ACTIVE' && !Ev.seen['p' + Ev.prediction.id]) { Ev.seen['p' + Ev.prediction.id] = 1; fresh = 'prediction'; }
-      if (Ev.poll && !Ev.seen['v' + Ev.poll.id]) { Ev.seen['v' + Ev.poll.id] = 1; fresh = fresh || 'poll'; }
-      if (fresh && Settings.get('eventsNotify') !== 'off') showBanner(fresh);
+      if (Ev.poll && Ev.poll.status === 'ACTIVE' && !Ev.seen['v' + Ev.poll.id]) { Ev.seen['v' + Ev.poll.id] = 1; fresh = fresh || 'poll'; }
+      if (fresh && Settings.get('eventsNotify') !== 'off' && !panel) showBanner(fresh);
+      if (panel) panel.update();
     });
   }
 
@@ -119,16 +149,10 @@
   // ---------- пункты для меню «Параметры» ----------
   Ev.menuItems = function () {
     var items = [];
-    if (Ev.prediction) items.push({ label: tr('Прогноз'), sub: Ev.prediction.title + ' • ' + statusText(Ev.prediction.status), onSelect: Ev.openPrediction });
-    if (Ev.poll) items.push({ label: tr('Голосование'), sub: Ev.poll.title, onSelect: Ev.openPoll });
+    if (Ev.prediction) items.push({ label: tr('Прогноз'), sub: Ev.prediction.title + ' • ' + predictionStatus(Ev.prediction), onSelect: Ev.openPrediction });
+    if (Ev.poll) items.push({ label: tr('Голосование'), sub: Ev.poll.title + ' • ' + pollStatus(Ev.poll), onSelect: Ev.openPoll });
     return items;
   };
-
-  function statusText(s) {
-    if (s === 'ACTIVE') return tr('Приём ставок');
-    if (s === 'LOCKED') return tr('ставки закрыты');
-    return tr('завершён');
-  }
 
   function needLogin() {
     if (Auth.loggedIn() && !Auth.needsLogin()) return false;
@@ -138,9 +162,11 @@
     return true;
   }
 
-  // ---------- окно прогноза — как на twitch.tv и в приложении Twitch ----------
+  // ---------- окно прогноза / голосования — как на twitch.tv и в приложении Twitch ----------
   // Плашка с названием и статусом, колонки исходов (синяя / розовая) с баллами, коэффициентом,
-  // участниками и крупнейшей ставкой, большие проценты с цветной полоской. Данные обновляются каждые 5 с.
+  // участниками и крупнейшей ставкой, большие проценты с цветной полоской. Окно прокручивается
+  // (Twitch разрешает до 10 исходов). Обновляется вживую: таймер — каждую секунду, данные — каждые 3 с;
+  // числа меняются на месте, окно целиком перестраивается, только когда меняется состав или статус.
   var ICON = {
     points: '<svg viewBox="0 0 20 20"><path d="M10 6a4 4 0 0 1 4 4h-2a2 2 0 0 0-2-2V6z"/><path fill-rule="evenodd" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM4 10a6 6 0 1 0 12 0 6 6 0 0 0-12 0z"/></svg>',
     ratio: '<svg viewBox="0 0 20 20"><path d="M5 2h10v2h3v3a4 4 0 0 1-3.7 4A5 5 0 0 1 11 13.9V16h3v2H6v-2h3v-2.1A5 5 0 0 1 5.7 11 4 4 0 0 1 2 7V4h3V2zm0 4H4v1a2 2 0 0 0 1 1.7V6zm10 2.7A2 2 0 0 0 16 7V6h-1v2.7zM7 4v4a3 3 0 0 0 6 0V4H7z"/></svg>',
@@ -149,19 +175,22 @@
   };
   var COLORS = { BLUE: '#387aff', PINK: '#f5009b' };
 
-  var panel = null; // открытое окно: { kind, el, timer, render }
+  var panel = null; // открытое окно: { kind, el, body, actions, key, actKey, refs, update, timer }
 
-  function openPanel(kind, title, build) {
+  function isTop() { return !!panel && App.topLayer() && App.topLayer().el === panel.el; }
+
+  function openPanel(kind, title) {
     closePanelLayer();
+    hideBanner();
     var body = h('div.ev-body');
-    var actions = h('div.ev-actions', { 'data-group': 'free' });
-    var el = h('div.menu-panel.menu-right.ev-panel', null, [h('div.menu-title', { text: title }), body, actions]);
-    var overlay = h('div.overlay', null, el);
-    panel = { kind: kind, el: overlay, body: body, actions: actions, render: build };
-    build(body, actions, true);
+    var actions = h('div.ev-actions.row', { 'data-group': 'free' });
+    var scroll = h('div.menu-scroll.v-scroll.ev-scroll', { 'data-pad': '1' }, h('div.ev-content', null, [body, actions]));
+    var overlay = h('div.overlay', null, h('div.menu-panel.menu-right.ev-panel', null, [h('div.menu-title', { text: title }), scroll]));
+    panel = { kind: kind, el: overlay, body: body, actions: actions, key: '', actKey: '', refs: null, busy: false };
+    panel.update = function () { if (kind === 'prediction') renderPrediction(); else renderPoll(); };
+    panel.update();
     App.openLayer({ el: overlay, root: U.$('#modal-root'), focus: U.$('.focusable', overlay),
       onClose: function () { if (panel && panel.el === overlay) { clearInterval(panel.timer); panel = null; } } });
-    // пока окно открыто — живое обновление: таймер каждую секунду, проценты и баллы каждые 3 секунды
     var ticks = 0;
     panel.timer = setInterval(function () {
       if (!panel) return;
@@ -171,22 +200,38 @@
     }, 1000);
   }
   function closePanelLayer() {
-    if (panel && App.topLayer() && App.topLayer().el === panel.el) App.closeLayer();
+    if (isTop()) App.closeLayer();
   }
 
   function refresh(kind) {
     var login = Ev.login;
-    if (!login || !panel || document.hidden) return;
+    if (!login || !panel || document.hidden || panel.busy) return; // ответ ещё не пришёл — не копим запросы
+    var pnl = panel;
+    pnl.busy = true;
     (kind === 'prediction' ? loadPrediction(login) : loadPoll(login)).then(function (ev) {
-      if (!panel || panel.kind !== kind || Ev.login !== login) return;
-      if (kind === 'prediction') Ev.prediction = ev; else Ev.poll = ev;
-      if (!ev) { closePanelLayer(); return; }
-      panel.render(panel.body, panel.actions, false);
-    });
+      pnl.busy = false;
+      if (panel !== pnl || Ev.login !== login) return;
+      if (kind === 'prediction') Ev.prediction = mergePrediction(Ev.prediction, ev); else Ev.poll = mergePoll(Ev.poll, ev);
+      if (!(kind === 'prediction' ? Ev.prediction : Ev.poll)) { closePanelLayer(); return; }
+      pnl.update();
+    }, function () { pnl.busy = false; });
+  }
+
+  // кнопки внизу окна: меняем их, только когда окно наверху — иначе (открыт список баллов)
+  // отложим до следующего обновления, чтобы не выдернуть элемент, на который вернётся фокус
+  function setActions(key, make) {
+    if (panel.actKey === key) return;
+    var hadFocus = !panel.actKey || (Nav.current && panel.actions.contains(Nav.current)) || !Nav.current || !Nav.current.isConnected;
+    if (panel.actKey && !isTop()) return;
+    panel.actKey = key;
+    panel.actions.innerHTML = '';
+    make(panel.actions);
+    if (panel.refs && isTop() && hadFocus) Nav.focus(U.$('.focusable', panel.actions));
   }
 
   function stat(icon, value, color) {
-    return h('div.ev-stat', null, [h('span.ev-ic', { html: ICON[icon], style: 'fill:' + color }), h('span', { text: value })]);
+    var v = h('span', { text: value });
+    return { el: h('div.ev-stat', null, [h('span.ev-ic', { html: ICON[icon], style: 'fill:' + color }), v]), v: v };
   }
 
   function predictionStatus(p) {
@@ -207,88 +252,101 @@
       // пока ждали баланс, плеер закрыли или переключили канал — окно не показываем
       if (Ev.login !== login || !Player.isOpen()) return;
       Ev.balance = balance;
-      openPanel('prediction', tr('Прогноз'), renderPrediction);
+      openPanel('prediction', tr('Прогноз'));
     });
   };
 
-  function renderPrediction(body, actions, first) {
+  function outcomeColor(p, o, i) { return COLORS[o.color] || (p.outcomes.length === 2 && i === 1 ? COLORS.PINK : COLORS.BLUE); }
+
+  function renderPrediction() {
     var p = Ev.prediction;
-    if (!p) return;
+    if (!p || !panel) return;
     var total = 0;
     p.outcomes.forEach(function (o) { total += o.totalPoints || 0; });
-    var two = p.outcomes.length === 2;
-    body.innerHTML = '';
-    body.appendChild(h('div.ev-head', null, [h('div.ev-title', { text: p.title }), h('div.ev-status', { text: predictionStatus(p) })]));
-    var cols = h('div.ev-outcomes' + (two ? '.ev-two' : '.ev-many'));
-    p.outcomes.forEach(function (o, i) {
-      var color = COLORS[o.color] || (two && i === 1 ? COLORS.PINK : COLORS.BLUE);
-      var pct = total ? Math.round((o.totalPoints || 0) / total * 100) : 0;
-      var ratio = o.totalPoints ? U.dec(total / o.totalPoints, 2) : '—';
-      var top = o.topPredictors && o.topPredictors[0] ? U.num(o.topPredictors[0].points) : '—';
-      var won = p.winningOutcome && p.winningOutcome.id === o.id;
-      cols.appendChild(h('div.ev-outcome' + (won ? '.ev-won' : ''), { style: '--ev:' + color }, [
-        h('div.ev-name', { text: o.title, style: 'color:' + color }),
-        h('div.ev-row', null, [
-          h('div.ev-stats', null, [
-            stat('points', U.num(o.totalPoints || 0), color),
-            stat('ratio', o.totalPoints ? '1:' + ratio : '—', color),
-            stat('users', U.num(o.totalUsers || 0), color),
-            stat('top', top, color)
-          ]),
-          h('div.ev-pct', null, [h('div.ev-pct-num', { text: pct + '%', style: 'color:' + color }), h('div.ev-pill', { style: 'background:' + color })])
-        ])
-      ]));
-    });
-    body.appendChild(cols);
-    // общая полоса синий/розовый — сразу видно, куда ушло больше баллов
-    if (total) {
+    var key = p.id + ':' + p.status + ':' + p.outcomes.map(function (o) { return o.id; }).join(',') + ':' + (p.winningOutcome ? p.winningOutcome.id : '');
+    if (panel.key !== key) {
+      // состав или статус поменялся — строим заново
+      panel.key = key;
+      var two = p.outcomes.length === 2;
+      var refs = panel.refs = { outcomes: [], bar: [] };
+      var body = panel.body;
+      body.innerHTML = '';
+      body.appendChild(h('div.ev-head', null, [h('div.ev-title', { text: p.title }), h('div.ev-status', { text: predictionStatus(p) })]));
+      var cols = h('div.ev-outcomes' + (two ? '.ev-two' : '.ev-many'));
+      p.outcomes.forEach(function (o, i) {
+        var color = outcomeColor(p, o, i);
+        var s1 = stat('points', '', color), s2 = stat('ratio', '', color), s3 = stat('users', '', color), s4 = stat('top', '', color);
+        var pct = h('div.ev-pct-num', { style: 'color:' + color });
+        var won = p.winningOutcome && p.winningOutcome.id === o.id;
+        cols.appendChild(h('div.ev-outcome' + (won ? '.ev-won' : ''), null, [
+          h('div.ev-name', { text: o.title, style: 'color:' + color }),
+          h('div.ev-row', null, [
+            h('div.ev-stats', null, [s1.el, s2.el, s3.el, s4.el]),
+            h('div.ev-pct', null, [pct, h('div.ev-pill', { style: 'background:' + color })])
+          ])
+        ]));
+        refs.outcomes.push({ points: s1.v, ratio: s2.v, users: s3.v, top: s4.v, pct: pct });
+      });
+      body.appendChild(cols);
+      // общая полоса синий/розовый — сразу видно, куда ушло больше баллов
       var bar = h('div.ev-bar');
       p.outcomes.forEach(function (o, i) {
-        var color = COLORS[o.color] || (two && i === 1 ? COLORS.PINK : COLORS.BLUE);
-        bar.appendChild(h('i', { style: 'width:' + ((o.totalPoints || 0) / total * 100) + '%;background:' + color }));
+        var seg = h('i', { style: 'background:' + outcomeColor(p, o, i) });
+        refs.bar.push(seg);
+        bar.appendChild(seg);
       });
       body.appendChild(bar);
+      refs.foot = h('div.ev-foot');
+      body.appendChild(refs.foot);
     }
-    var foot = [h('div', { text: tr('Прогноз начался: ') + U.ago(p.createdAt) })];
-    if (p.status === 'LOCKED') foot.push(h('div', { text: tr('Ожидание результата') }));
-    if (Ev.balance !== null && Ev.balance !== undefined) foot.push(h('div.ev-balance', { text: tr('ваши баллы: ') + U.num(Ev.balance) }));
-    body.appendChild(h('div.ev-foot', null, foot));
+    // числа — на месте, без перестройки DOM
+    var refs2 = panel.refs;
+    p.outcomes.forEach(function (o, i) {
+      var r = refs2.outcomes[i];
+      r.points.textContent = U.num(o.totalPoints || 0);
+      r.ratio.textContent = o.totalPoints ? '1:' + U.dec(total / o.totalPoints, 2) : '—';
+      r.users.textContent = U.num(o.totalUsers || 0);
+      r.top.textContent = o.topPredictors && o.topPredictors[0] ? U.num(o.topPredictors[0].points) : '—';
+      r.pct.textContent = (total ? Math.round((o.totalPoints || 0) / total * 100) : 0) + '%';
+      refs2.bar[i].style.width = (total ? (o.totalPoints || 0) / total * 100 : 100 / p.outcomes.length) + '%';
+    });
+    var foot = tr('Прогноз начался: ') + U.ago(p.createdAt);
+    if (p.status === 'LOCKED') foot += '\n' + tr('Ожидание результата');
+    if (Ev.balance !== null && Ev.balance !== undefined) foot += '\n' + tr('ваши баллы: ') + U.num(Ev.balance);
+    refs2.foot.textContent = foot;
 
-    // кнопки ставок — только пока принимаются; при обновлении данных фокус не трогаем
-    if (!first && actions.children.length && p.status === 'ACTIVE') return;
-    actions.innerHTML = '';
-    if (p.status === 'ACTIVE') {
-      p.outcomes.forEach(function (o, i) {
-        var color = COLORS[o.color] || (two && i === 1 ? COLORS.PINK : COLORS.BLUE);
-        var b = h('div.btn.focusable.ev-bet', { style: '--ev:' + color }, [h('span', { text: o.title })]);
-        b._onclick = function () { if (!needLogin()) pickPoints(p, o, Ev.balance); };
-        actions.appendChild(b);
-      });
-    } else {
-      var c = UI.button(tr('Закрыть'), null, function () { App.closeLayer(); });
-      actions.appendChild(c);
-      if (!first && App.topLayer() && panel && App.topLayer().el === panel.el && (!Nav.current || !Nav.current.isConnected)) Nav.focus(c);
-    }
+    // кнопки ставок — только пока приём открыт
+    setActions(p.id + ':' + (p.status === 'ACTIVE' ? 'bet' : 'close'), function (box) {
+      if (p.status === 'ACTIVE') {
+        p.outcomes.forEach(function (o, i) {
+          var b = h('div.btn.focusable.ev-bet', { style: '--ev:' + outcomeColor(p, o, i) }, [h('span', { text: o.title })]);
+          b._onclick = function () { if (!needLogin()) pickPoints(p.id, o, Ev.balance); };
+          box.appendChild(b);
+        });
+      } else box.appendChild(UI.button(tr('Закрыть'), null, function () { App.closeLayer(); }));
+    });
   }
 
-  function pickPoints(p, o, balance) {
+  function pickPoints(eventId, o, balance) {
     var amounts = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
     if (balance !== null && balance !== undefined) amounts = amounts.filter(function (a) { return a <= balance; });
-    var items = amounts.map(function (a) { return { label: tr('Баллы: ') + U.num(a), onSelect: function () { predict(p, o, a); } }; });
-    if (balance) items.push({ label: tr('Все баллы') + ': ' + U.num(balance), onSelect: function () { predict(p, o, balance); } });
+    var items = amounts.map(function (a) { return { label: tr('Баллы: ') + U.num(a), onSelect: function () { predict(eventId, o, a); } }; });
+    if (balance) items.push({ label: tr('Все баллы') + ': ' + U.num(balance), onSelect: function () { predict(eventId, o, balance); } });
     if (!items.length) { UI.toast(tr('Недостаточно баллов канала')); return; }
     UI.menu(tr('Ставка: ') + o.title, items, { cls: 'menu-right' });
   }
 
-  function predict(p, o, points) {
+  function predict(eventId, o, points) {
+    // пока выбирали сумму, Twitch мог закрыть приём ставок
+    var p = Ev.prediction;
+    if (!p || p.id !== eventId || p.status !== 'ACTIVE') { UI.toast(tr('Прогноз закрыт')); if (panel) panel.update(); return; }
     Auth.gql('mutation($input:MakePredictionInput!){makePrediction(input:$input){error{code} prediction{id}}}',
-      { input: { eventID: p.id, outcomeID: o.id, points: points, transactionID: U.uid(32) } })
+      { input: { eventID: eventId, outcomeID: o.id, points: points, transactionID: U.uid(32) } })
       .then(function (d) {
         var r = d && d.makePrediction;
         if (!r || r.error) throw new Error(r && r.error ? r.error.code : '');
         UI.toast(tr('Ставка принята: ') + o.title + ' • ' + tr('Баллы: ') + U.num(points));
         if (Ev.balance) Ev.balance = Math.max(0, Ev.balance - points);
-        check();
         refresh('prediction');
       })
       .catch(function (e) { UI.toast(tr('Twitch не принял ставку') + (e && e.message ? ': ' + e.message : ''), 5000); });
@@ -297,51 +355,66 @@
   // ---------- голосование ----------
   Ev.openPoll = function () {
     if (!Ev.poll) { UI.toast(tr('Сейчас голосования нет')); return; }
-    openPanel('poll', tr('Голосование'), renderPoll);
+    openPanel('poll', tr('Голосование'));
   };
 
   function pollStatus(p) {
     if (!p) return '';
+    if (p.status !== 'ACTIVE') return tr('завершён');
     var left = p._endAt ? Math.max(0, Math.round((p._endAt - Date.now()) / 1000)) : 0;
-    return left ? tr('Осталось: ') + U.duration(left) : tr('завершён');
+    return left ? tr('Осталось: ') + U.duration(left) : tr('Ожидание результата');
   }
 
-  function renderPoll(body, actions, first) {
+  function renderPoll() {
     var p = Ev.poll;
-    if (!p) return;
+    if (!p || !panel) return;
     var total = (p.votes && p.votes.total) || 0;
-    p._endAt = p._endAt || (p.remainingDurationMilliseconds ? Date.now() + p.remainingDurationMilliseconds : 0);
-    body.innerHTML = '';
-    body.appendChild(h('div.ev-head', null, [h('div.ev-title', { text: p.title }), h('div.ev-status', { text: pollStatus(p) })]));
+    var key = p.id + ':' + p.choices.map(function (c) { return c.id; }).join(',');
+    if (panel.key !== key) {
+      panel.key = key;
+      var refs = panel.refs = { choices: [] };
+      var body = panel.body;
+      body.innerHTML = '';
+      body.appendChild(h('div.ev-head', null, [h('div.ev-title', { text: p.title }), h('div.ev-status', { text: pollStatus(p) })]));
+      // как на Twitch: у каждого варианта полоска, заполненная на свой процент голосов
+      p.choices.forEach(function (c) {
+        var fill = h('div.ev-choice-fill'), val = h('b');
+        var row = h('div.ev-choice', null, [fill, h('div.ev-choice-text', null, [h('span', { text: c.title }), val])]);
+        body.appendChild(row);
+        refs.choices.push({ row: row, fill: fill, val: val });
+      });
+      refs.foot = h('div.ev-foot');
+      body.appendChild(refs.foot);
+    }
     var best = 0;
     p.choices.forEach(function (c) { best = Math.max(best, (c.votes && c.votes.total) || 0); });
-    // как на Twitch: у каждого варианта полоска, заполненная на свой процент голосов
-    p.choices.forEach(function (c) {
-      var v = (c.votes && c.votes.total) || 0, pct = total ? Math.round(v / total * 100) : 0;
-      body.appendChild(h('div.ev-choice' + (v && v === best ? '.ev-lead' : ''), null, [
-        h('div.ev-choice-fill', { style: 'width:' + pct + '%' }),
-        h('div.ev-choice-text', null, [h('span', { text: c.title }), h('b', { text: pct + '% (' + U.num(v) + ')' })])
-      ]));
+    p.choices.forEach(function (c, i) {
+      var v = (c.votes && c.votes.total) || 0, pct = total ? Math.round(v / total * 100) : 0, r = panel.refs.choices[i];
+      r.fill.style.width = pct + '%';
+      r.val.textContent = pct + '% (' + U.num(v) + ')';
+      r.row.classList.toggle('ev-lead', !!v && v === best);
     });
-    body.appendChild(h('div.ev-foot', null, h('div', { text: tr('Голосов: ') + U.num(total) })));
-    if (!first && actions.children.length) return;
-    actions.innerHTML = '';
-    p.choices.forEach(function (c) {
-      var b = h('div.btn.focusable.ev-bet', { style: '--ev:#9146ff' }, [h('span', { text: c.title })]);
-      b._onclick = function () { if (!needLogin()) vote(p, c); };
-      actions.appendChild(b);
+    panel.refs.foot.textContent = tr('Голосов: ') + U.num(total);
+    setActions(p.id + ':' + (p.status === 'ACTIVE' ? 'vote' : 'close'), function (box) {
+      if (p.status === 'ACTIVE') {
+        p.choices.forEach(function (c) {
+          var b = h('div.btn.focusable.ev-bet', { style: '--ev:#9146ff' }, [h('span', { text: c.title })]);
+          b._onclick = function () { if (!needLogin()) vote(p.id, c); };
+          box.appendChild(b);
+        });
+      } else box.appendChild(UI.button(tr('Закрыть'), null, function () { App.closeLayer(); }));
     });
   }
 
-  function vote(p, c) {
-    var u = Auth.user();
+  function vote(pollId, c) {
+    var p = Ev.poll, u = Auth.user();
+    if (!p || p.id !== pollId || p.status !== 'ACTIVE') { UI.toast(tr('завершён')); return; }
     Auth.gql('mutation($input:VoteInPollInput!){voteInPoll(input:$input){error{code}}}',
-      { input: { pollID: p.id, choiceID: c.id, userID: u && u.id, voteID: U.uid(32) } })
+      { input: { pollID: pollId, choiceID: c.id, userID: u && u.id, voteID: U.uid(32) } })
       .then(function (d) {
         var r = d && d.voteInPoll;
         if (!r || r.error) throw new Error(r && r.error ? r.error.code : '');
         UI.toast(tr('Голос учтён: ') + c.title);
-        check();
         refresh('poll');
       })
       .catch(function (e) { UI.toast(tr('Twitch не принял голос') + (e && e.message ? ': ' + e.message : ''), 5000); });

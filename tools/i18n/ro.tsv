@@ -3,7 +3,7 @@
 Поиск	Căutare
 Главная	Acasă
 Категории	Explorează
-Подписки	Urmăriri
+Отслеживаемое	Urmăriri
 История	Istoric
 Настройки	Setări
 Войти	Conectare
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — vizionează • �
 Клипов нет	Niciun clip
 Записи	Videoclipuri
 Записей нет	Niciun videoclip
-Каналы аккаунта 	Canalele lui 
- и ваше избранное	 și favoritele tale
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Canale favorite. Conectează-te la Twitch ca să vezi pe cine urmărești
 Войти в Twitch	Conectează-te la Twitch
 Ваши подписки — на телевизоре	Canalele urmărite pe televizor
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (recomandat)
 Показана	Afișate
 Скрыта	Ascunse
 Таймер сна	Temporizator de oprire
-Выключится через 	Se oprește în 
  мин	 min
 15 минут	15 minute
 30 минут	30 de minute
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch nu a acceptat predicția
 Уведомления о прогнозах и голосованиях	Notificări despre predicții și sondaje
 ваши баллы: 	punctele tale: 
 завершён	încheiată
-ставки закрыты	blocată
 Баллы: 	Puncte: 
 Канал заблокирован: 	Canal blocat: 
 Канал разблокирован: 	Canal deblocat: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch nu a acceptat predicția
 Самые популярные клипы Twitch	Cele mai populare clipuri de pe Twitch
 Рекомендуем для вас	Recomandat pentru tine
 Рекомендуемые каналы	Canale recomandate
+Ваши каналы и избранное	Canalele și favoritele tale
+Вы не отслеживаете категории	Nu urmărești nicio categorie
+Диагностика аккаунта	Diagnosticare cont
+Никто из ваших каналов сейчас не в эфире	Niciunul dintre canalele tale nu e în direct acum
+Обзор	Prezentare generală
+Покажите этот экран разработчику, если главная отличается от Twitch	Arată acest ecran dezvoltatorului dacă pagina principală diferă de Twitch
+Прямые трансляции	Canale în direct

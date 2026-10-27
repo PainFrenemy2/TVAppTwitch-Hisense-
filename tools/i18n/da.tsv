@@ -3,7 +3,7 @@
 Поиск	Søg
 Главная	Hjem
 Категории	Gennemse
-Подписки	Følger
+Отслеживаемое	Følger
 История	Historik
 Настройки	Indstillinger
 Войти	Log ind
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — se • ← → —
 Клипов нет	Ingen klip
 Записи	Videoer
 Записей нет	Ingen videoer
-Каналы аккаунта 	Kanaler for 
- и ваше избранное	 og dine favoritter
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Favoritkanaler. Log ind på Twitch for at se, hvem du følger
 Войти в Twitch	Log ind på Twitch
 Ваши подписки — на телевизоре	Dine fulgte kanaler på tv'et
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (anbefalet)
 Показана	Vises
 Скрыта	Skjult
 Таймер сна	Sleep-timer
-Выключится через 	Slukker om 
  мин	 min.
 15 минут	15 minutter
 30 минут	30 minutter
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch accepterede ikke forudsigelsen
 Уведомления о прогнозах и голосованиях	Notifikationer om forudsigelser og afstemninger
 ваши баллы: 	dine point: 
 завершён	afsluttet
-ставки закрыты	låst
 Баллы: 	Point: 
 Канал заблокирован: 	Kanal blokeret: 
 Канал разблокирован: 	Kanal fjernet fra blokering: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch accepterede ikke forudsigelsen
 Самые популярные клипы Twitch	De mest populære klip på Twitch
 Рекомендуем для вас	Anbefalet til dig
 Рекомендуемые каналы	Anbefalede kanaler
+Ваши каналы и избранное	Dine kanaler og favoritter
+Вы не отслеживаете категории	Du følger ingen kategorier
+Диагностика аккаунта	Kontodiagnose
+Никто из ваших каналов сейчас не в эфире	Ingen af dine kanaler er live lige nu
+Обзор	Oversigt
+Покажите этот экран разработчику, если главная отличается от Twitch	Vis denne skærm til udvikleren, hvis forsiden afviger fra Twitch
+Прямые трансляции	Livekanaler

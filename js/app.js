@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.6.0',
+    VERSION: '1.7.0',
     layers: [],
     history: [],
     pendingFocus: false
@@ -221,7 +221,7 @@
     ['home', 'home', tr('Главная')],
     ['browse', 'browse', tr('Категории')],
     ['clips', 'clip', tr('Клипы')],
-    ['following', 'following', tr('Подписки')],
+    ['following', 'following', tr('Отслеживаемое')],
     ['history', 'history', tr('История')],
     ['settings', 'settings', tr('Настройки')]
   ];
@@ -510,8 +510,10 @@
     var keys = App.keyCount;
     Twitch.user(it.login).then(function (u) {
       if (App.keyCount !== keys || Player.isOpen() || App.topLayer() !== App.base) return;
-      if (u && u.stream) { u.stream.broadcaster = u.stream.broadcaster || u; App.play(App.itemFromStream(u.stream)); }
-      else if (Auth.accounts.length > 1) App.showProfiles();
+      if (u && u.stream) { u.stream.broadcaster = u.stream.broadcaster || u; App.play(App.itemFromStream(u.stream)); return; }
+      // эфир, который вы смотрели, уже закончился — говорим об этом, а не молча остаёмся на странице
+      UI.toast((it.name || it.login) + tr(' сейчас не в сети'), 4000);
+      if (Auth.accounts.length > 1) App.showProfiles();
     }).catch(function () { if (Auth.accounts.length > 1 && App.keyCount === keys) App.showProfiles(); });
     return 'player';
   }

@@ -3,7 +3,7 @@
 Поиск	Zoeken
 Главная	Start
 Категории	Bladeren
-Подписки	Gevolgd
+Отслеживаемое	Gevolgd
 История	Geschiedenis
 Настройки	Instellingen
 Войти	Inloggen
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — kijken • ← →
 Клипов нет	Geen clips
 Записи	Video's
 Записей нет	Geen video's
-Каналы аккаунта 	Kanalen van 
- и ваше избранное	 en je favorieten
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Favoriete kanalen. Log in bij Twitch om te zien wie je volgt
 Войти в Twitch	Inloggen bij Twitch
 Ваши подписки — на телевизоре	Je gevolgde kanalen op de tv
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (aanbevolen)
 Показана	Zichtbaar
 Скрыта	Verborgen
 Таймер сна	Slaaptimer
-Выключится через 	Gaat uit over 
  мин	 min
 15 минут	15 minuten
 30 минут	30 minuten
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch heeft de voorspelling niet geaccept
 Уведомления о прогнозах и голосованиях	Meldingen voor voorspellingen en peilingen
 ваши баллы: 	jouw punten: 
 завершён	afgelopen
-ставки закрыты	vergrendeld
 Баллы: 	Punten: 
 Канал заблокирован: 	Kanaal geblokkeerd: 
 Канал разблокирован: 	Kanaal gedeblokkeerd: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch heeft de voorspelling niet geaccept
 Самые популярные клипы Twitch	De populairste clips op Twitch
 Рекомендуем для вас	Aanbevolen voor jou
 Рекомендуемые каналы	Aanbevolen kanalen
+Ваши каналы и избранное	Je kanalen en favorieten
+Вы не отслеживаете категории	Je volgt geen categorieën
+Диагностика аккаунта	Accountdiagnose
+Никто из ваших каналов сейчас не в эфире	Geen van je kanalen is nu live
+Обзор	Overzicht
+Покажите этот экран разработчику, если главная отличается от Twitch	Laat dit scherm aan de ontwikkelaar zien als de startpagina afwijkt van Twitch
+Прямые трансляции	Livekanalen

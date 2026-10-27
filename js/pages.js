@@ -492,7 +492,7 @@
       if (Auth.loggedIn() && !Auth.needsLogin()) {
         autoShelf(body, tr('Клипы ваших подписок'), function () {
           var logins = Auth.cachedFollows().slice(0, 12);
-          return Promise.all(logins.map(function (l) { return Twitch.clips(l, period, 6).catch(function () { return []; }); }))
+          return U.pool(logins, 4, function (l) { return Twitch.clips(l, period, 6).catch(function () { return []; }); })
             .then(function (lists) { return byViews(lists, 30); });
         }, clipCard);
       }
@@ -531,13 +531,79 @@
   // ---------- Подписки ----------
   Pages.following = function () {
     var el = pageShell('page-following');
-    el.content.appendChild(header(tr('Подписки'), Auth.loggedIn() && Auth.user()
-      ? tr('Каналы аккаунта ') + Auth.user().displayName + tr(' и ваше избранное')
+    el.content.appendChild(header(tr('Отслеживаемое'), Auth.loggedIn() && Auth.user()
+      ? Auth.user().displayName + ' • ' + tr('Ваши каналы и избранное')
       : tr('Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки')));
+    // вкладки, как в «Отслеживаемом» на twitch.tv
+    var tabsInner = h('div.chips-inner');
+    var tabs = h('div.chips.row.h-scroll', { 'data-group': 'chips' }, tabsInner);
+    el.content.appendChild(tabs);
     var body = h('div');
     el.content.appendChild(body);
+    var mode = 'overview', gen = 0;
+    var TABS = [['overview', tr('Обзор')], ['live', tr('Прямые трансляции')], ['videos', tr('Видео')], ['games', tr('Категории')], ['channels', tr('Каналы')]];
+    TABS.forEach(function (t) {
+      var c = h('div.chip.focusable' + (t[0] === mode ? '.active' : ''), { text: t[1] });
+      c._onclick = function () {
+        if (mode === t[0]) return;
+        mode = t[0];
+        U.$$('.chip', tabsInner).forEach(function (x) { x.classList.toggle('active', x === c); });
+        render();
+      };
+      tabsInner.appendChild(c);
+    });
+
+    function done(promise, wrap) {
+      var my = gen, loading = UI.loading();
+      wrap.appendChild(loading);
+      return promise.then(function () { if (my === gen) { loading.remove(); App.refocus(); } }, function (e) {
+        if (my !== gen) return;
+        loading.remove();
+        wrap.appendChild(UI.error(e, render));
+        App.refocus();
+      });
+    }
+
+    function renderTab(mine) {
+      var my = gen;
+      if (mode === 'live') {
+        return done(myLive().then(function (live) {
+          if (my !== gen) return;
+          if (!live.length) { body.appendChild(UI.empty(tr('Никто из ваших каналов сейчас не в эфире'))); return; }
+          var g = UI.grid('grid-video'); g.add(live.map(streamCard)); body.appendChild(g);
+        }), body);
+      }
+      if (mode === 'videos') {
+        // последние записи каналов, на которые вы подписаны, — свежие сверху
+        return done(U.pool(mine.slice(0, 16), 4, function (l) {
+          return Twitch.videos(l, 'ARCHIVE', 4).then(function (p) { return p.items; }).catch(function () { return []; });
+        }).then(function (lists) {
+          if (my !== gen) return;
+          var all = [].concat.apply([], lists).sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }).slice(0, 48);
+          if (!all.length) { body.appendChild(UI.empty(tr('Записей нет'))); return; }
+          var g = UI.grid('grid-video'); g.add(all.map(videoCard)); body.appendChild(g);
+        }), body);
+      }
+      if (mode === 'games') {
+        return done(Auth.followedGames().then(function (games) {
+          if (my !== gen) return;
+          if (!games.length) { body.appendChild(UI.empty(tr('Вы не отслеживаете категории'))); return; }
+          var g = UI.grid('grid-game'); g.add(games.map(gameCard)); body.appendChild(g);
+        }), body);
+      }
+      if (mode === 'channels') {
+        return done(Twitch.users(mine.slice(0, 300)).then(function (us) {
+          if (my !== gen) return;
+          // в эфире — первыми, как на Twitch
+          us.sort(function (a, b) { return (b.stream ? b.stream.viewersCount + 1 : 0) - (a.stream ? a.stream.viewersCount + 1 : 0); });
+          var g = UI.grid('grid-channels'); g.add(us.map(channelCard)); body.appendChild(g);
+        }), body);
+      }
+      return null;
+    }
 
     function render() {
+      gen++;
       body.innerHTML = '';
       var mine = App.myChannels();
       // вход устарел — как без входа: баннер «войти снова», а не ошибка с бесполезным «Повторить»
@@ -564,9 +630,12 @@
         App.refocus();
         return;
       }
+      if (renderTab(mine)) return;
       var loading = UI.loading();
       body.appendChild(loading);
+      var myGen = gen;
       Promise.all([myLive(), Twitch.users(mine.slice(0, 300))]).then(function (r) {
+        if (myGen !== gen) return;
         loading.remove();
         var live = r[0];
         var liveSet = {};
@@ -1002,6 +1071,56 @@
     };
   };
 
+  // ---------- Диагностика аккаунта: что именно отвечает Twitch (по скриншоту видно, где проблема) ----------
+  Pages.diag = function () {
+    var el = pageShell('page-diag');
+    el.content.appendChild(header(tr('Диагностика аккаунта'), tr('Покажите этот экран разработчику, если главная отличается от Twitch')));
+    var list = h('div.tv-info.row.diag-list');
+    el.content.appendChild(list);
+    var again = UI.button(tr('Повторить'), 'refresh', function () { App.replace('diag', {}); }, 'primary');
+    el.content.appendChild(h('div.row.page-actions', { 'data-group': 'free' }, again));
+
+    function row(name, value, ok) {
+      var v = h('b', { text: value });
+      if (ok === true) v.style.color = '#7ee787';
+      if (ok === false) v.style.color = '#ff7b72';
+      var r = h('div.tv-info-row', null, [h('span', { text: name }), v]);
+      list.appendChild(r);
+      return v;
+    }
+    function test(name, run) {
+      var v = row(name, '…');
+      var t0 = Date.now();
+      return run().then(function (txt) { v.textContent = txt + ' • ' + (Date.now() - t0) + ' ms'; v.style.color = '#7ee787'; },
+        function (e) { v.textContent = 'error: ' + ((e && e.message) || e); v.style.color = '#ff7b72'; });
+    }
+
+    var acc = Auth.data;
+    row('App', 'v' + App.VERSION + ' • ' + I18N.lang + ' • ' + (navigator.userAgent || '').slice(0, 80));
+    row('Account', acc && acc.user ? acc.user.login + ' (' + acc.user.id + ')' : 'not signed in', !!(acc && acc.user));
+    if (acc && acc.token) {
+      row('Token', acc.expires ? 'expires in ' + Math.round((acc.expires - Date.now()) / 60000) + ' min' : 'no expiry info', acc.expires > Date.now());
+      row('Needs sign-in', Auth.needsLogin() ? 'yes' : 'no', !Auth.needsLogin());
+      row('Client-ID', Auth.CLIENT_ID);
+      test('currentUser', function () { return Auth.gql('query{currentUser{id login}}').then(function (d) { return d.currentUser ? d.currentUser.login : 'null'; }); })
+        .then(function () { return test('followedLiveUsers', function () { return Auth.followedLive().then(function (l) { return l.length + ' live'; }); }); })
+        .then(function () { return test('follows', function () { return Auth.syncFollows().then(function (l) { return l.length + ' channels'; }); }); })
+        .then(function () { return test('followedGames', function () { return Auth.followedGames().then(function (l) { return l.length + ' categories'; }); }); })
+        .then(shelves);
+    } else shelves();
+
+    function shelves() {
+      Twitch.clearCache();
+      var v = row('Home shelves', '…');
+      Twitch.personalShelves().then(function (rows) {
+        v.textContent = rows.length ? rows.length + ' rows' : 'none — generic Home is shown';
+        v.style.color = rows.length ? '#7ee787' : '#ff7b72';
+        (Twitch.diag.steps || []).forEach(function (st) { row('  ' + st.name, st.info + ' • ' + st.ms + ' ms', st.ok); });
+      });
+    }
+    return { el: el, nav: 'settings', firstFocus: function () { return again; } };
+  };
+
   // ---------- Настройки ----------
   Pages.settings = function () {
     var el = pageShell('page-settings');
@@ -1057,6 +1176,7 @@
     section(tr('Аккаунт'));
     action(u ? u.displayName : tr('Войти в Twitch'), u ? (Auth.needsLogin() ? tr('Вход устарел — нажмите, чтобы войти снова') : tr('Профили, подписки, выход')) : tr('Вход по коду на twitch.tv/activate — подписки подтянутся сами'), function () { App.go('account', {}, { root: true }); });
     if (Auth.accounts.length > 1) action(tr('Сменить профиль'), tr('Кто смотрит?'), function () { App.showProfiles(); });
+    action(tr('Диагностика аккаунта'), tr('Покажите этот экран разработчику, если главная отличается от Twitch'), function () { App.go('diag', {}); });
     opt(tr('Смотреть от своего аккаунта'), 'useAccount', [['on', tr('Да')], ['off', tr('Нет')]],
       tr('С Turbo или подпиской на канал — без рекламы и с доступом к записям для подписчиков'));
 

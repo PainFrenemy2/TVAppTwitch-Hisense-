@@ -3,7 +3,7 @@
 Поиск	Hľadať
 Главная	Domov
 Категории	Prehliadať
-Подписки	Sledované
+Отслеживаемое	Sledované
 История	História
 Настройки	Nastavenia
 Войти	Prihlásiť sa
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — pozerať • ← �
 Клипов нет	Žiadne klipy
 Записи	Videá
 Записей нет	Žiadne videá
-Каналы аккаунта 	Kanály účtu 
- и ваше избранное	 a vaše obľúbené
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Obľúbené kanály. Prihláste sa do Twitchu a uvidíte, koho sledujete
 Войти в Twitch	Prihlásiť sa do Twitchu
 Ваши подписки — на телевизоре	Vaše sledované kanály v televízore
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (odporúčané)
 Показана	Zobrazené
 Скрыта	Skryté
 Таймер сна	Časovač vypnutia
-Выключится через 	Vypne sa o 
  мин	 min
 15 минут	15 minút
 30 минут	30 minút
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch tip neprijal
 Уведомления о прогнозах и голосованиях	Upozornenia na tipovačky a hlasovania
 ваши баллы: 	vaše body: 
 завершён	skončená
-ставки закрыты	uzamknutá
 Баллы: 	Body: 
 Канал заблокирован: 	Kanál zablokovaný: 
 Канал разблокирован: 	Kanál odblokovaný: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch tip neprijal
 Самые популярные клипы Twitch	Najobľúbenejšie klipy na Twitchi
 Рекомендуем для вас	Odporúčané pre vás
 Рекомендуемые каналы	Odporúčané kanály
+Ваши каналы и избранное	Vaše kanály a obľúbené
+Вы не отслеживаете категории	Nesledujete žiadne kategórie
+Диагностика аккаунта	Diagnostika účtu
+Никто из ваших каналов сейчас не в эфире	Žiadny z vašich kanálov teraz nevysiela
+Обзор	Prehľad
+Покажите этот экран разработчику, если главная отличается от Twitch	Ukážte túto obrazovku vývojárovi, ak sa hlavná stránka líši od Twitchu
+Прямые трансляции	Živé kanály

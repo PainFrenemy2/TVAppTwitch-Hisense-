@@ -3,7 +3,7 @@
 Поиск	Пошук	Search
 Главная	Головна	Home
 Категории	Категорії	Browse
-Подписки	Підписки	Following
+Отслеживаемое	Відстежуване	Following
 История	Історія	History
 Настройки	Налаштування	Settings
 Войти	Увійти	Sign in
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — дивитися �
 Клипов нет	Кліпів немає	No clips
 Записи	Записи	Videos
 Записей нет	Записів немає	No videos
-Каналы аккаунта 	Канали акаунта 	Channels of 
- и ваше избранное	 і ваше обране	 and your favorites
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Обрані канали. Увійдіть в акаунт Twitch, щоб бачити свої підписки	Favorite channels. Sign in to Twitch to see who you follow
 Войти в Twitch	Увійти в Twitch	Sign in to Twitch
 Ваши подписки — на телевизоре	Ваші підписки — на телевізорі	Your follows on your TV
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (рекомендовано)	hls.js (
 Показана	Показано	Shown
 Скрыта	Приховано	Hidden
 Таймер сна	Таймер сну	Sleep timer
-Выключится через 	Вимкнеться через 	Turns off in 
  мин	 хв	 min
 15 минут	15 хвилин	15 minutes
 30 минут	30 хвилин	30 minutes
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch не прийняв ставку	Tw
 Уведомления о прогнозах и голосованиях	Сповіщення про прогнози й голосування	Prediction and poll alerts
 ваши баллы: 	ваші бали: 	your points: 
 завершён	завершено	ended
-ставки закрыты	ставки закрито	locked
 Баллы: 	Бали: 	Points: 
 Канал заблокирован: 	Канал заблоковано: 	Channel blocked: 
 Канал разблокирован: 	Канал розблоковано: 	Channel unblocked: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch не прийняв ставку	Tw
 Самые популярные клипы Twitch	Найпопулярніші кліпи Twitch	The most popular clips on Twitch
 Рекомендуем для вас	Рекомендуємо для вас	Recommended for you
 Рекомендуемые каналы	Рекомендовані канали	Recommended channels
+Ваши каналы и избранное	Ваші канали та обране	Your channels and favorites
+Вы не отслеживаете категории	Ви не відстежуєте категорії	You don't follow any categories
+Диагностика аккаунта	Діагностика акаунта	Account diagnostics
+Никто из ваших каналов сейчас не в эфире	Ніхто з ваших каналів зараз не в ефірі	None of your channels are live right now
+Обзор	Огляд	Overview
+Покажите этот экран разработчику, если главная отличается от Twitch	Покажіть цей екран розробнику, якщо головна відрізняється від Twitch	Show this screen to the developer if Home differs from Twitch
+Прямые трансляции	Прямі трансляції	Live channels

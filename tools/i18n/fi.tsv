@@ -3,7 +3,7 @@
 Поиск	Haku
 Главная	Etusivu
 Категории	Selaa
-Подписки	Seuratut
+Отслеживаемое	Seuratut
 История	Historia
 Настройки	Asetukset
 Войти	Kirjaudu
@@ -50,8 +50,6 @@ OK — смотреть • ← → — листать	OK — katso • ← → 
 Клипов нет	Ei klippejä
 Записи	Videot
 Записей нет	Ei videoita
-Каналы аккаунта 	Tilin 
- и ваше избранное	 kanavat ja suosikkisi
 Избранные каналы. Войдите в аккаунт Twitch, чтобы видеть свои подписки	Suosikkikanavat. Kirjaudu Twitchiin nähdäksesi seuraamasi kanavat
 Войти в Twitch	Kirjaudu Twitchiin
 Ваши подписки — на телевизоре	Seuraamasi kanavat televisiossa
@@ -235,7 +233,6 @@ hls.js (рекомендуется)	hls.js (suositus)
 Показана	Näkyvissä
 Скрыта	Piilotettu
 Таймер сна	Uniajastin
-Выключится через 	Sammuu: 
  мин	 min
 15 минут	15 minuuttia
 30 минут	30 minuuttia
@@ -342,7 +339,6 @@ Twitch не принял ставку	Twitch ei hyväksynyt ennustetta
 Уведомления о прогнозах и голосованиях	Ennuste- ja äänestysilmoitukset
 ваши баллы: 	pisteesi: 
 завершён	päättynyt
-ставки закрыты	lukittu
 Баллы: 	Pisteet: 
 Канал заблокирован: 	Kanava estetty: 
 Канал разблокирован: 	Kanavan esto poistettu: 
@@ -364,3 +360,10 @@ Twitch не принял ставку	Twitch ei hyväksynyt ennustetta
 Самые популярные клипы Twitch	Twitchin suosituimmat klipit
 Рекомендуем для вас	Suositeltua sinulle
 Рекомендуемые каналы	Suositellut kanavat
+Ваши каналы и избранное	Kanavasi ja suosikkisi
+Вы не отслеживаете категории	Et seuraa yhtään kategoriaa
+Диагностика аккаунта	Tilin diagnostiikka
+Никто из ваших каналов сейчас не в эфире	Mikään kanavistasi ei ole nyt livenä
+Обзор	Yleiskatsaus
+Покажите этот экран разработчику, если главная отличается от Twitch	Näytä tämä näkymä kehittäjälle, jos etusivu eroaa Twitchistä
+Прямые трансляции	Live-kanavat
