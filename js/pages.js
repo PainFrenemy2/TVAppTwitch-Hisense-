@@ -1336,6 +1336,7 @@
     }
 
     var acc = Auth.data;
+    App.checkUpdate(true); // открыли диагностику — сразу проверяем, нет ли новой версии
     row('App', 'v' + App.VERSION + ' • ' + I18N.lang + ' • ' + (navigator.userAgent || '').slice(0, 80));
     row('Account', acc && acc.user ? acc.user.login + ' (' + acc.user.id + ')' : 'not signed in', !!(acc && acc.user));
     if (acc && acc.token) {

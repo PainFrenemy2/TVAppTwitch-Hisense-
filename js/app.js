@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.9.2',
+    VERSION: '1.9.3',
     layers: [],
     history: [],
     pendingFocus: false
@@ -533,8 +533,8 @@
   // сворачивает. Поэтому при запуске и при возврате на экран спрашиваем version.txt с GitHub и,
   // если вышла новая версия, перезагружаемся с новым адресом — тогда ТВ берёт свежие файлы.
   var updChecked = 0;
-  function checkUpdate() {
-    if (Date.now() - updChecked < 10 * 60 * 1000) return;
+  function checkUpdate(force) {
+    if (!force && Date.now() - updChecked < 10 * 60 * 1000) return;
     updChecked = Date.now();
     if (!window.fetch) return;
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
@@ -542,11 +542,15 @@
       if (!v || !cur || v <= cur) return;
       var m = /[?&]u=(\d+)/.exec(location.search);
       if (m && +m[1] >= v) return; // уже перезагружались ради этой версии — второй раз не крутимся
+      // идёт эфир — не прерываем: обновимся, когда плеер закроют
+      if (window.Player && Player.isOpen && Player.isOpen()) { updChecked = 0; return; }
       try { if (App.base) App.saveState(); if (window.Player && Player.saveNow) Player.saveNow(); U.store.flush(); } catch (e) { /* не страшно */ }
       location.replace(location.pathname + '?u=' + v + location.hash);
     }).catch(function () {});
   }
   App.checkUpdate = checkUpdate;
+  // приложение могут не закрывать сутками — проверяем и просто по ходу работы (не чаще раза в 10 минут)
+  setInterval(function () { if (!document.hidden) checkUpdate(); }, 5 * 60 * 1000);
 
   function start() {
     App.applyScale();
