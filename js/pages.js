@@ -640,10 +640,34 @@
 
   // ---------- Эфир — лента эфиров как в приложении Twitch на телефоне ----------
   // Один большой эфир на экран с живым превью: ▲/▼ — следующий/предыдущий, OK — смотреть.
-  // Сначала каналы, за которыми вы следите, потом эфиры из ваших категорий, потом популярные на вашем языке.
+  // Сверху — вкладки «Все» и ваши категории (как на телефоне). Порядок как у Twitch: сначала ваши каналы
+  // (в порядке Twitch), потом эфиры из категорий, которые вы смотрите чаще всего, на ваших языках —
+  // вперемешку, а не по числу зрителей; в самом конце — популярное.
+  // Языки ленты: язык интерфейса; для украинского/русского — оба (так подбирает и Twitch).
+  function feedLangs() {
+    var l = I18N.lang.split('-')[0];
+    if (l === 'uk' || l === 'ru' || l === 'be' || l === 'kk') return ['uk', 'ru'];
+    return [l];
+  }
+  // Категории по тому, что вы смотрите: история просмотров (чаще — выше, недавнее — весомее) + подписки
+  function watchedGames() {
+    var score = {}, hist = App.history_();
+    hist.forEach(function (x, i) { if (x.game) score[x.game] = (score[x.game] || 0) + 3 + Math.max(0, 20 - i) / 5; });
+    var games = Object.keys(score).sort(function (a, b) { return score[b] - score[a]; });
+    var taste = Auth.loggedIn() ? Twitch.tasteGames(Auth.cachedFollows()).catch(function () { return []; }) : Promise.resolve([]);
+    return taste.then(function (tg) {
+      var out = games.slice(), seen = {};
+      out.forEach(function (n) { seen[n.toLowerCase()] = 1; });
+      tg.forEach(function (g) { var n = g.displayName || g.name; if (n && !seen[n.toLowerCase()] && !seen[(g.name || '').toLowerCase()]) { seen[n.toLowerCase()] = 1; out.push(g.name || n); } });
+      return out.slice(0, 6);
+    });
+  }
+
   Pages.live = function () {
     var el = h('section.page.page-live');
-    var items = [], idx = 0, seen = {}, loading = null, sources = [], srcI = 0;
+    var tabsInner = h('div.chips-inner');
+    var tabs = h('div.chips.h-scroll.live-tabs', { 'data-group': 'live-tabs' }, tabsInner);
+    var items, idx, seen, loading, sources, srcI, mine, gen = 0;
     var feed = h('div.live-feed.focusable', null, [
       h('div.live-media', null, [h('img.live-img', { alt: '' }), h('video.live-video', { playsinline: '' }), h('div.live-fade')]),
       h('div.live-info', null, [
@@ -655,15 +679,16 @@
     ]);
     var empty = h('div.live-empty', { text: '' });
     var nextBox = h('div.live-next');
+    el.appendChild(tabs);
     el.appendChild(feed);
     el.appendChild(nextBox);
     el.appendChild(empty);
-    var mine = {};
+    var langs = feedLangs();
 
     function add(list, isMine) {
       (list || []).forEach(function (st) {
         var l = st && st.broadcaster && st.broadcaster.login;
-        if (!l || seen[l] || App.isBlocked && App.isBlocked(l)) return;
+        if (!l || seen[l] || App.isBlocked(l)) return;
         seen[l] = 1;
         if (isMine) mine[l] = 1;
         items.push(st);
@@ -671,50 +696,85 @@
     }
     function more() {
       if (loading || srcI >= sources.length) return loading || Promise.resolve();
-      var src = sources[srcI++];
-      loading = src().catch(function () { return []; }).then(function (r) {
+      var my = gen, src = sources[srcI++];
+      loading = src().catch(function () { return { list: [] }; }).then(function (r) {
+        if (my !== gen) return;
         loading = null;
         var before = items.length;
         add(r.list, r.mine);
         if (!items.length && srcI < sources.length) return more();
-        if (before === 0 && items.length) show(0);
+        feed.classList.toggle('hidden', !items.length);
+        empty.textContent = items.length ? '' : tr('Нет трансляций');
+        if (before === 0 && items.length) { show(0); App.refocus(); }
         else renderNext();
-        if (!items.length && srcI >= sources.length) { empty.textContent = tr('Нет трансляций'); feed.classList.add('hidden'); }
       });
       return loading;
     }
-    var lang = Settings.get('lang');
-    sources.push(function () { return myLive().then(function (l) { return { list: l, mine: true }; }); });
-    // рекомендации Twitch (если он их отдаёт этому входу) — как лента в приложении на телефоне
-    sources.push(function () { return Twitch.liveRecs().then(function (l) { return { list: l }; }); });
-    sources.push(function () {
-      if (!Auth.loggedIn()) return Promise.resolve({ list: [] });
-      return Twitch.tasteGames(Auth.cachedFollows()).then(function (games) {
-        return U.pool(games.slice(0, 4), 2, function (g) { return Twitch.gameStreams(g.name, 10).then(function (p) { return p.items; }).catch(function () { return []; }); });
-      }).then(function (lists) {
-        var out = [];
-        for (var k = 0; k < 10; k++) lists.forEach(function (l) { if (l && l[k]) out.push(l[k]); });
-        return { list: out };
-      });
-    });
-    sources.push(function () { return Twitch.topStreamsByLang(lang, 30).catch(function () { return Twitch.topStreams(30); }).then(function (p) { return { list: p.items }; }); });
-    // дальше — популярные по всему Twitch, страница за страницей (лента не кончается)
-    var topCursor = null;
-    function topPage() {
-      return Twitch.topStreams(30, topCursor).then(function (p) {
-        topCursor = p.cursor;
-        if (p.more && p.cursor) sources.push(topPage);
-        return { list: p.items };
-      });
+    // эфиры нескольких категорий вперемешку: по одному из каждой по кругу
+    function mix(lists) {
+      var out = [];
+      for (var k = 0; k < 20; k++) lists.forEach(function (l) { if (l && l[k]) out.push(l[k]); });
+      return out;
     }
-    sources.push(topPage);
+    function reset(game) {
+      gen++;
+      items = []; idx = 0; seen = {}; loading = null; sources = []; srcI = 0; mine = {};
+      Preview.stop();
+      var inGame = function (st) { return !game || (st.game && (st.game.name === game || st.game.displayName === game)); };
+      // 1. ваши каналы — в порядке Twitch
+      sources.push(function () { return myLive().then(function (l) { return { list: l.filter(inGame), mine: true }; }); });
+      if (game) {
+        sources.push(function () { return Twitch.gameStreamsLangs(game, 30, langs).then(function (l) { return { list: l }; }); });
+        sources.push(function () { return Twitch.gameStreams(game, 30).then(function (p) { return { list: p.items }; }); });
+      } else {
+        // 2. рекомендации Twitch под вас (если он их отдаёт этому входу)
+        sources.push(function () { return Twitch.liveRecs().then(function (l) { return { list: l }; }); });
+        // 3. категории, которые вы смотрите, на ваших языках — вперемешку
+        sources.push(function () {
+          return watchedGames().then(function (games) {
+            return U.pool(games.slice(0, 5), 2, function (g) { return Twitch.gameStreamsLangs(g, 12, langs).catch(function () { return []; }); });
+          }).then(function (lists) { return { list: mix(lists) }; });
+        });
+        // 4. популярное на вашем языке, потом по всему Twitch (страницами)
+        sources.push(function () { return Twitch.topStreamsByLang(langs[0], 30).then(function (p) { return { list: p.items }; }); });
+        var topCursor = null;
+        var topPage = function () {
+          return Twitch.topStreams(30, topCursor).then(function (p) {
+            topCursor = p.cursor;
+            if (p.more && p.cursor) sources.push(topPage);
+            return { list: p.items };
+          });
+        };
+        sources.push(topPage);
+      }
+      nextBox.innerHTML = '';
+      more();
+    }
+
+    // вкладки: «Все» + ваши категории
+    var activeTab = null;
+    function tab(label, game) {
+      var c = h('div.chip.focusable', { text: label });
+      c._onclick = function () {
+        if (activeTab === c) { if (items.length) Nav.focus(feed); return; }
+        if (activeTab) activeTab.classList.remove('active');
+        c.classList.add('active');
+        activeTab = c;
+        reset(game);
+      };
+      tabsInner.appendChild(c);
+      return c;
+    }
+    var all = tab(tr('Все'), null);
+    all.classList.add('active');
+    activeTab = all;
+    watchedGames().then(function (games) { games.slice(0, 5).forEach(function (g) { tab(g, g); }); }).catch(function () {});
 
     function renderNext() {
-      var box = nextBox;
-      box.innerHTML = '';
+      nextBox.innerHTML = '';
       for (var k = idx + 1; k <= idx + 3 && k < items.length; k++) {
         var st = items[k], b = st.broadcaster || {};
-        box.appendChild(h('div.live-next-item', null, [h('img', { src: st.previewImageURL || '', alt: '' }), h('span', { text: b.displayName || b.login })]));
+        nextBox.appendChild(h('div.live-next-item', null, [h('img', { src: st.previewImageURL || '', alt: '' }), h('span', { text: b.displayName || b.login })]));
       }
     }
     function show(i) {
@@ -742,11 +802,11 @@
     };
     feed._onkey = function (k) {
       if (k === 'DOWN') { if (idx < items.length - 1) show(idx + 1); else more(); return true; }
-      if (k === 'UP') { if (idx > 0) show(idx - 1); return true; }
+      if (k === 'UP') { if (idx > 0) { show(idx - 1); return true; } return false; } // на первом — вверх к вкладкам
       if (k === 'RIGHT') return true;
       return false;
     };
-    more().then(function () { App.refocus(); });
+    reset(null);
     return {
       el: el, nav: 'live',
       firstFocus: function () { return items.length ? feed : null; },

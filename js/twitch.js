@@ -325,6 +325,15 @@
       .then(function (d) { return page(d.streams); });
   };
 
+  // Эфиры категории на заданных языках (как лента «Эфир» на телефоне: близкое вам, а не самое большое в мире).
+  // Twitch не понял фильтр языков — без фильтра.
+  T.gameStreamsLangs = function (name, first, langs) {
+    var q = 'query($name:String!,$first:Int,$langs:[Language!]){game(name:$name){streams(first:$first,options:{broadcasterLanguages:$langs}){edges{cursor node{' + STREAM + '}} pageInfo{hasNextPage}}}}';
+    return gql(q, { name: name, first: first || 20, langs: langs.map(function (l) { return String(l).toUpperCase(); }) }, { cache: true, retries: 0 })
+      .then(function (d) { return d.game ? page(d.game.streams).items : []; })
+      .catch(function () { return T.gameStreams(name, first).then(function (p) { return p.items; }); });
+  };
+
   T.topGames = function (first, after) {
     return gql('query($first:Int,$after:Cursor){games(first:$first,after:$after){edges{cursor node{' + GAME + '}} pageInfo{hasNextPage}}}',
       { first: first || 40, after: after || null }, { cache: !after }).then(function (d) { return page(d.games); });
