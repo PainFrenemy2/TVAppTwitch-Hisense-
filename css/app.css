@@ -1155,3 +1155,4 @@ img.broken { visibility: hidden; }
 .live-next-item { margin-bottom: 1.6rem; font-size: 1.3rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .live-next-item img { display: block; width: 100%; height: 9.6rem; object-fit: cover; border-radius: .6rem; background: var(--bg2); margin-bottom: .5rem; }
 .live-empty { position: absolute; left: 0; right: 0; top: 45%; text-align: center; font-size: 1.8rem; color: var(--text2); }
+.diag-list .tv-info-row.focused { background: rgba(145,70,255,.22); border-radius: .4rem; }

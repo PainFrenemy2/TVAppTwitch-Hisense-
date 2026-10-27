@@ -683,6 +683,8 @@
     }
     var lang = Settings.get('lang');
     sources.push(function () { return myLive().then(function (l) { return { list: l, mine: true }; }); });
+    // рекомендации Twitch (если он их отдаёт этому входу) — как лента в приложении на телефоне
+    sources.push(function () { return Twitch.liveRecs().then(function (l) { return { list: l }; }); });
     sources.push(function () {
       if (!Auth.loggedIn()) return Promise.resolve({ list: [] });
       return Twitch.tasteGames(Auth.cachedFollows()).then(function (games) {
@@ -1324,7 +1326,7 @@
       var v = h('b', { text: value });
       if (ok === true) v.style.color = '#7ee787';
       if (ok === false) v.style.color = '#ff7b72';
-      var r = h('div.tv-info-row', null, [h('span', { text: name }), v]);
+      var r = h('div.tv-info-row.row.focusable', null, [h('span', { text: name }), v]);
       list.appendChild(r);
       return v;
     }
@@ -1352,9 +1354,19 @@
         .then(function () { return test('followedLive', function () { return Auth.followedLive().then(function (l) { return l.length + ' live'; }); }); })
         .then(function () { return test('follows', function () { return Auth.syncFollows().then(function (l) { return l.length + ' channels'; }); }); })
         .then(function () { return test('followedGames', function () { return Auth.followedGames().then(function (l) { return l.length + ' categories'; }); }); })
+        .then(recs)
         .then(shelves);
     } else shelves();
 
+    // рекомендованные эфиры (лента «Эфир») — выше рядов главной, чтобы помещались на экран
+    function recs() {
+      var v = row('Live recommendations', '…');
+      return Twitch.liveRecs().then(function (l) {
+        v.textContent = l.length ? l.length + ' streams' : 'none — feed uses your categories';
+        v.style.color = l.length ? '#7ee787' : '#ff7b72';
+        (Twitch.recsDiag || []).forEach(function (st) { row('  ' + st.name, st.info + ' • ' + st.ms + ' ms', st.ok); });
+      });
+    }
     function shelves() {
       Twitch.clearCache();
       var v = row('Home shelves', '…');

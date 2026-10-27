@@ -254,6 +254,47 @@
     return p;
   };
 
+  // Рекомендованные эфиры для ленты «Эфир» — как в приложении Twitch на телефоне. Какой запрос Twitch отдаст
+  // входу с телевизора, заранее неизвестно, поэтому пробуем по очереди; итог каждого — в T.recsDiag (для диагностики).
+  var REC_VARIANTS = [
+    ['recommendedStreams android', 'query($id:String!){recommendedStreams(first:40,recRequestID:$id,context:{platform:"android",clientApp:"android",location:"discover"}){edges{node{' + STREAM + '}}}}'],
+    ['recommendedStreams web', 'query($id:String!){recommendedStreams(first:40,recRequestID:$id,context:{platform:"web",clientApp:"twilight",location:"home"}){edges{node{' + STREAM + '}}}}'],
+    ['personalSections android', 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"android"}}){items{__typename ... on PersonalSectionChannel{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}}']
+  ];
+  var recsMemo = { at: 0, key: '', p: null };
+  T.recsDiag = [];
+  T.liveRecs = function () {
+    var signed = window.Auth && Auth.loggedIn() && !Auth.needsLogin();
+    var key = signed && Auth.user() ? Auth.user().id : 'anon';
+    if (recsMemo.p && recsMemo.key === key && Date.now() - recsMemo.at < 120000) return recsMemo.p;
+    var run = function (q, v) { return signed ? Auth.gql(q, v) : gql(q, v, { retries: 0 }); };
+    T.recsDiag = [];
+    var i = 0;
+    function next() {
+      if (i >= REC_VARIANTS.length) return Promise.resolve([]);
+      var rv = REC_VARIANTS[i++], t0 = Date.now();
+      return run(rv[1], { id: U.uid(32) }).then(function (d) {
+        var list;
+        if (d && d.recommendedStreams) list = edges(d.recommendedStreams);
+        else list = [].concat.apply([], ((d && d.personalSections) || []).map(function (sec) {
+          return (sec.items || []).map(function (it) {
+            var u = it.user; if (!u || !u.stream) return null;
+            u.stream.broadcaster = u.stream.broadcaster || { id: u.id, login: u.login, displayName: u.displayName, profileImageURL: u.profileImageURL };
+            return u.stream;
+          }).filter(Boolean);
+        }));
+        list = list.filter(function (st) { return st && st.broadcaster; });
+        T.recsDiag.push({ name: rv[0], ok: !!list.length, info: list.length + ' streams', ms: Date.now() - t0 });
+        return list.length ? list : next();
+      }, function (e) {
+        T.recsDiag.push({ name: rv[0], ok: false, info: 'error: ' + ((e && e.message) || e), ms: Date.now() - t0 });
+        return next();
+      });
+    }
+    recsMemo = { at: Date.now(), key: key, p: next() };
+    return recsMemo.p;
+  };
+
   T.topStreams = function (first, after) {
     return gql('query($first:Int,$after:Cursor){streams(first:$first,after:$after){edges{cursor node{' + STREAM + '}} pageInfo{hasNextPage}}}',
       { first: first || 30, after: after || null }, { cache: !after }).then(function (d) { return page(d.streams); });
