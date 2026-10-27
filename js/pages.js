@@ -873,7 +873,7 @@
         r[1].forEach(function (u) {
           if (u.stream && !liveSet[u.login]) { u.stream.broadcaster = u.stream.broadcaster || u; live.push(u.stream); liveSet[u.login] = 1; }
         });
-        live.sort(function (a, b) { return b.viewersCount - a.viewersCount; });
+        // порядок не трогаем — как у Twitch на телефоне и ПК («по рекомендации»), а не по числу зрителей
         var off = r[1].filter(function (u) { return !u.stream && !liveSet[u.login]; });
         if (live.length) {
           body.appendChild(h('h2.section-title.row', { text: tr('В эфире') + ' • ' + live.length }));
