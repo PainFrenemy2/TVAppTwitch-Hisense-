@@ -1317,10 +1317,12 @@
   Pages.diag = function () {
     var el = pageShell('page-diag');
     el.content.appendChild(header(tr('Диагностика аккаунта'), tr('Покажите этот экран разработчику, если главная отличается от Twitch')));
-    var list = h('div.row.diag-list');
-    el.content.appendChild(list);
+    // кнопка — сверху, под заголовком: строки дописываются по мере ответов Twitch, и кнопка внизу
+    // уезжала бы за экран; ниже стрелкой ▼ можно пройти по всем строкам
     var again = UI.button(tr('Повторить'), 'refresh', function () { App.replace('diag', {}); }, 'primary');
     el.content.appendChild(h('div.row.page-actions', { 'data-group': 'free' }, again));
+    var list = h('div.diag-list');
+    el.content.appendChild(list);
 
     function row(name, value, ok) {
       var v = h('b', { text: value });
