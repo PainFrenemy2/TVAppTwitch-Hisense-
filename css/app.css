@@ -1114,6 +1114,9 @@ img.broken { visibility: hidden; }
 .ev-corner { position: absolute; top: 2.4rem; right: 2.4rem; z-index: 5; display: none; align-items: center;
   padding: .6rem 1rem; border-radius: 2rem; background: rgba(14,14,16,.82); font-size: 1.35rem; font-weight: 600; line-height: 1; }
 .ev-corner.has-ev, .ev-corner.flash, .osd-on .ev-corner.has-pts { display: flex; }
+/* значок гаснет через пару секунд; виден снова с панелью плеера или после бонуса */
+.ev-corner { opacity: 0; transition: opacity .6s; }
+.ev-corner.show, .ev-corner.flash, .osd-on .ev-corner { opacity: 1; }
 .osd-on .ev-corner { top: 11rem; }
 .evc-ev { display: none; align-items: center; }
 .has-ev .evc-ev { display: flex; }

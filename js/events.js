@@ -188,6 +188,12 @@
     var key = kind ? kind + ev.id + ev.status : '';
     if (corner.key !== key) {
       corner.key = key;
+      // новое событие или смена статуса — значок виден пару секунд и гаснет (снова виден с панелью плеера)
+      if (kind) {
+        corner.el.classList.add('show');
+        clearTimeout(corner.showT);
+        corner.showT = setTimeout(function () { if (corner) corner.el.classList.remove('show'); }, 4000);
+      }
       corner.ev.innerHTML = '';
       if (kind) {
         corner.ev.appendChild(h('span.evc-kind', { text: kind === 'prediction' ? tr('Прогноз') : tr('Голосование') }));
@@ -212,7 +218,7 @@
     corner.flashT = setTimeout(function () { if (corner) corner.el.classList.remove('flash'); }, 6000);
   }
   function removeCorner() {
-    if (corner) { clearTimeout(corner.flashT); if (corner.el.parentNode) corner.el.parentNode.removeChild(corner.el); }
+    if (corner) { clearTimeout(corner.flashT); clearTimeout(corner.showT); if (corner.el.parentNode) corner.el.parentNode.removeChild(corner.el); }
     corner = null;
   }
   Ev.renderCorner = renderCorner;
