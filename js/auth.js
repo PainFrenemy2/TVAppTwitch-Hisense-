@@ -187,7 +187,7 @@
     return Auth.ensure().then(function () {
       return fetch('https://gql.twitch.tv/gql', {
         method: 'POST',
-        headers: { 'Client-ID': CLIENT_ID, 'Authorization': 'OAuth ' + Auth.data.token, 'Content-Type': 'text/plain;charset=UTF-8' },
+        headers: { 'Client-ID': CLIENT_ID, 'Authorization': 'OAuth ' + Auth.data.token, 'Content-Type': 'text/plain;charset=UTF-8', 'Accept-Language': I18N.lang },
         body: JSON.stringify({ query: query, variables: variables || {} })
       });
     }).then(function (r) {

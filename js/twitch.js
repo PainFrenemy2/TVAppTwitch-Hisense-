@@ -29,7 +29,7 @@
     var body = JSON.stringify({ query: query, variables: variables || {} });
     return request(GQL, {
       method: 'POST',
-      headers: { 'Client-ID': CLIENT_ID, 'Content-Type': 'text/plain;charset=UTF-8', 'X-Device-Id': DEVICE_ID },
+      headers: { 'Client-ID': CLIENT_ID, 'Content-Type': 'text/plain;charset=UTF-8', 'X-Device-Id': DEVICE_ID, 'Accept-Language': I18N.lang },
       body: body
     }, opts.timeout || 12000, opts.retries === undefined ? 2 : opts.retries).then(function (r) {
       return r.json();
@@ -104,6 +104,51 @@
   var T = {};
   // сырой запрос без кэша и повторов (прогнозы, голосования — данные меняются каждую секунду)
   T.gqlRaw = function (query, variables) { return gql(query, variables, { retries: 0, timeout: 8000 }); };
+
+  // ---------- Персональная главная, как на twitch.tv и в приложении Twitch ----------
+  // С входом — от имени аккаунта (рекомендации под вас), без входа — общие ряды главной Twitch.
+  // Возвращает [{id, title, items:[{type:'Stream'|'Game'|'Clip'|'Video', data}]}] или [] (тогда — обычная главная).
+  var SHELVES_Q = 'query($first:Int,$itemsPerRow:Int,$platform:String!,$requestID:String!,$imageWidth:Int){' +
+    'shelves(first:$first,itemsPerRow:$itemsPerRow,platform:$platform,requestID:$requestID,imageWidth:$imageWidth,langWeightedCCU:true){' +
+    'edges{node{id title{fallbackLocalizedTitle} content{edges{node{__typename ' +
+    '... on Stream{' + STREAM + '} ... on Game{' + GAME + '} ... on Clip{' + CLIP + '} ... on Video{' + VIDEO + '}}}}}}}}';
+  var RECS_Q = 'query{personalSections(input:{sectionInputs:[RECOMMENDED_SECTION],recommendationContext:{platform:"web"}}){' +
+    'type title{localizedFallback} items{user{id login displayName profileImageURL(width:70) stream{' + STREAM + '}}}}}';
+  var personal = { at: 0, key: '', p: null };
+
+  T.personalShelves = function () {
+    var signed = window.Auth && Auth.loggedIn() && !Auth.needsLogin();
+    var key = signed ? Auth.user().id : 'anon';
+    if (personal.p && personal.key === key && Date.now() - personal.at < 60000) return personal.p;
+    var ask = signed ? function (q, v) { return Auth.gql(q, v); } : function (q, v) { return gql(q, v, { retries: 0 }); };
+    var p = ask(SHELVES_Q, { first: 8, itemsPerRow: 16, platform: 'web', requestID: U.uid(16), imageWidth: 50 }).then(function (d) {
+      var out = [];
+      edges(d && d.shelves).forEach(function (n) {
+        var items = edges(n.content).filter(function (x) {
+          return x && /^(Stream|Game|Clip|Video)$/.test(x.__typename) && (x.__typename !== 'Stream' || x.broadcaster);
+        }).map(function (x) { return { type: x.__typename, data: x }; });
+        var title = n.title && n.title.fallbackLocalizedTitle;
+        if (items.length && title) out.push({ id: n.id, title: title, items: items });
+      });
+      if (out.length) return out;
+      throw new Error('no shelves');
+    }).catch(function () {
+      // запасной вариант — «Рекомендуемые каналы» (как блок слева на twitch.tv)
+      return ask(RECS_Q, {}).then(function (d) {
+        var out = [];
+        ((d && d.personalSections) || []).forEach(function (sec) {
+          var items = (sec.items || []).map(function (it) { return it.user; }).filter(function (u) { return u && u.stream; }).map(function (u) {
+            var st = u.stream; st.broadcaster = st.broadcaster || { id: u.id, login: u.login, displayName: u.displayName, profileImageURL: u.profileImageURL };
+            return { type: 'Stream', data: st };
+          });
+          if (items.length) out.push({ id: sec.type, title: (sec.title && sec.title.localizedFallback) || tr('Рекомендуемые каналы'), items: items });
+        });
+        return out;
+      });
+    }).catch(function () { return []; });
+    personal = { at: Date.now(), key: key, p: p };
+    return p;
+  };
 
   T.topStreams = function (first, after) {
     return gql('query($first:Int,$after:Cursor){streams(first:$first,after:$after){edges{cursor node{' + STREAM + '}} pageInfo{hasNextPage}}}',
@@ -507,7 +552,7 @@
     return L;
   };
 
-  T.clearCache = function () { cache = {}; };
+  T.clearCache = function () { cache = {}; personal.p = null; };
 
   window.Twitch = T;
 })();

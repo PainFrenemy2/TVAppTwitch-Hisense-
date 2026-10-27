@@ -237,7 +237,16 @@
     heroEl._onblur = function () { Preview.stop(); };
 
     var lang = Settings.get('lang');
-    Twitch.topStreamsByLang(lang, 8).catch(function () { return Twitch.topStreams(8); }).then(function (p) {
+    // баннер: с аккаунтом — рекомендованные Twitch эфиры (как на twitch.tv), иначе популярные на вашем языке
+    var personalHero = Twitch.personalShelves().then(function (rows) {
+      var st = [];
+      rows.forEach(function (r) { r.items.forEach(function (it) { if (it.type === 'Stream' && st.length < 8) st.push(it.data); }); });
+      if (st.length < 3) throw new Error('few');
+      return { items: st };
+    });
+    personalHero.catch(function () {
+      return Twitch.topStreamsByLang(lang, 8).catch(function () { return Twitch.topStreams(8); });
+    }).then(function (p) {
       heroItems = p.items.filter(function (s) { return s.broadcaster && !App.isBlocked(s.broadcaster.login); }).slice(0, 8);
       if (!heroItems.length) return;
       hero.appendChild(heroEl);
@@ -282,6 +291,8 @@
       if (App.myChannels().length || Auth.loggedIn()) {
         autoShelf(body, Auth.loggedIn() ? tr('Подписки в эфире') : tr('Избранное в эфире'), myLive, streamCard, { cls: 'shelf-favs' });
       }
+      // ряды главной Twitch — «Рекомендованные каналы», «Категории, которые вам понравятся» и т.д.
+      personalRows();
       var cont = continueItems();
       if (cont.length) later(function () { autoShelf(body, tr('Продолжить просмотр'), function () { return Promise.resolve(cont); }, videoCard); });
       var recent = App.history_().filter(function (x) { return x.kind === 'live'; });
@@ -299,9 +310,18 @@
           return u.stream ? streamCard(u.stream) : channelCard(u);
         });
       });
+      // С аккаунтом главная — как у Twitch: только ваше (подписки, рекомендации Twitch, история).
+      // Общие «популярные» ряды — без входа или если Twitch не отдал персональные ряды.
+      if (signedIn()) { body._lazy(Math.max(0, 4 - body.children.length)); return; }
+      genericRows(true);
+    }
+
+    function signedIn() { return Auth.loggedIn() && !Auth.needsLogin(); }
+
+    function genericRows(top) {
       var langName = (LANGS.filter(function (l) { return l[0] === lang; })[0] || ['', ''])[1];
       // «Популярные трансляции» всегда во второй-третьей строке
-      queue.unshift(function () {
+      queue[top ? 'unshift' : 'push'](function () {
         autoShelf(body, tr('Популярные трансляции') + (langName ? ' • ' + langName : ''), function () {
           return Twitch.topStreamsByLang(lang, 20).then(function (p) { return p.items; });
         }, streamCard);
@@ -323,6 +343,24 @@
       })(gi);
       // сразу показываем столько полок, чтобы заполнить экран
       body._lazy(Math.max(0, 4 - body.children.length));
+    }
+
+    var MAKE = { Stream: streamCard, Game: gameCard, Clip: clipCard, Video: videoCard };
+    function personalRows() {
+      var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard);
+      Twitch.personalShelves().then(function (rows) {
+        if (!holder.parentNode) return;
+        // Twitch не отдал персональные ряды — показываем обычную главную, чтобы не было пусто
+        if (!rows.length && signedIn()) { holder.parentNode.removeChild(holder); genericRows(false); body._lazy(Math.max(0, 4 - body.children.length)); App.refocus(); return; }
+        rows.forEach(function (r) {
+          var type = r.items[0].type;
+          var shelf = UI.shelf(r.title, type === 'Game' ? { cls: 'shelf-games' } : null);
+          shelf.add(r.items.filter(function (it) { return it.type === type; }).map(function (it) { return MAKE[type](it.data); }));
+          if (shelf.track.children.length) body.insertBefore(shelf, holder);
+        });
+        holder.parentNode.removeChild(holder);
+        App.refocus();
+      });
     }
 
     function renderGame(g) {
