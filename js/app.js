@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.8.6',
+    VERSION: '1.8.7',
     layers: [],
     history: [],
     pendingFocus: false
@@ -321,14 +321,17 @@
     if (!target) target = page.firstFocus ? page.firstFocus() : Nav.focusables(page.el)[0];
     if (target) { Nav.focus(target); App.pendingFocus = false; App.hideSplash(); }
     else {
-      Nav.focus(activeSideItem());
+      // страница ещё грузится: фокус не уводим в боковое меню (иначе оно на миг открывается и закрывается,
+      // когда появляется контент) — просто ждём, App.refocus поставит фокус на первую карточку
+      Nav.blur();
       App.pendingFocus = true;
       clearTimeout(App._pfTimer);
       App._pfTimer = setTimeout(function () {
         if (!App.pendingFocus) return;
         App.pendingFocus = false;
         var f = U.$('.card.focusable', page.el) || Nav.focusables(page.el)[0];
-        if (f && inSidebar(Nav.current) && App.topLayer() === App.base) Nav.focus(f);
+        if (App.topLayer() !== App.base || (Nav.current && !inSidebar(Nav.current))) return;
+        Nav.focus(f || activeSideItem()); // пусто и через 5 с — тогда уже в меню
       }, 5000);
     }
   }
@@ -344,7 +347,7 @@
       var t = page.firstFocus ? page.firstFocus() : Nav.focusables(page.el)[0];
       if (!t && !App.pendingFocus) t = Nav.focusables(page.el)[0];
       if (t) { App.pendingFocus = false; Nav.focus(t); App.hideSplash(); }
-      else if (lost) Nav.focus(activeSideItem());
+      else if (lost && !App.pendingFocus) Nav.focus(activeSideItem());
     } else if (cur && page.el.contains(cur)) {
       Nav.reveal(cur); // контент выше мог сдвинуться
     }

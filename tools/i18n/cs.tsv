@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch tip nepřijal
 Заблокировать канал	Zablokovat kanál
 Закрыть	Zavřít
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanál zmizí z hlavní stránky, hledání, doporučení a oznámení. Odblokovat ho můžete v Nastavení → Zablokované kanály.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Když streamer spustí tipovačku nebo hlasování, v přehrávači se objeví upozornění. Zapojit se můžete i přes „Možnosti“ přehrávače.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Namiřte fotoaparát telefonu na QR kód a popište, co se stalo. Údaje o televizi a verzi jsou již vyplněny.
 Недостаточно баллов канала	Nedostatek bodů kanálu
 Никого не заблокировано	Nikdo není zablokován
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch tip nepřijal
 Активные каналы, которые могут вам понравиться	Živé kanály, které by se vám mohly líbit
 Прогноз завершён	Tipovačka skončila
 Голосование завершено	Hlasování skončilo
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Když streamer spustí předpověď nebo hlasování, v přehrávači se zobrazí upozornění. Ikona události je v pravém horním rohu videa; otevřete ji tlačítkem Nahoru.
+Автосбор бонусных баллов	Automaticky sbírat bonusové body
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	Truhlička s bonusovými body kanálu se vybere sama, zatímco sledujete (vyžaduje přihlášení k Twitchi).

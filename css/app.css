@@ -1110,3 +1110,22 @@ img.broken { visibility: hidden; }
 .ev-many .ev-pick { padding: .9rem 1rem; }
 .ev-content { padding-bottom: 3rem; }
 .ev-closed .ev-pick.focused { box-shadow: inset 0 0 0 .15rem rgba(255,255,255,.45); }
+/* ===== значок события и баллов в правом верхнем углу видео (как сундучок на twitch.tv) ===== */
+.ev-corner { position: absolute; top: 2.4rem; right: 2.4rem; z-index: 5; display: none; align-items: center;
+  padding: .6rem 1rem; border-radius: 2rem; background: rgba(14,14,16,.82); font-size: 1.35rem; font-weight: 600; line-height: 1; }
+.ev-corner.has-ev, .ev-corner.flash, .osd-on .ev-corner.has-pts { display: flex; }
+.osd-on .ev-corner { top: 11rem; }
+.evc-ev { display: none; align-items: center; }
+.has-ev .evc-ev { display: flex; }
+.evc-kind { color: #bf94ff; }
+.evc-bar { display: flex; width: 5rem; height: .5rem; border-radius: .3rem; overflow: hidden; margin-left: .8rem; }
+.evc-bar i { display: block; height: 100%; transition: width .4s; }
+.evc-up { margin-left: .7rem; font-size: 1rem; color: var(--text2); }
+.evc-pt { display: none; align-items: center; margin-left: 1rem; }
+.ev-corner.flash .evc-pt, .osd-on .ev-corner.has-pts .evc-pt { display: flex; }
+.ev-corner:not(.has-ev) .evc-pt { margin-left: 0; }
+.evc-pt .ev-ic { width: 1.6rem; height: 1.6rem; margin-right: .4rem; fill: #bf94ff; display: inline-flex; }
+.evc-pt .ev-ic svg { width: 100%; height: 100%; }
+.evc-plus { display: none; margin-left: .5rem; color: #00f593; }
+.ev-corner.flash .evc-plus { display: inline; }
+.ev-corner.flash { box-shadow: 0 0 0 .2rem #00f593; }

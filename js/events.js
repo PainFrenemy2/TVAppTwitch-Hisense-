@@ -1,7 +1,7 @@
 /* Прогнозы (ставки баллами канала) и голосования во время эфира — как на twitch.tv.
    Раз в 30 секунд спрашиваем Twitch, идёт ли сейчас прогноз/голосование; о новом — всплывающая подсказка
-   (отключается в настройках). Сделать ставку или проголосовать можно из «Параметров» плеера или кнопкой OK
-   на подсказке. Для участия нужен вход в Twitch. Закончившееся событие ещё минуту показывает итог. */
+   (отключается в настройках), а в правом верхнем углу видео — значок события; «Вверх» или OK на подсказке
+   открывает окно. Для участия нужен вход в Twitch. Закончившееся событие ещё минуту показывает итог. */
 (function () {
   'use strict';
   var h = U.h;
@@ -46,6 +46,26 @@
   function loadPoll(login) {
     return asUser('query($login:String!){channel(name:$login){id viewablePoll{id title status remainingDurationMilliseconds choices{id title votes{total}} votes{total}}}}', { login: login })
       .then(function (d) { return (d && d.channel && d.channel.viewablePoll) || null; });
+  }
+
+  // Баллы канала и сундучок с бонусом (как на twitch.tv: «Нажмите, чтобы получить бонус»).
+  // Бонус забираем сами (настройка «Автосбор бонусных баллов»), в углу плеера мелькает «+50».
+  function loadPoints(login) {
+    if (!Auth.loggedIn() || Auth.needsLogin()) return Promise.resolve(null);
+    return Auth.gql('query($login:String!){user(login:$login){channel{id self{communityPoints{balance availableClaim{id}}}}}}', { login: login }).then(function (d) {
+      var c = d && d.user && d.user.channel, cp = c && c.self && c.self.communityPoints;
+      return cp ? { channelID: c.id, balance: cp.balance, claim: cp.availableClaim && cp.availableClaim.id } : null;
+    });
+  }
+  function claimBonus(login, pts) {
+    Auth.gql('mutation($input:ClaimCommunityPointsInput!){claimCommunityPoints(input:$input){currentPoints error{code}}}',
+      { input: { channelID: pts.channelID, claimID: pts.claim } }).then(function (d) {
+      var r = d && d.claimCommunityPoints;
+      if (!r || r.error || Ev.login !== login) return;
+      var before = Ev.balance;
+      if (typeof r.currentPoints === 'number') Ev.balance = r.currentPoints;
+      flashCorner(typeof before === 'number' && Ev.balance > before ? '+' + U.num(Ev.balance - before) : '+');
+    }).catch(function () {});
   }
 
   function loadBalance(login) {
@@ -109,7 +129,9 @@
     Ev.login = null;
     Ev.prediction = null;
     Ev.poll = null;
+    Ev.balance = null;
     hideBanner();
+    removeCorner();
   };
 
   // какой канал сейчас проверяем: при переключении канала новая проверка не ждёт старую
@@ -119,9 +141,15 @@
     // ТВ свернул приложение или запрос по этому каналу ещё идёт — не дёргаем Twitch впустую
     if (!login || document.hidden || Player.bgPaused || checking === login) return;
     checking = login;
-    Promise.all([loadPrediction(login).catch(function () { return undefined; }), loadPoll(login).catch(function () { return undefined; })]).then(function (r) {
+    Promise.all([loadPrediction(login).catch(function () { return undefined; }), loadPoll(login).catch(function () { return undefined; }),
+      loadPoints(login).catch(function () { return null; })]).then(function (r) {
       if (checking === login) checking = null;
       if (Ev.login !== login) return;
+      var pts = r[2];
+      if (pts) {
+        Ev.balance = pts.balance;
+        if (pts.claim && Settings.get('autoClaim') !== 'off' && Ev.claimed !== pts.claim) { Ev.claimed = pts.claim; claimBonus(login, pts); }
+      }
       // undefined — ошибка сети: оставляем то, что было
       if (r[0] !== undefined) Ev.prediction = mergePrediction(Ev.prediction, r[0]);
       if (r[1] !== undefined) Ev.poll = mergePoll(Ev.poll, r[1]);
@@ -130,8 +158,64 @@
       if (Ev.poll && Ev.poll.status === 'ACTIVE' && !Ev.seen['v' + Ev.poll.id]) { Ev.seen['v' + Ev.poll.id] = 1; fresh = fresh || 'poll'; }
       if (fresh && Settings.get('eventsNotify') !== 'off' && !panel) showBanner(fresh);
       if (panel) panel.update();
+      renderCorner();
     });
   }
+
+  // ---------- значок в правом верхнем углу видео (как сундучок баллов на twitch.tv) ----------
+  // Идёт прогноз/голосование — значок виден всегда: тип события, мини-полоса синий/розовый и «▲»
+  // (кнопка «Вверх» открывает окно). Баллы канала — пока открыта панель плеера или сразу после бонуса.
+  var corner = null;
+  function cornerEvent() {
+    var p = Ev.prediction, v = Ev.poll;
+    if (p && p.status === 'ACTIVE') return 'prediction';
+    if (v && v.status === 'ACTIVE') return 'poll';
+    return p ? 'prediction' : v ? 'poll' : null;
+  }
+  function renderCorner() {
+    if (!Ev.login) return;
+    if (!corner) {
+      corner = { el: h('div.ev-corner'), pts: h('span.evc-pts'), ev: h('span.evc-ev'), plus: h('span.evc-plus') };
+      corner.el.appendChild(corner.ev);
+      corner.el.appendChild(h('span.evc-pt', null, [h('span.ev-ic', { html: ICON.points }), corner.pts, corner.plus]));
+      var box = U.$('.video-box', Player.el) || Player.el;
+      box.appendChild(corner.el);
+    }
+    var kind = cornerEvent(), ev = kind === 'prediction' ? Ev.prediction : Ev.poll;
+    corner.el.classList.toggle('has-ev', !!kind);
+    corner.el.classList.toggle('has-pts', typeof Ev.balance === 'number');
+    corner.pts.textContent = typeof Ev.balance === 'number' ? U.num(Ev.balance) : '';
+    var key = kind ? kind + ev.id + ev.status : '';
+    if (corner.key !== key) {
+      corner.key = key;
+      corner.ev.innerHTML = '';
+      if (kind) {
+        corner.ev.appendChild(h('span.evc-kind', { text: kind === 'prediction' ? tr('Прогноз') : tr('Голосование') }));
+        corner.bar = kind === 'prediction' && ev.outcomes.length === 2 ? h('span.evc-bar', null, [h('i', { style: 'background:' + COLORS.BLUE }), h('i', { style: 'background:' + COLORS.PINK })]) : null;
+        if (corner.bar) corner.ev.appendChild(corner.bar);
+        if (ev.status === 'ACTIVE') corner.ev.appendChild(h('span.evc-up', { text: '▲' }));
+      }
+    }
+    if (corner.bar) {
+      var a = ev.outcomes[0].totalPoints || 0, b = ev.outcomes[1].totalPoints || 0;
+      var pa = a + b ? a / (a + b) * 100 : 50;
+      corner.bar.firstChild.style.width = pa + '%';
+      corner.bar.lastChild.style.width = (100 - pa) + '%';
+    }
+  }
+  function flashCorner(text) {
+    renderCorner();
+    if (!corner) return;
+    corner.plus.textContent = text;
+    corner.el.classList.add('flash');
+    clearTimeout(corner.flashT);
+    corner.flashT = setTimeout(function () { if (corner) corner.el.classList.remove('flash'); }, 6000);
+  }
+  function removeCorner() {
+    if (corner) { clearTimeout(corner.flashT); if (corner.el.parentNode) corner.el.parentNode.removeChild(corner.el); }
+    corner = null;
+  }
+  Ev.renderCorner = renderCorner;
 
   // ---------- подсказка в углу плеера ----------
   function showBanner(kind) {
@@ -165,6 +249,8 @@
   }
   // OK, пока видна подсказка (и панель плеера скрыта) — открыть прогноз/голосование
   Ev.onKey = function (k) {
+    var ck = cornerEvent();
+    if (k === 'UP' && ck) { hideBanner(); if (ck === 'prediction') Ev.openPrediction(); else Ev.openPoll(); return true; }
     if (!Ev.banner) return false;
     if (k === 'BACK') { hideBanner(); return true; } // «Назад» сначала убирает подсказку, а не закрывает эфир
     if (k !== 'ENTER') return false;
@@ -172,14 +258,6 @@
     hideBanner();
     if (kind === 'prediction') Ev.openPrediction(); else Ev.openPoll();
     return true;
-  };
-
-  // ---------- пункты для меню «Параметры» ----------
-  Ev.menuItems = function () {
-    var items = [];
-    if (Ev.prediction) items.push({ label: tr('Прогноз'), sub: Ev.prediction.title + ' • ' + predictionStatus(Ev.prediction), onSelect: Ev.openPrediction });
-    if (Ev.poll) items.push({ label: tr('Голосование'), sub: Ev.poll.title + ' • ' + pollStatus(Ev.poll), onSelect: Ev.openPoll });
-    return items;
   };
 
   function needLogin() {
@@ -403,6 +481,7 @@
         if (!r || r.error) throw new Error(r && r.error ? r.error.code : '');
         UI.toast(tr('Ставка принята: ') + o.title + ' • ' + tr('Баллы: ') + U.num(points));
         if (Ev.balance) Ev.balance = Math.max(0, Ev.balance - points);
+        renderCorner();
         refresh('prediction');
       })
       .catch(function (e) { UI.toast(tr('Twitch не принял ставку') + (e && e.message ? ': ' + e.message : ''), 5000); });

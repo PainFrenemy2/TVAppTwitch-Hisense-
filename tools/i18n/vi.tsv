@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch không nhận dự đoán
 Заблокировать канал	Chặn kênh
 Закрыть	Đóng
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kênh sẽ biến mất khỏi trang chủ, tìm kiếm, đề xuất và thông báo. Bạn có thể bỏ chặn trong Cài đặt → Kênh đã chặn.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Khi streamer bắt đầu dự đoán hoặc bình chọn, trình phát sẽ hiện thông báo. Bạn cũng có thể tham gia qua “Tùy chọn” của trình phát.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Hướng camera điện thoại vào mã QR và mô tả chuyện đã xảy ra. Thông tin TV và phiên bản đã được điền sẵn.
 Недостаточно баллов канала	Không đủ điểm kênh
 Никого не заблокировано	Chưa chặn ai
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch không nhận dự đoán
 Активные каналы, которые могут вам понравиться	Kênh trực tiếp bạn có thể thích
 Прогноз завершён	Dự đoán đã kết thúc
 Голосование завершено	Bình chọn đã kết thúc
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Khi streamer bắt đầu dự đoán hoặc bình chọn, trình phát sẽ hiện thông báo. Biểu tượng sự kiện nằm ở góc trên bên phải video; nhấn Lên để mở.
+Автосбор бонусных баллов	Tự động nhận điểm thưởng
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	Rương điểm thưởng của kênh được tự động nhận khi bạn xem (cần đăng nhập Twitch).

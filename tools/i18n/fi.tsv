@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch ei hyväksynyt ennustetta
 Заблокировать канал	Estä kanava
 Закрыть	Sulje
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanava katoaa etusivulta, hausta, suosituksista ja ilmoituksista. Eston voi poistaa kohdassa Asetukset → Estetyt kanavat.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Kun striimaaja aloittaa ennusteen tai äänestyksen, soittimeen tulee ilmoitus. Voit osallistua myös soittimen ”Valinnat”-kohdasta.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Osoita puhelimen kameralla QR-koodia ja kerro, mitä tapahtui. Television ja version tiedot on jo täytetty.
 Недостаточно баллов канала	Kanavapisteet eivät riitä
 Никого не заблокировано	Ketään ei ole estetty
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch ei hyväksynyt ennustetta
 Активные каналы, которые могут вам понравиться	Live-kanavat, joista saatat pitää
 Прогноз завершён	Ennuste päättyi
 Голосование завершено	Äänestys päättyi
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Kun striimaaja aloittaa ennustuksen tai äänestyksen, soittimeen tulee vihje. Tapahtuman kuvake on videon oikeassa yläkulmassa; avaa se Ylös-painikkeella.
+Автосбор бонусных баллов	Kerää bonuspisteet automaattisesti
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	Kanavan bonuspisteiden arkku kerätään automaattisesti katsellessasi (vaatii Twitch-kirjautumisen).

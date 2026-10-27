@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch godtok ikke spådommen
 Заблокировать канал	Blokker kanal
 Закрыть	Lukk
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanalen forsvinner fra startsiden, søk, anbefalinger og varsler. Du kan oppheve blokkeringen under Innstillinger → Blokkerte kanaler.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Når streameren starter en spådom eller avstemning, vises et varsel i spilleren. Du kan også delta via «Alternativer» i spilleren.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Rett telefonkameraet mot QR-koden og beskriv hva som skjedde. TV- og versjonsinformasjon er allerede fylt inn.
 Недостаточно баллов канала	Ikke nok kanalpoeng
 Никого не заблокировано	Ingen er blokkert
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch godtok ikke spådommen
 Активные каналы, которые могут вам понравиться	Direktekanaler du kanskje liker
 Прогноз завершён	Spådommen er avsluttet
 Голосование завершено	Avstemningen er avsluttet
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Når streameren starter en spådom eller avstemning, vises et hint i spilleren. Hendelsesikonet er øverst til høyre i videoen; trykk Opp for å åpne det.
+Автосбор бонусных баллов	Hent bonuspoeng automatisk
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	Kisten med bonuspoeng for kanalen hentes automatisk mens du ser (krever Twitch-pålogging).

@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch no aceptó la predicción
 Заблокировать канал	Bloquear canal
 Закрыть	Cerrar
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	El canal desaparecerá de Inicio, la búsqueda, las recomendaciones y los avisos. Puedes desbloquearlo en Ajustes → Canales bloqueados.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Cuando el streamer inicia una predicción o encuesta, aparece un aviso en el reproductor. También puedes participar desde «Opciones» del reproductor.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Apunta la cámara del móvil al código QR y describe lo que pasó. Los datos de la TV y la versión ya están incluidos.
 Недостаточно баллов канала	No tienes suficientes puntos del canal
 Никого не заблокировано	No hay nadie bloqueado
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch no aceptó la predicción
 Активные каналы, которые могут вам понравиться	Canales en directo que te pueden gustar
 Прогноз завершён	Predicción finalizada
 Голосование завершено	Encuesta finalizada
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Cuando el streamer inicia una predicción o encuesta, aparece un aviso en el reproductor. El icono del evento está en la esquina superior derecha del vídeo; pulsa Arriba para abrirlo.
+Автосбор бонусных баллов	Reclamar puntos de bonificación automáticamente
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	El cofre de puntos de bonificación del canal se reclama solo mientras ves el directo (requiere iniciar sesión en Twitch).

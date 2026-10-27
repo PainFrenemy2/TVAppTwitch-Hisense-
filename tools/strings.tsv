@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch не прийняв ставку	Tw
 Заблокировать канал	Заблокувати канал	Block channel
 Закрыть	Закрити	Close
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Канал зникне з головної, пошуку, рекомендацій і сповіщень. Розблокувати можна в Налаштуваннях → Заблоковані канали.	The channel will disappear from Home, search, recommendations and notifications. You can unblock it in Settings → Blocked channels.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Коли стример запускає прогноз чи голосування — у плеєрі з’являється підказка. Взяти участь можна й через «Параметри» плеєра.	When the streamer starts a prediction or poll, a hint pops up in the player. You can also join via the player's "Options".
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Наведіть камеру телефона на QR-код і опишіть, що сталося. Дані про ТВ і версію вже підставлено.	Point your phone camera at the QR code and describe what happened. TV and version details are already filled in.
 Недостаточно баллов канала	Недостатньо балів каналу	Not enough channel points
 Никого не заблокировано	Нікого не заблоковано	No one is blocked
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch не прийняв ставку	Tw
 Активные каналы, которые могут вам понравиться	Активні канали, які можуть вам сподобатися	Live channels we think you’ll like
 Прогноз завершён	Прогноз завершено	Prediction ended
 Голосование завершено	Голосування завершено	Poll ended
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Коли стример запускає прогноз чи голосування — у плеєрі з’являється підказка. Значок події — у правому верхньому куті відео, кнопка «Вгору» відкриває його.	When the streamer starts a prediction or poll, a hint pops up in the player. The event icon sits in the top-right corner of the video; press Up to open it.
+Автосбор бонусных баллов	Автозбір бонусних балів	Auto-claim bonus points
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	Скринька з бонусними балами каналу забирається сама, поки ви дивитеся ефір (потрібен вхід у Twitch).	The channel points bonus chest is claimed automatically while you watch (requires Twitch sign-in).

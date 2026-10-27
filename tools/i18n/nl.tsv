@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch heeft de voorspelling niet geaccept
 Заблокировать канал	Kanaal blokkeren
 Закрыть	Sluiten
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Het kanaal verdwijnt van start, zoeken, aanbevelingen en meldingen. Deblokkeren kan via Instellingen → Geblokkeerde kanalen.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Start de streamer een voorspelling of peiling, dan verschijnt er een melding in de speler. Je kunt ook meedoen via ‘Opties’ in de speler.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Richt de camera van je telefoon op de QR-code en beschrijf wat er gebeurde. Tv- en versiegegevens zijn al ingevuld.
 Недостаточно баллов канала	Niet genoeg kanaalpunten
 Никого не заблокировано	Niemand geblokkeerd
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch heeft de voorspelling niet geaccept
 Активные каналы, которые могут вам понравиться	Livekanalen die je misschien leuk vindt
 Прогноз завершён	Voorspelling afgelopen
 Голосование завершено	Peiling afgelopen
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Als de streamer een voorspelling of peiling start, verschijnt er een melding in de speler. Het gebeurtenis-icoon staat rechtsboven in de video; druk op Omhoog om het te openen.
+Автосбор бонусных баллов	Bonuspunten automatisch claimen
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	De kist met bonuskanaalpunten wordt automatisch geclaimd terwijl je kijkt (Twitch-login vereist).

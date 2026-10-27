@@ -319,7 +319,6 @@ Twitch не принял ставку	A Twitch não aceitou o palpite
 Заблокировать канал	Bloquear canal
 Закрыть	Fechar
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	O canal sumirá do Início, da busca, das recomendações e das notificações. Para desbloquear: Configurações → Canais bloqueados.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Quando o streamer inicia um palpite ou enquete, aparece um aviso no player. Você também pode participar pelas “Opções” do player.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Aponte a câmera do celular para o QR code e descreva o que aconteceu. Os dados da TV e da versão já estão preenchidos.
 Недостаточно баллов канала	Pontos do canal insuficientes
 Никого не заблокировано	Ninguém bloqueado
@@ -374,3 +373,6 @@ Twitch не принял ставку	A Twitch não aceitou o palpite
 Активные каналы, которые могут вам понравиться	Canais ao vivo que você pode curtir
 Прогноз завершён	Palpite encerrado
 Голосование завершено	Enquete encerrada
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Quando o streamer inicia um palpite ou enquete, aparece um aviso no player. O ícone do evento fica no canto superior direito do vídeo; pressione Cima para abri-lo.
+Автосбор бонусных баллов	Resgatar pontos bônus automaticamente
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	O baú de pontos bônus do canal é resgatado sozinho enquanto você assiste (requer login na Twitch).

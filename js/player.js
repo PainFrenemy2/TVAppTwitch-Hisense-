@@ -700,7 +700,6 @@
       items.push({ label: tr('Высота чата'), sub: valueName('chatHeight', O.chatHeight), onSelect: function () { pick(tr('Высота чата'), 'chatHeight', O.chatHeight, refreshChat); } });
       items.push({ label: tr('Размер текста чата'), sub: valueName('chatFont', O.chatFont), onSelect: function () { pick(tr('Размер текста'), 'chatFont', O.chatFont, refreshChat); } });
     }
-    items = Events.menuItems().concat(items);
     items.push({ label: tr('Статистика для гиков'), sub: P.statsOn ? tr('Показана') : tr('Скрыта'), onSelect: function () { toggleStats(); } });
     items.push({ label: tr('Таймер сна'), sub: P.sleepAt ? tr('Осталось: ') + U.duration((P.sleepAt - Date.now()) / 1000) : tr('Выключен'), onSelect: sleepMenu });
     var who = it.name || it.login;

@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch nu a acceptat predicția
 Заблокировать канал	Blochează canalul
 Закрыть	Închide
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Canalul va dispărea din pagina principală, căutare, recomandări și notificări. Îl poți debloca în Setări → Canale blocate.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Când streamerul pornește o predicție sau un sondaj, în player apare o notificare. Poți participa și din „Opțiuni” în player.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Îndreaptă camera telefonului spre codul QR și descrie ce s-a întâmplat. Datele despre televizor și versiune sunt deja completate.
 Недостаточно баллов канала	Nu ai destule puncte de canal
 Никого не заблокировано	Nimeni nu e blocat
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch nu a acceptat predicția
 Активные каналы, которые могут вам понравиться	Canale live care s-ar putea să-ți placă
 Прогноз завершён	Predicție încheiată
 Голосование завершено	Sondaj încheiat
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Când streamerul pornește o predicție sau un sondaj, în player apare un mesaj. Pictograma evenimentului este în colțul din dreapta sus al videoclipului; apăsați Sus pentru a o deschide.
+Автосбор бонусных баллов	Colectare automată a punctelor bonus
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	Cufărul cu puncte bonus ale canalului se colectează singur cât timp urmăriți (necesită conectare la Twitch).

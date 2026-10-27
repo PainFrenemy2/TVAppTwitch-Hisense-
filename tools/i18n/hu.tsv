@@ -319,7 +319,6 @@ Twitch не принял ставку	A Twitch nem fogadta el a tippet
 Заблокировать канал	Csatorna letiltása
 Закрыть	Bezárás
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	A csatorna eltűnik a kezdőlapról, a keresésből, az ajánlásokból és az értesítésekből. A letiltást a Beállítások → Letiltott csatornák menüben oldhatod fel.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Amikor a streamer tippjátékot vagy szavazást indít, értesítés jelenik meg a lejátszóban. A lejátszó „Lehetőségek” menüjéből is részt vehetsz.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Irányítsd a telefon kameráját a QR-kódra, és írd le, mi történt. A tévé és a verzió adatai már ki vannak töltve.
 Недостаточно баллов канала	Nincs elég csatornapont
 Никого не заблокировано	Senki sincs letiltva
@@ -374,3 +373,6 @@ Twitch не принял ставку	A Twitch nem fogadta el a tippet
 Активные каналы, которые могут вам понравиться	Élő csatornák, amelyek tetszhetnek
 Прогноз завершён	A tippjáték véget ért
 Голосование завершено	A szavazás véget ért
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Ha a streamer jóslatot vagy szavazást indít, a lejátszóban értesítés jelenik meg. Az esemény ikonja a videó jobb felső sarkában van; a Fel gombbal nyitható meg.
+Автосбор бонусных баллов	Bónuszpontok automatikus begyűjtése
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	A csatorna bónuszpont-ládája nézés közben magától begyűjtődik (Twitch-bejelentkezés szükséges).

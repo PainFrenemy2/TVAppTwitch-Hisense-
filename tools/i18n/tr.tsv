@@ -319,7 +319,6 @@ Twitch не принял ставку	Twitch tahmini kabul etmedi
 Заблокировать канал	Kanalı engelle
 Закрыть	Kapat
 Канал пропадёт из главной, поиска, рекомендаций и уведомлений. Разблокировать можно в Настройках → Заблокированные каналы.	Kanal ana sayfadan, aramadan, önerilerden ve bildirimlerden kaybolacak. Engeli Ayarlar → Engellenen kanallar bölümünden kaldırabilirsiniz.
-Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Участвовать можно и через «Параметры» плеера.	Yayıncı bir tahmin veya anket başlattığında oynatıcıda bir uyarı çıkar. Oynatıcının “Seçenekler” menüsünden de katılabilirsiniz.
 Наведите камеру телефона на QR-код и опишите, что случилось. Данные о ТВ и версии уже подставлены.	Telefon kamerasını QR koda tutun ve ne olduğunu anlatın. TV ve sürüm bilgileri zaten eklendi.
 Недостаточно баллов канала	Yeterli kanal puanı yok
 Никого не заблокировано	Engellenen kimse yok
@@ -374,3 +373,6 @@ Twitch не принял ставку	Twitch tahmini kabul etmedi
 Активные каналы, которые могут вам понравиться	Beğenebileceğin canlı kanallar
 Прогноз завершён	Tahmin sona erdi
 Голосование завершено	Anket sona erdi
+Когда стример запускает прогноз или голосование — в плеере всплывает подсказка. Значок события — в правом верхнем углу видео, кнопка «Вверх» открывает его.	Yayıncı bir tahmin veya anket başlattığında oynatıcıda bir bildirim çıkar. Etkinlik simgesi videonun sağ üst köşesindedir; açmak için Yukarı’ya basın.
+Автосбор бонусных баллов	Bonus puanları otomatik topla
+Сундучок с бонусными баллами канала забирается сам, пока вы смотрите эфир (нужен вход в Twitch).	Kanal puanları bonus sandığı izlerken otomatik olarak toplanır (Twitch girişi gerekir).
