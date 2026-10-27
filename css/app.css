@@ -1072,3 +1072,27 @@ img.broken { visibility: hidden; }
 .ev-many .ev-pct { width: 8rem; }
 .ev-many .ev-pct-num { font-size: 2.2rem; }
 .ev-many .ev-pill { height: .6rem; width: 5rem; }
+
+/* ===================== v11: плавное боковое меню ===================== */
+/* меню всегда полной ширины поверх страницы — раскладка не пересчитывается на каждом кадре;
+   свёрнутое — пункты шириной в иконку, подписи и шторка появляются только прозрачностью (слой GPU),
+   страница под меню больше не затемняется целиком (это была перерисовка всего экрана) */
+.sidebar, .side-open .sidebar { width: 26rem; transition: none; pointer-events: none; }
+.sidebar > * { pointer-events: auto; }
+.side-item { width: 5rem; }
+.side-open .side-item { width: auto; }
+.side-account { right: auto; }
+.side-open .side-account { right: 0; }
+.sidebar::before { will-change: opacity; transition: opacity .15s ease-out; }
+#pages, .side-open #pages { opacity: 1; transition: none; }
+.side-label, .side-logo span { transition: opacity .12s ease-out; }
+/* окно прогноза: шапка закреплена, прокручивается только содержимое */
+.ev-panel { display: flex; flex-direction: column; }
+.ev-headbox { flex: none; padding: 0 2.6rem 1.4rem; }
+.ev-scrollbox { position: relative; flex: 1; min-height: 0; }
+.ev-panel .ev-scroll { top: 0; }
+.ev-content { padding-bottom: 0; }
+.ev-body .ev-outcomes { margin-top: .6rem; }
+/* диагностика — одна колонка, строки по порядку */
+.diag-list { max-width: 110rem; margin-bottom: 2.4rem; }
+.diag-list .tv-info-row { padding: .6rem 0; border-bottom: .1rem solid rgba(255,255,255,.08); line-height: 1.4; }

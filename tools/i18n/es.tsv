@@ -233,7 +233,6 @@ hls.js (рекомендуется)	hls.js (recomendado)
 Показана	Visibles
 Скрыта	Ocultas
 Таймер сна	Temporizador de apagado
- мин	 min
 15 минут	15 minutos
 30 минут	30 minutos
 1 час	1 hora
@@ -368,3 +367,9 @@ Twitch не принял ставку	Twitch no aceptó la predicción
 Покажите этот экран разработчику, если главная отличается от Twitch	Muestra esta pantalla al desarrollador si Inicio no coincide con Twitch
 Прямые трансляции	Canales en directo
 Чтобы показать отслеживаемые каналы, войдите в Twitch ещё раз	Vuelve a iniciar sesión en Twitch para ver los canales que sigues
+Новые записи ваших каналов	Vídeos nuevos de tus canales
+Ваши категории	Tus categorías
+Ещё в категории: 	Más en: 
+Категории игр	Categorías
+Эфир закончился	La emisión ha terminado
+Активные каналы, которые могут вам понравиться	Canales en directo que te pueden gustar

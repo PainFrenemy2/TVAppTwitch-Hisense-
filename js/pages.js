@@ -125,8 +125,16 @@
     }).sort(function (a, b) { return b.viewersCount - a.viewersCount; });
   }
 
-  // Мои каналы в эфире: с аккаунтом — сразу из подписок, иначе по избранному
+  // Мои каналы в эфире: с аккаунтом — сразу из подписок, иначе по избранному.
+  // Баннер, ряд главной и «Отслеживаемое» спрашивают одновременно — один запрос на 30 секунд.
+  var myLiveMemo = { at: 0, p: null };
   function myLive() {
+    if (myLiveMemo.p && Date.now() - myLiveMemo.at < 30000) return myLiveMemo.p;
+    myLiveMemo = { at: Date.now(), p: myLiveRaw() };
+    myLiveMemo.p.catch(function () { myLiveMemo.p = null; });
+    return myLiveMemo.p;
+  }
+  function myLiveRaw() {
     var favs = App.favs();
     var acc = Auth.loggedIn() ? Auth.followedLiveSafe().catch(function () { return []; }) : Promise.resolve([]);
     var loc = favs.length ? Twitch.users(favs).then(liveOf).catch(function () { return []; }) : Promise.resolve([]);
@@ -136,8 +144,29 @@
         var l = s.broadcaster && s.broadcaster.login;
         if (l && !seen[l]) { seen[l] = 1; out.push(s); }
       });
-      return out.sort(function (a, b) { return b.viewersCount - a.viewersCount; });
+      // порядок не трогаем: сначала отслеживаемые в порядке Twitch, потом избранное
+      return out;
     });
+  }
+
+  // Клипы и новые записи каналов, за которыми вы следите (по 4 запроса за раз)
+  function followedClips(period, limit) {
+    var logins = App.myChannels().slice(0, 12);
+    return U.pool(logins, 4, function (l) { return Twitch.clips(l, period || 'LAST_WEEK', 6).catch(function () { return []; }); })
+      .then(function (lists) { return byViews(lists, limit || 30); });
+  }
+  function followedVideos(limit) {
+    return U.pool(App.myChannels().slice(0, 24), 4, function (l) {
+      return Twitch.videos(l, 'ARCHIVE', 4).then(function (p) { return p.items; }).catch(function () { return []; });
+    }).then(function (lists) {
+      return [].concat.apply([], lists.map(function (x) { return x || []; }))
+        .sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }).slice(0, limit || 30);
+    });
+  }
+  function byViews(lists, limit) {
+    var seen = {}, out = [];
+    [].concat.apply([], lists.map(function (x) { return x || []; })).forEach(function (c) { if (c && c.slug && !seen[c.slug]) { seen[c.slug] = 1; out.push(c); } });
+    return out.sort(function (a, b) { return (b.viewCount || 0) - (a.viewCount || 0); }).slice(0, limit);
   }
 
   // ---------- Превью эфира (одно на всё приложение, минимальное качество — бережём ТВ) ----------
@@ -237,11 +266,19 @@
     heroEl._onblur = function () { Preview.stop(); };
 
     var lang = Settings.get('lang');
+    var keysAtOpen = App.keyCount;
     // баннер: с аккаунтом — рекомендованные Twitch эфиры (как на twitch.tv), иначе популярные на вашем языке
-    var personalHero = Twitch.personalShelves().then(function (rows) {
-      var st = [];
-      rows.forEach(function (r) { r.items.forEach(function (it) { if (it.type === 'Stream' && st.length < 8) st.push(it.data); }); });
-      if (st.length < 3) throw new Error('few');
+    // как на ПК: сначала эфиры каналов, за которыми вы следите, потом рекомендации Twitch
+    var personalHero = Promise.all([
+      Auth.loggedIn() ? myLive().catch(function () { return []; }) : Promise.resolve([]),
+      Twitch.personalShelves()
+    ]).then(function (r) {
+      var st = r[0].slice(0, 8), seen = {};
+      st.forEach(function (x) { seen[x.broadcaster.login] = 1; });
+      r[1].forEach(function (row) { row.items.forEach(function (it) {
+        if (it.type === 'Stream' && st.length < 8 && !seen[it.data.broadcaster.login]) { seen[it.data.broadcaster.login] = 1; st.push(it.data); }
+      }); });
+      if (st.length < 1) throw new Error('few');
       return { items: st };
     });
     personalHero.catch(function () {
@@ -251,7 +288,10 @@
       if (!heroItems.length) return;
       hero.appendChild(heroEl);
       showHero(0);
-      App.refocus();
+      // главная открылась, а пользователь ещё ничего не нажимал — выбор на самом верхнем элементе (баннер)
+      var cur = Nav.current;
+      if (App.keyCount === keysAtOpen && App.topLayer() === App.base && el.isConnected && (!cur || el.contains(cur))) Nav.focus(heroEl);
+      else App.refocus();
     }).catch(function () {});
 
     var activeChip = null;
@@ -310,9 +350,15 @@
           return u.stream ? streamCard(u.stream) : channelCard(u);
         });
       });
-      // С аккаунтом главная — как у Twitch: только ваше (подписки, рекомендации Twitch, история).
+      // С аккаунтом главная — как у Twitch: только ваше (подписки, рекомендации Twitch, ваши клипы и записи, история).
       // Общие «популярные» ряды — без входа или если Twitch не отдал персональные ряды.
-      if (signedIn()) { body._lazy(Math.max(0, 4 - body.children.length)); return; }
+      if (signedIn()) {
+        later(function () { autoShelf(body, tr('Клипы ваших подписок'), function () { return followedClips('LAST_WEEK', 24); }, clipCard); });
+        later(function () { autoShelf(body, tr('Новые записи ваших каналов'), function () { return followedVideos(24); }, videoCard); });
+        later(function () { autoShelf(body, tr('Ваши категории'), function () { return Auth.followedGames(); }, gameCard, { game: true, skeleton: 8 }); });
+        body._lazy(Math.max(0, 4 - body.children.length));
+        return;
+      }
       genericRows(true);
     }
 
@@ -350,13 +396,55 @@
       var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard);
       Twitch.personalShelves().then(function (rows) {
         if (!holder.parentNode) return;
-        // Twitch не отдал персональные ряды — показываем обычную главную, чтобы не было пусто
-        if (!rows.length && signedIn()) { holder.parentNode.removeChild(holder); genericRows(false); body._lazy(Math.max(0, 4 - body.children.length)); App.refocus(); return; }
-        rows.forEach(function (r) {
+        // Twitch не отдал персональные ряды — рекомендуем сами по вашим каналам и категориям
+        if (!rows.length && signedIn()) { holder.parentNode.removeChild(holder); recommendRows(); return; }
+        // ряды добавляем по одному с паузой — слабый ТВ не строит 8 полок по 16 карточек разом
+        var i = 0;
+        function nextRow() {
+          if (!holder.parentNode) return;
+          var r = rows[i++];
+          if (!r) { holder.parentNode.removeChild(holder); App.refocus(); return; }
           var type = r.items[0].type;
           var shelf = UI.shelf(r.title, type === 'Game' ? { cls: 'shelf-games' } : null);
-          shelf.add(r.items.filter(function (it) { return it.type === type; }).map(function (it) { return MAKE[type](it.data); }));
+          shelf.add(r.items.filter(function (it) { return it.type === type; }).slice(0, 16).map(function (it) { return MAKE[type](it.data); }));
           if (shelf.track.children.length) body.insertBefore(shelf, holder);
+          if (i === 1) App.refocus();
+          setTimeout(nextRow, i < 2 ? 0 : 120);
+        }
+        nextRow();
+      });
+    }
+
+    // Рекомендации без персональных рядов Twitch: эфиры в категориях, где сейчас ваши каналы и которые вы отслеживаете
+    function recommendRows() {
+      var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard);
+      var mineSet = {};
+      App.myChannels().forEach(function (l) { mineSet[l] = 1; });
+      Promise.all([myLive().catch(function () { return []; }), Auth.followedGames().catch(function () { return []; })]).then(function (r) {
+        var games = [], seen = {};
+        r[0].forEach(function (st) { var g = st.game; if (g && g.name && !seen[g.name]) { seen[g.name] = 1; games.push(g); } });
+        r[1].forEach(function (g) { if (g && g.name && !seen[g.name]) { seen[g.name] = 1; games.push(g); } });
+        games = games.slice(0, 4);
+        if (!games.length) { holder.parentNode.removeChild(holder); genericRows(false); body._lazy(Math.max(0, 4 - body.children.length)); App.refocus(); return; }
+        // как на twitch.tv: «Активные каналы, которые могут вам понравиться» — эфиры из ваших категорий вперемешку
+        autoShelf(body, tr('Активные каналы, которые могут вам понравиться'), function () {
+          return Promise.all(games.map(function (g) { return Twitch.gameStreams(g.name, 12).then(function (p) { return p.items; }).catch(function () { return []; }); }))
+            .then(function (lists) {
+              var out = [], seen = {};
+              for (var k = 0; k < 12; k++) lists.forEach(function (l) {
+                var st = l[k];
+                if (st && st.broadcaster && !mineSet[st.broadcaster.login] && !seen[st.broadcaster.login]) { seen[st.broadcaster.login] = 1; out.push(st); }
+              });
+              return out.slice(0, 24);
+            });
+        }, streamCard, { before: holder });
+        // и ряд по каждой вашей категории
+        games.slice(0, 3).forEach(function (g) {
+          autoShelf(body, tr('Ещё в категории: ') + (g.displayName || g.name), function () {
+            return Twitch.gameStreams(g.name, 20).then(function (p) {
+              return p.items.filter(function (st) { return st.broadcaster && !mineSet[st.broadcaster.login]; });
+            });
+          }, streamCard, { before: holder });
         });
         holder.parentNode.removeChild(holder);
         App.refocus();
@@ -455,12 +543,6 @@
   // категорий, сведённые вместе по просмотрам. С аккаунтом — ещё ряд клипов каналов, на которые вы подписаны.
   var CLIP_PERIODS = [['LAST_DAY', tr('За 24 часа')], ['LAST_WEEK', tr('За неделю')], ['LAST_MONTH', tr('За месяц')], ['ALL_TIME', tr('За всё время')]];
 
-  function byViews(lists, limit) {
-    var seen = {}, out = [];
-    [].concat.apply([], lists).forEach(function (c) { if (c && c.slug && !seen[c.slug]) { seen[c.slug] = 1; out.push(c); } });
-    return out.sort(function (a, b) { return (b.viewCount || 0) - (a.viewCount || 0); }).slice(0, limit);
-  }
-
   Pages.clips = function () {
     var el = pageShell('page-clips');
     el.content.appendChild(header(tr('Клипы'), tr('Самые популярные клипы Twitch')));
@@ -484,18 +566,13 @@
       body.innerHTML = '';
       queue = [];
       var games = Twitch.topGames(8).then(function (p) { return p.items; });
+      // с аккаунтом первым рядом — клипы ваших каналов, как в приложении Twitch
+      if (Auth.loggedIn() && !Auth.needsLogin()) autoShelf(body, tr('Клипы ваших подписок'), function () { return followedClips(period, 30); }, clipCard);
       autoShelf(body, tr('В тренде'), function () {
         return games.then(function (gs) {
           return Promise.all(gs.slice(0, 6).map(function (g) { return gameClips(g).catch(function () { return []; }); }));
         }).then(function (lists) { return byViews(lists, 30); });
       }, clipCard);
-      if (Auth.loggedIn() && !Auth.needsLogin()) {
-        autoShelf(body, tr('Клипы ваших подписок'), function () {
-          var logins = Auth.cachedFollows().slice(0, 12);
-          return U.pool(logins, 4, function (l) { return Twitch.clips(l, period, 6).catch(function () { return []; }); })
-            .then(function (lists) { return byViews(lists, 30); });
-        }, clipCard);
-      }
       games.then(function (gs) {
         if (my !== gen) return;
         gs.forEach(function (g) {
@@ -541,7 +618,7 @@
     var body = h('div');
     el.content.appendChild(body);
     var mode = 'overview', gen = 0;
-    var TABS = [['overview', tr('Обзор')], ['live', tr('Прямые трансляции')], ['videos', tr('Видео')], ['games', tr('Категории')], ['channels', tr('Каналы')]];
+    var TABS = [['overview', tr('Обзор')], ['live', tr('Прямые трансляции')], ['videos', tr('Видео')], ['games', tr('Категории игр')], ['channels', tr('Каналы')]];
     TABS.forEach(function (t) {
       var c = h('div.chip.focusable' + (t[0] === mode ? '.active' : ''), { text: t[1] });
       c._onclick = function () {
@@ -575,11 +652,8 @@
       }
       if (mode === 'videos') {
         // последние записи каналов, на которые вы подписаны, — свежие сверху
-        return done(U.pool(mine.slice(0, 16), 4, function (l) {
-          return Twitch.videos(l, 'ARCHIVE', 4).then(function (p) { return p.items; }).catch(function () { return []; });
-        }).then(function (lists) {
+        return done(followedVideos(48).then(function (all) {
           if (my !== gen) return;
-          var all = [].concat.apply([], lists).sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); }).slice(0, 48);
           if (!all.length) { body.appendChild(UI.empty(tr('Записей нет'))); return; }
           var g = UI.grid('grid-video'); g.add(all.map(videoCard)); body.appendChild(g);
         }), body);
@@ -596,6 +670,7 @@
           if (my !== gen) return;
           // в эфире — первыми, как на Twitch
           us.sort(function (a, b) { return (b.stream ? b.stream.viewersCount + 1 : 0) - (a.stream ? a.stream.viewersCount + 1 : 0); });
+          if (!us.length) { body.appendChild(UI.empty(tr('Список пуст'))); return; }
           var g = UI.grid('grid-channels'); g.add(us.map(channelCard)); body.appendChild(g);
         }), body);
       }
@@ -665,6 +740,7 @@
         }
         App.refocus();
       }, function (e) {
+        if (myGen !== gen) return; // пока грузили, переключили вкладку
         loading.remove();
         body.appendChild(UI.error(e, render));
       });
@@ -964,7 +1040,14 @@
         });
         resultsContent.appendChild(box);
       }
+      // пока ничего не набрано — есть что посмотреть: популярные эфиры, категории и клипы в тренде
       autoShelf(resultsContent, tr('Популярные каналы сейчас'), function () { return Twitch.topStreams(20).then(function (p) { return p.items; }); }, streamCard);
+      autoShelf(resultsContent, tr('Популярные категории'), function () { return Twitch.topGames(20).then(function (p) { return p.items; }); }, gameCard, { game: true, skeleton: 8 });
+      autoShelf(resultsContent, tr('В тренде'), function () {
+        return Twitch.topGames(4).then(function (p) {
+          return Promise.all(p.items.map(function (g) { return Twitch.gameClips(g.name, 20, 'LAST_WEEK').catch(function () { return []; }); }));
+        }).then(function (lists) { return byViews(lists, 24); });
+      }, clipCard);
     }
 
     markTabs();
@@ -1086,7 +1169,7 @@
   Pages.diag = function () {
     var el = pageShell('page-diag');
     el.content.appendChild(header(tr('Диагностика аккаунта'), tr('Покажите этот экран разработчику, если главная отличается от Twitch')));
-    var list = h('div.tv-info.row.diag-list');
+    var list = h('div.row.diag-list');
     el.content.appendChild(list);
     var again = UI.button(tr('Повторить'), 'refresh', function () { App.replace('diag', {}); }, 'primary');
     el.content.appendChild(h('div.row.page-actions', { 'data-group': 'free' }, again));

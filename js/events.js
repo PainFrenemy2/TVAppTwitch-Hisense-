@@ -19,7 +19,9 @@
   function loadPrediction(login) {
     var q = function (fields) { return 'query($login:String!){user(login:$login){id channel{id activePredictionEvents{' + fields + '} lockedPredictionEvents{' + fields + '}}}}'; };
     // с крупнейшими ставками, а если Twitch не знает этого поля — без них (и запоминаем это)
-    var first = noTop ? asUser(q(PRED), { login: login }) : asUser(q(PRED_TOP), { login: login }).catch(function () {
+    var first = noTop ? asUser(q(PRED), { login: login }) : asUser(q(PRED_TOP), { login: login }).catch(function (e) {
+      // без крупнейших ставок — только если Twitch действительно не знает это поле, а не из-за сбоя сети
+      if (!/topPredictors/.test((e && e.message) || '')) throw e;
       noTop = true;
       return asUser(q(PRED), { login: login });
     });
@@ -29,6 +31,16 @@
       var list = [].concat(ch.activePredictionEvents || [], ch.lockedPredictionEvents || []);
       return list[0] || null;
     });
+  }
+
+  // Закончившийся прогноз пропадает из активных — один раз спрашиваем итоговые, чтобы показать победителя
+  function loadResolved(login, id) {
+    return asUser('query($login:String!){user(login:$login){channel{resolvedPredictionEvents(first:3){edges{node{' + PRED + '}}}}}}', { login: login })
+      .then(function (d) {
+        var c = d && d.user && d.user.channel, conn = c && c.resolvedPredictionEvents;
+        var list = conn && conn.edges ? conn.edges.map(function (e) { return e.node; }) : [];
+        return list.filter(function (p) { return p && p.id === id; })[0] || null;
+      }).catch(function () { return null; });
   }
 
   function loadPoll(login) {
@@ -49,10 +61,23 @@
   function mergePrediction(prev, next) {
     if (next) return next;
     if (!prev) return null;
-    if (!prev._endedAt) { prev._endedAt = Date.now(); if (prev.status === 'ACTIVE' || prev.status === 'LOCKED') prev.status = 'ENDED'; }
+    if (!prev._endedAt) {
+      prev._endedAt = Date.now();
+      if (prev.status === 'ACTIVE' || prev.status === 'LOCKED') prev.status = 'ENDED';
+      var login = Ev.login;
+      loadResolved(login, prev.id).then(function (res) {
+        if (!res || Ev.login !== login || !Ev.prediction || Ev.prediction.id !== res.id) return;
+        res._endedAt = prev._endedAt;
+        Ev.prediction = res;
+        if (panel && panel.kind === 'prediction') panel.update();
+      });
+    }
     return Date.now() - prev._endedAt < KEEP_ENDED ? prev : null;
   }
+  // голосования, итог которых уже показали минуту, — больше не возвращаем, даже если Twitch их ещё отдаёт
+  var pollsDone = {};
   function mergePoll(prev, next) {
+    if (next && pollsDone[next.id]) return null;
     if (next && next.status === 'ACTIVE') {
       next._endAt = prev && prev.id === next.id && prev._endAt ? prev._endAt
         : (next.remainingDurationMilliseconds ? Date.now() + next.remainingDurationMilliseconds : 0);
@@ -64,11 +89,13 @@
     ended._endedAt = ended._endedAt || Date.now();
     ended._endAt = 0;
     if (ended.status === 'ACTIVE') ended.status = 'COMPLETED';
-    return Date.now() - ended._endedAt < KEEP_ENDED ? ended : null;
+    if (Date.now() - ended._endedAt < KEEP_ENDED) return ended;
+    pollsDone[ended.id] = 1;
+    return null;
   }
 
   Ev.start = function (login) {
-    if (Ev.seenFor !== login) { Ev.seen = {}; Ev.seenFor = login; } // о старых событиях другого канала не помним
+    if (Ev.seenFor !== login) { Ev.seen = {}; pollsDone = {}; Ev.seenFor = login; } // о старых событиях другого канала не помним
     Ev.stop();
     Ev.login = login;
     check();
@@ -85,14 +112,15 @@
     hideBanner();
   };
 
-  var checking = false;
+  // какой канал сейчас проверяем: при переключении канала новая проверка не ждёт старую
+  var checking = null;
   function check() {
     var login = Ev.login;
-    // ТВ свернул приложение или прошлый запрос ещё идёт — не дёргаем Twitch впустую
-    if (!login || document.hidden || Player.bgPaused || checking) return;
-    checking = true;
+    // ТВ свернул приложение или запрос по этому каналу ещё идёт — не дёргаем Twitch впустую
+    if (!login || document.hidden || Player.bgPaused || checking === login) return;
+    checking = login;
     Promise.all([loadPrediction(login).catch(function () { return undefined; }), loadPoll(login).catch(function () { return undefined; })]).then(function (r) {
-      checking = false;
+      if (checking === login) checking = null;
       if (Ev.login !== login) return;
       // undefined — ошибка сети: оставляем то, что было
       if (r[0] !== undefined) Ev.prediction = mergePrediction(Ev.prediction, r[0]);
@@ -182,11 +210,14 @@
   function openPanel(kind, title) {
     closePanelLayer();
     hideBanner();
+    // шапка (название, статус, таймер) закреплена сверху; прокручиваются только исходы и кнопки
+    var head = h('div.ev-head', null, [h('div.ev-title'), h('div.ev-status')]);
     var body = h('div.ev-body');
-    var actions = h('div.ev-actions.row', { 'data-group': 'free' });
-    var scroll = h('div.menu-scroll.v-scroll.ev-scroll', { 'data-pad': '1' }, h('div.ev-content', null, [body, actions]));
-    var overlay = h('div.overlay', null, h('div.menu-panel.menu-right.ev-panel', null, [h('div.menu-title', { text: title }), scroll]));
-    panel = { kind: kind, el: overlay, body: body, actions: actions, key: '', actKey: '', refs: null, busy: false };
+    var actions = h('div.ev-actions', { 'data-group': 'free' });
+    var scroll = h('div.v-scroll.ev-scroll', { 'data-pad': '1' }, h('div.ev-content', null, [body, actions]));
+    var overlay = h('div.overlay', null, h('div.menu-panel.menu-right.ev-panel', null, [
+      h('div.menu-title', { text: title }), h('div.ev-headbox', null, head), h('div.ev-scrollbox', null, scroll)]));
+    panel = { kind: kind, el: overlay, head: head, body: body, actions: actions, key: '', actKey: '', refs: null, busy: false };
     panel.update = function () { if (kind === 'prediction') renderPrediction(); else renderPoll(); };
     panel.update();
     App.openLayer({ el: overlay, root: U.$('#modal-root'), focus: U.$('.focusable', overlay),
@@ -226,7 +257,10 @@
     panel.actKey = key;
     panel.actions.innerHTML = '';
     make(panel.actions);
-    if (panel.refs && isTop() && hadFocus) Nav.focus(U.$('.focusable', panel.actions));
+    // фокус на первой кнопке — окно прокручено к началу, исходы видны
+    var firstBtn = U.$('.focusable', panel.actions);
+    if (firstBtn) firstBtn.setAttribute('data-top', '1');
+    if (panel.refs && isTop() && hadFocus) Nav.focus(firstBtn);
   }
 
   function stat(icon, value, color) {
@@ -271,7 +305,8 @@
       var refs = panel.refs = { outcomes: [], bar: [] };
       var body = panel.body;
       body.innerHTML = '';
-      body.appendChild(h('div.ev-head', null, [h('div.ev-title', { text: p.title }), h('div.ev-status', { text: predictionStatus(p) })]));
+      U.$('.ev-title', panel.head).textContent = p.title;
+      U.$('.ev-status', panel.head).textContent = predictionStatus(p);
       var cols = h('div.ev-outcomes' + (two ? '.ev-two' : '.ev-many'));
       p.outcomes.forEach(function (o, i) {
         var color = outcomeColor(p, o, i);
@@ -375,7 +410,8 @@
       var refs = panel.refs = { choices: [] };
       var body = panel.body;
       body.innerHTML = '';
-      body.appendChild(h('div.ev-head', null, [h('div.ev-title', { text: p.title }), h('div.ev-status', { text: pollStatus(p) })]));
+      U.$('.ev-title', panel.head).textContent = p.title;
+      U.$('.ev-status', panel.head).textContent = pollStatus(p);
       // как на Twitch: у каждого варианта полоска, заполненная на свой процент голосов
       p.choices.forEach(function (c) {
         var fill = h('div.ev-choice-fill'), val = h('b');

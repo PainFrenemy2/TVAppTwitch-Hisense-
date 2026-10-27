@@ -233,7 +233,6 @@ hls.js (рекомендуется)	hls.js (рекомендовано)	hls.js (
 Показана	Показано	Shown
 Скрыта	Приховано	Hidden
 Таймер сна	Таймер сну	Sleep timer
- мин	 хв	 min
 15 минут	15 хвилин	15 minutes
 30 минут	30 хвилин	30 minutes
 1 час	1 година	1 hour
@@ -368,3 +367,9 @@ Twitch не принял ставку	Twitch не прийняв ставку	Tw
 Покажите этот экран разработчику, если главная отличается от Twitch	Покажіть цей екран розробнику, якщо головна відрізняється від Twitch	Show this screen to the developer if Home differs from Twitch
 Прямые трансляции	Прямі трансляції	Live channels
 Чтобы показать отслеживаемые каналы, войдите в Twitch ещё раз	Щоб показати відстежувані канали, увійдіть у Twitch ще раз	To show the channels you follow, sign in to Twitch again
+Новые записи ваших каналов	Нові записи ваших каналів	New videos from channels you follow
+Ваши категории	Ваші категорії	Your categories
+Ещё в категории: 	Ще в категорії: 	More in 
+Категории игр	Категорії	Categories
+Эфир закончился	Ефір закінчився	Stream has ended
+Активные каналы, которые могут вам понравиться	Активні канали, які можуть вам сподобатися	Live channels we think you’ll like

@@ -233,7 +233,6 @@ hls.js (рекомендуется)	hls.js (anbefalt)
 Показана	Vises
 Скрыта	Skjult
 Таймер сна	Innsovningstidtaker
- мин	 min
 15 минут	15 minutter
 30 минут	30 minutter
 1 час	1 time
@@ -368,3 +367,9 @@ Twitch не принял ставку	Twitch godtok ikke spådommen
 Покажите этот экран разработчику, если главная отличается от Twitch	Vis denne skjermen til utvikleren hvis startsiden avviker fra Twitch
 Прямые трансляции	Direktekanaler
 Чтобы показать отслеживаемые каналы, войдите в Twitch ещё раз	Logg på Twitch igjen for å se kanalene du følger
+Новые записи ваших каналов	Nye videoer fra kanalene dine
+Ваши категории	Kategoriene dine
+Ещё в категории: 	Mer i: 
+Категории игр	Kategorier
+Эфир закончился	Sendingen er over
+Активные каналы, которые могут вам понравиться	Direktekanaler du kanskje liker

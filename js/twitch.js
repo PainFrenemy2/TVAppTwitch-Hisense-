@@ -158,6 +158,8 @@
   // от аккаунта; без входа — те же ряды анонимно. Каждый результат пишем в T.diag.
   T.personalShelves = function () {
     var signed = window.Auth && Auth.loggedIn() && !Auth.needsLogin();
+    // во время входа токен уже есть, а профиля ещё нет — считаем гостем
+    if (signed && !(Auth.user() && Auth.user().id)) signed = false;
     var key = signed ? Auth.user().id : 'anon';
     if (personal.p && personal.key === key && Date.now() - personal.at < 60000) return personal.p;
     var steps = [];
@@ -485,7 +487,7 @@
 
   // варианты качества резервного потока (кэш 4 минуты — токен живёт дольше)
   function backupVariants(login, type) {
-    var key = type, c = backup.masters[key];
+    var key = login + '|' + type, c = backup.masters[key]; // кэш — свой у каждого канала
     if (c && Date.now() - c.t < 240000) return Promise.resolve(c.list);
     return anonTokenOnce('live', login, type).then(function (t) {
       var url = masterUrl(login, t, CLIENT_ID);
@@ -497,7 +499,8 @@
           var res = /RESOLUTION=\d+x(\d+)/.exec(m[1]);
           list.push({ height: res ? +res[1] : 0, url: absolute(url, lines[i + 1].trim()) });
         }
-        backup.masters[key] = { t: Date.now(), list: list };
+        // пока искали, переключили канал — в общий кэш чужое не пишем
+        if (backup.login === login) backup.masters[key] = { t: Date.now(), list: list };
         return list;
       });
     });
@@ -515,6 +518,7 @@
     var hk = height || 0; // у каждого качества — свой поиск
     if (!backup.jobs[hk]) {
       var job = backup.jobs[hk] = findClean(login, height).then(function (txt) {
+        if (backup.login !== login) return null; // поиск для прошлого канала — результат не нужен
         if (backup.jobs[hk] === job) delete backup.jobs[hk];
         if (!txt) backup.failUntil = Date.now() + 60000;
         return txt;

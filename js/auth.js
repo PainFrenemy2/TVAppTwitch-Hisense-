@@ -21,6 +21,23 @@
     Auth.data = Auth.accounts.filter(function (a) { return a.user && a.user.login === active; })[0] || null;
   })();
 
+  // запрос с ограничением по времени: зависший ответ не должен навсегда блокировать проверки и окна
+  function fetchTimeout(url, init, ms) {
+    return new Promise(function (resolve, reject) {
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        if (ctrl) ctrl.abort();
+        reject(new Error(tr('Таймаут сети')));
+      }, ms || 12000);
+      if (ctrl) init.signal = ctrl.signal;
+      fetch(url, init).then(function (r) { if (!done) { done = true; clearTimeout(timer); resolve(r); } },
+        function (e) { if (!done) { done = true; clearTimeout(timer); reject(e); } });
+    });
+  }
+
   function form(o) {
     return Object.keys(o).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(o[k]); }).join('&');
   }
@@ -192,7 +209,7 @@
   // GQL от имени пользователя
   Auth.gql = function (query, variables, retried) {
     return Auth.ensure().then(function () {
-      return fetch('https://gql.twitch.tv/gql', {
+      return fetchTimeout('https://gql.twitch.tv/gql', {
         method: 'POST',
         headers: { 'Client-ID': CLIENT_ID, 'Authorization': 'OAuth ' + Auth.data.token, 'Content-Type': 'text/plain;charset=UTF-8', 'Accept-Language': I18N.lang },
         body: JSON.stringify({ query: query, variables: variables || {} })
@@ -219,7 +236,7 @@
     var acc;
     return Auth.ensure().then(function () {
       acc = Auth.data;
-      return fetch('https://api.twitch.tv/helix/' + path, { headers: { 'Client-Id': CLIENT_ID, 'Authorization': 'Bearer ' + acc.token } });
+      return fetchTimeout('https://api.twitch.tv/helix/' + path, { headers: { 'Client-Id': CLIENT_ID, 'Authorization': 'Bearer ' + acc.token } });
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         // 401 «Missing scope» — у входа нет нужного права: токен в порядке, обновлять его бесполезно
@@ -295,8 +312,11 @@
     });
   };
 
+  // порядок «по рекомендации» — как список «Отслеживаемые каналы» слева на twitch.tv; если Twitch не знает sort — без него
+  var FLU = 'edges{node{id login displayName profileImageURL(width:70) stream{id title viewersCount createdAt type previewImageURL(width:440,height:248) game{id name displayName}}}}';
   function gqlFollowedLive() {
-    return Auth.gql('query{currentUser{followedLiveUsers(first:100){edges{node{id login displayName profileImageURL(width:70) stream{id title viewersCount createdAt type previewImageURL(width:440,height:248) game{id name displayName}}}}}}}')
+    return Auth.gql('query{currentUser{followedLiveUsers(first:100,sort:RELEVANCE){' + FLU + '}}}')
+      .catch(function () { return Auth.gql('query{currentUser{followedLiveUsers(first:100){' + FLU + '}}}'); })
       .then(function (d) {
         var c = d.currentUser && d.currentUser.followedLiveUsers;
         return ((c && c.edges) || []).map(function (e) { return e.node; }).filter(function (u) { return u && u.stream; }).map(function (u) {
@@ -318,16 +338,24 @@
         return us.filter(function (x) { return x.stream; }).map(function (x) {
           var st = x.stream; st.broadcaster = st.broadcaster || { id: x.id, login: x.login, displayName: x.displayName, profileImageURL: x.profileImageURL };
           return st;
-        }).sort(function (a, b) { return b.viewersCount - a.viewersCount; });
+        });
       });
     });
   }
 
+  // Кто из отслеживаемых в эфире: оба источника параллельно. Порядок — как у Twitch (GQL, «по рекомендации»),
+  // а официальный API добавляет тех, кого GQL не вернул (он у сторонних приложений бывает неполным).
   Auth.followedLive = function () {
-    return helixFollowedLive().then(function (list) {
-      return list.length ? list : gqlFollowedLive().catch(function () { return list; });
-    }, function (e) {
-      return gqlFollowedLive().catch(function () { throw e; });
+    var g = gqlFollowedLive().then(function (l) { return { ok: true, list: l }; }, function (e) { return { ok: false, e: e, list: [] }; });
+    var hx = helixFollowedLive().then(function (l) { return { ok: true, list: l }; }, function (e) { return { ok: false, e: e, list: [] }; });
+    return Promise.all([g, hx]).then(function (r) {
+      if (!r[0].ok && !r[1].ok) throw r[1].e || r[0].e;
+      var seen = {}, out = [];
+      r[0].list.concat(r[1].list).forEach(function (st) {
+        var l = st.broadcaster && st.broadcaster.login;
+        if (l && !seen[l]) { seen[l] = 1; out.push(st); }
+      });
+      return out;
     });
   };
 

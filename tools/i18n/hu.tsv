@@ -233,7 +233,6 @@ hls.js (рекомендуется)	hls.js (ajánlott)
 Показана	Látható
 Скрыта	Rejtett
 Таймер сна	Elalváskapcsoló
- мин	 perc múlva
 15 минут	15 perc
 30 минут	30 perc
 1 час	1 óra
@@ -368,3 +367,9 @@ Twitch не принял ставку	A Twitch nem fogadta el a tippet
 Покажите этот экран разработчику, если главная отличается от Twitch	Mutasd meg ezt a képernyőt a fejlesztőnek, ha a kezdőlap eltér a Twitchtől
 Прямые трансляции	Élő csatornák
 Чтобы показать отслеживаемые каналы, войдите в Twitch ещё раз	A követett csatornák megjelenítéséhez jelentkezz be újra a Twitchre
+Новые записи ваших каналов	Csatornáid új videói
+Ваши категории	Kategóriáid
+Ещё в категории: 	Továbbiak: 
+Категории игр	Kategóriák
+Эфир закончился	A közvetítés véget ért
+Активные каналы, которые могут вам понравиться	Élő csatornák, amelyek tetszhetnek

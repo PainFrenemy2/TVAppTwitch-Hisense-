@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.7.1',
+    VERSION: '1.8.0',
     layers: [],
     history: [],
     pendingFocus: false
@@ -512,7 +512,7 @@
       if (App.keyCount !== keys || Player.isOpen() || App.topLayer() !== App.base) return;
       if (u && u.stream) { u.stream.broadcaster = u.stream.broadcaster || u; App.play(App.itemFromStream(u.stream)); return; }
       // эфир, который вы смотрели, уже закончился — говорим об этом, а не молча остаёмся на странице
-      UI.toast((it.name || it.login) + tr(' сейчас не в сети'), 4000);
+      UI.toast(tr('Эфир закончился') + ': ' + (it.name || it.login), 4000);
       if (Auth.accounts.length > 1) App.showProfiles();
     }).catch(function () { if (Auth.accounts.length > 1 && App.keyCount === keys) App.showProfiles(); });
     return 'player';
