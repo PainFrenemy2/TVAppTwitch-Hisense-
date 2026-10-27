@@ -32,9 +32,9 @@
 | Поле | Что вписать |
 |---|---|
 | **App Name** | `Twitch` |
-| **Thumbnail** | `https://painfrenemy2.github.io/TVAppTwitch-Hisense-/icons/thumbnail.png` |
-| **IconSmall** | `https://painfrenemy2.github.io/TVAppTwitch-Hisense-/icons/icon-small.png` |
-| **IconLarge** | `https://painfrenemy2.github.io/TVAppTwitch-Hisense-/icons/icon-large.png` |
+| **Thumbnail** | `https://painfrenemy2.github.io/TVAppTwitch-Hisense-/icons/tile-thumb.png` |
+| **IconSmall** | `https://painfrenemy2.github.io/TVAppTwitch-Hisense-/icons/tile-small.png` |
+| **IconLarge** | `https://painfrenemy2.github.io/TVAppTwitch-Hisense-/icons/tile-large.png` |
 | **App Url** | `https://painfrenemy2.github.io/TVAppTwitch-Hisense-/` |
 | **Resolution** | `1080` |
 
