@@ -1109,3 +1109,4 @@ img.broken { visibility: hidden; }
 /* строка-исход: отступ внутри рамки фокуса; кнопка «Закрыть» — в безопасной зоне */
 .ev-many .ev-pick { padding: .9rem 1rem; }
 .ev-content { padding-bottom: 3rem; }
+.ev-closed .ev-pick.focused { box-shadow: inset 0 0 0 .15rem rgba(255,255,255,.45); }

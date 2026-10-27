@@ -1216,6 +1216,8 @@
     if (acc && acc.token) {
       row('Token', acc.expires ? 'expires in ' + Math.round((acc.expires - Date.now()) / 60000) + ' min' : 'no expiry info', acc.expires > Date.now());
       row('Needs sign-in', Auth.needsLogin() ? 'yes' : 'no', !Auth.needsLogin());
+      var rl = acc.refreshLog;
+      row('Last token refresh', rl ? new Date(rl.at).toLocaleString() + ' • ' + (rl.ok ? 'ok' : 'HTTP ' + rl.status + ' ' + rl.msg) : 'never', rl ? rl.ok : undefined);
       row('Client-ID', Auth.CLIENT_ID);
       test('currentUser', function () { return Auth.gql('query{currentUser{id login}}').then(function (d) { return d.currentUser ? d.currentUser.login : 'null'; }); })
         .then(function () { return test('token scopes', function () { return Auth.validate().then(function (j) { return (j.login || '?') + ' • client ' + j.client_id + ' • ' + ((j.scopes || []).join(' ') || 'no scopes'); }); }); })

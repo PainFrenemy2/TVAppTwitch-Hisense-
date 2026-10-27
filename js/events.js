@@ -308,10 +308,12 @@
       var two = p.outcomes.length === 2;
       var refs = panel.refs = { outcomes: [], bar: [] };
       var body = panel.body;
+      // фокус стоял на строке исхода — после перестройки вернём его туда же (или на победителя)
+      var picks = U.$$('.ev-pick', body), focusIdx = picks.indexOf(Nav.current);
       body.innerHTML = '';
       U.$('.ev-title', panel.head).textContent = p.title;
       U.$('.ev-status', panel.head).textContent = predictionStatus(p);
-      var cols = h('div.ev-outcomes' + (two ? '.ev-two' : '.ev-many'));
+      var cols = h('div.ev-outcomes' + (two ? '.ev-two' : '.ev-many') + (p.status === 'ACTIVE' ? '' : '.ev-closed'));
       p.outcomes.forEach(function (o, i) {
         var color = outcomeColor(p, o, i);
         var s1 = stat('points', '', color), s2 = stat('ratio', '', color), s3 = stat('users', '', color), s4 = stat('top', '', color);
@@ -329,7 +331,8 @@
         ]);
         if (rowBet) {
           if (i === 0) oc.setAttribute('data-top', '1');
-          if (p.status === 'ACTIVE') oc._onclick = function () { if (!needLogin()) pickPoints(p.id, o, Ev.balance); };
+          oc._onclick = p.status === 'ACTIVE' ? function () { if (!needLogin()) pickPoints(p.id, o, Ev.balance); }
+            : function () { UI.toast(predictionStatus(p)); };
         }
         cols.appendChild(oc);
         refs.outcomes.push({ points: s1.v, ratio: s2.v, users: s3.v, top: s4.v, pct: pct });
@@ -345,6 +348,10 @@
       body.appendChild(bar);
       refs.foot = h('div.ev-foot');
       body.appendChild(refs.foot);
+      if (focusIdx >= 0 && isTop() && (!Nav.current || !Nav.current.isConnected)) {
+        var rows = U.$$('.ev-pick', body);
+        Nav.focus(U.$('.ev-pick.ev-won', body) || rows[Math.min(focusIdx, rows.length - 1)] || U.$('.focusable', panel.el));
+      }
     }
     // числа — на месте, без перестройки DOM
     var refs2 = panel.refs;

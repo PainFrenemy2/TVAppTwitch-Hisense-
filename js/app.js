@@ -4,7 +4,7 @@
   var h = U.h;
 
   var App = {
-    VERSION: '1.8.4',
+    VERSION: '1.8.5',
     layers: [],
     history: [],
     pendingFocus: false
@@ -553,6 +553,7 @@
     window.addEventListener('pagehide', function () { App.saveState(); Player.saveNow(); U.store.flush(); });
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) { App.saveState(); Player.saveNow(); U.store.flush(); }
+      else if (Auth.loggedIn() && !Auth.needsLogin()) Auth.ensure().catch(function () {}); // вернулись — продлеваем вход сейчас
       if (!Player.isOpen()) return;
       if (document.hidden) { Player.bgPaused = true; try { Player.video.pause(); } catch (e) { /* ignore */ } }
       else {
@@ -642,7 +643,8 @@
   // ---------- уведомления: кто из ваших каналов начал эфир ----------
   var knownLive = null;
   function checkLive() {
-    if (Settings.get('notify') === 'off') return;
+    // ТВ в режиме ожидания / приложение свёрнуто — никаких фоновых запросов (и продлений входа)
+    if (Settings.get('notify') === 'off' || document.hidden) return;
     var p = (Auth.loggedIn() ? Auth.followedLiveSafe() : Twitch.users(App.favs()).then(function (us) {
       return us.filter(function (u) { return u.stream; }).map(function (u) { var st = u.stream; st.broadcaster = st.broadcaster || u; return st; });
     })).then(function (list) { return list.filter(function (st) { return !App.isBlocked(st.broadcaster.login); }); });

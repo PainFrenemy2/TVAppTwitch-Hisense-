@@ -137,8 +137,13 @@
   };
 
   // Одно обновление за раз: refresh-токен одноразовый, второй параллельный запрос его бы «сжёг»
+  // Refresh-токен у Twitch одноразовый: после продления действует только новый. Если ТВ выключится
+  // (или уйдёт в сон) раньше, чем новый токен запишется на диск, при следующем запуске останется
+  // «сожжённый» старый — и вход слетит. Поэтому: не продлеваем, пока приложение не на экране
+  // (ТВ в режиме ожидания), а новый токен сразу записываем и в localStorage, и в резервную копию.
   Auth.refresh = function () {
     if (!Auth.data || !Auth.data.refresh) return Promise.reject(new Error(tr('Нет refresh-токена')));
+    if (document.hidden) return Promise.reject(new Error('hidden')); // не invalid: вход не трогаем
     var acc = Auth.data;
     // общий запрос — только для того же аккаунта: после смены профиля нельзя отдать чужой токен
     if (Auth._rp && Auth._rpAcc === acc) return Auth._rp;
@@ -148,13 +153,18 @@
       if (!j.access_token) {
         var e = new Error(j.message || tr('Не удалось обновить вход'));
         e.invalid = j._status === 400 || j._status === 401; // Twitch прямо отверг токен
+        // для «Диагностики аккаунта»: что ответил Twitch при последнем продлении
+        acc.refreshLog = { at: Date.now(), ok: false, status: j._status, msg: String(j.message || '') };
+        save(); U.store.flush();
         throw e;
       }
       acc.token = j.access_token;
       if (j.refresh_token) acc.refresh = j.refresh_token;
       acc.expires = Date.now() + (j.expires_in || 3600) * 1000;
       acc.needsLogin = false;
+      acc.refreshLog = { at: Date.now(), ok: true, status: j._status, msg: '' };
       save();
+      U.store.flush(); // новый refresh-токен — на диск немедленно (старый уже недействителен)
     }, function (e) { if (Auth._rp === rp) Auth._rp = null; throw e; });
     return rp;
   };
@@ -167,6 +177,8 @@
     var acc = Auth.data;
     if (acc.needsLogin) return Promise.reject(new Error(tr('Вход в Twitch устарел — войдите снова')));
     if (acc.expires && acc.expires - Date.now() < 5 * 60 * 1000) {
+      // приложение свёрнуто / ТВ в режиме ожидания — не продлеваем (см. Auth.refresh)
+      if (document.hidden) return acc.expires > Date.now() ? Promise.resolve() : Promise.reject(new Error('hidden'));
       return Auth.refresh().catch(function (e) {
         if (e.invalid) { markExpired(acc); throw e; }
         // сеть ещё не поднялась после сна ТВ — пока токен жив, работаем с ним
