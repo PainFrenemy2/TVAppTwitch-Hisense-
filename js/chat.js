@@ -3,7 +3,7 @@
   'use strict';
   var h = U.h;
 
-  var MAX_LINES = 80;
+  var MAX_LINES = 50;
   var DEFAULT_COLORS = ['#FF0000', '#0000FF', '#00FF00', '#B22222', '#FF7F50', '#9ACD32', '#FF4500', '#2E8B57',
     '#DAA520', '#D2691E', '#5F9EA0', '#1E90FF', '#FF69B4', '#8A2BE2', '#00FF7F'];
 
@@ -132,11 +132,11 @@
     }
   }
 
-  // Сообщения пачкой раз в 250 мс — меньше перерисовок, плеер не тормозит на активных чатах
+  // Сообщения пачкой раз в 400 мс — меньше перерисовок, плеер не тормозит на активных чатах
   function push(msg) {
     Chat.queue.push(msg);
     if (Chat.queue.length > MAX_LINES) Chat.queue.splice(0, Chat.queue.length - MAX_LINES);
-    if (!Chat.flushTimer) Chat.flushTimer = setTimeout(flush, 250);
+    if (!Chat.flushTimer) Chat.flushTimer = setTimeout(flush, 400);
   }
 
   function flush() {

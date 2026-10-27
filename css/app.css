@@ -1168,3 +1168,10 @@ img.broken { visibility: hidden; }
 .num-key.focused { box-shadow: 0 0 0 .3rem #fff; background: rgba(255,255,255,.22); }
 .num-key.num-ok.focused { background: #a970ff; }
 .account-why { color: var(--text2); font-size: 1.25rem; margin-top: .4rem; }
+/* чат без мерцания: свой слой (не перерисовывается вместе с видео), перерисовка — только внутри списка,
+   размеры значков и смайлов заданы заранее — строки не прыгают, когда догружаются картинки */
+.chat { transform: translateZ(0); -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.chat-list { contain: layout paint; }
+.emote { min-width: 2.2rem; }
+.chat.cf-large .emote { min-width: 2.6rem; }
+.chat.cf-xlarge .emote { min-width: 3rem; }
