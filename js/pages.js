@@ -678,8 +678,10 @@
       q = q.slice(0, 40);
       if (q === query && resultsContent.children.length) return;
       query = q;
-      U.$('.search-text', field).textContent = query;
-      field.classList.toggle('empty', !query);
+      var txt = U.$('.search-text', field);
+      txt.textContent = query;
+      txt.scrollLeft = txt.scrollWidth; // длинный запрос — видно конец, то, что сейчас набрали
+      field.classList.toggle('is-empty', !query);
       field.classList.toggle('typing', !!query);
       runSearch();
     }
