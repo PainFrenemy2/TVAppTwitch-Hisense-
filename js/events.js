@@ -257,10 +257,13 @@
     panel.actKey = key;
     panel.actions.innerHTML = '';
     make(panel.actions);
-    // фокус на первой кнопке — окно прокручено к началу, исходы видны
+    // фокус на первой кнопке; если исходы короткие — окно прокручено к началу, чтобы цифры были видны,
+    // а если длинные (много исходов) — прокрутка идёт к самой кнопке, чтобы фокус не оказался за экраном
     var firstBtn = U.$('.focusable', panel.actions);
-    if (firstBtn) firstBtn.setAttribute('data-top', '1');
-    if (panel.refs && isTop() && hadFocus) Nav.focus(firstBtn);
+    var box = U.$('.ev-scrollbox', panel.el);
+    if (firstBtn && box && panel.body.offsetHeight < box.clientHeight * 0.6) firstBtn.setAttribute('data-top', '1');
+    var target = firstBtn || U.$('.focusable', panel.el);
+    if (panel.refs && isTop() && hadFocus && target) Nav.focus(target);
   }
 
   function stat(icon, value, color) {
@@ -276,7 +279,7 @@
     }
     if (p.status === 'LOCKED') return tr('Прогноз закрыт');
     var win = p.winningOutcome && p.outcomes.filter(function (o) { return o.id === p.winningOutcome.id; })[0];
-    return win ? tr('Победил: ') + win.title : tr('завершён');
+    return win ? tr('Победил: ') + win.title : tr('Прогноз завершён');
   }
 
   Ev.openPrediction = function () {
@@ -313,13 +316,20 @@
         var s1 = stat('points', '', color), s2 = stat('ratio', '', color), s3 = stat('users', '', color), s4 = stat('top', '', color);
         var pct = h('div.ev-pct-num', { style: 'color:' + color });
         var won = p.winningOutcome && p.winningOutcome.id === o.id;
-        cols.appendChild(h('div.ev-outcome' + (won ? '.ev-won' : ''), null, [
+        // много исходов — сами строки исходов выбираются и нажимаются (OK → ставка): фокус всегда рядом с цифрами
+        var rowBet = !two && p.status === 'ACTIVE';
+        var oc = h('div.ev-outcome' + (won ? '.ev-won' : '') + (rowBet ? '.focusable.ev-pick' : ''), rowBet ? { style: '--ev:' + color } : null, [
           h('div.ev-name', { text: o.title, style: 'color:' + color }),
           h('div.ev-row', null, [
             h('div.ev-stats', null, [s1.el, s2.el, s3.el, s4.el]),
             h('div.ev-pct', null, [pct, h('div.ev-pill', { style: 'background:' + color })])
           ])
-        ]));
+        ]);
+        if (rowBet) {
+          if (i === 0) oc.setAttribute('data-top', '1');
+          oc._onclick = function () { if (!needLogin()) pickPoints(p.id, o, Ev.balance); };
+        }
+        cols.appendChild(oc);
         refs.outcomes.push({ points: s1.v, ratio: s2.v, users: s3.v, top: s4.v, pct: pct });
       });
       body.appendChild(cols);
@@ -351,7 +361,9 @@
     refs2.foot.textContent = foot;
 
     // кнопки ставок — только пока приём открыт
-    setActions(p.id + ':' + (p.status === 'ACTIVE' ? 'bet' : 'close'), function (box) {
+    var many = p.outcomes.length !== 2;
+    setActions(p.id + ':' + (p.status === 'ACTIVE' ? (many ? 'rows' : 'bet') : 'close'), function (box) {
+      if (p.status === 'ACTIVE' && many) return; // ставки — прямо на строках исходов
       if (p.status === 'ACTIVE') {
         p.outcomes.forEach(function (o, i) {
           var b = h('div.btn.focusable.ev-bet', { style: '--ev:' + outcomeColor(p, o, i) }, [h('span', { text: o.title })]);
@@ -395,7 +407,7 @@
 
   function pollStatus(p) {
     if (!p) return '';
-    if (p.status !== 'ACTIVE') return tr('завершён');
+    if (p.status !== 'ACTIVE') return tr('Голосование завершено');
     var left = p._endAt ? Math.max(0, Math.round((p._endAt - Date.now()) / 1000)) : 0;
     return left ? tr('Осталось: ') + U.duration(left) : tr('Ожидание результата');
   }
@@ -444,7 +456,7 @@
 
   function vote(pollId, c) {
     var p = Ev.poll, u = Auth.user();
-    if (!p || p.id !== pollId || p.status !== 'ACTIVE') { UI.toast(tr('завершён')); return; }
+    if (!p || p.id !== pollId || p.status !== 'ACTIVE') { UI.toast(tr('Голосование завершено')); return; }
     Auth.gql('mutation($input:VoteInPollInput!){voteInPoll(input:$input){error{code}}}',
       { input: { pollID: pollId, choiceID: c.id, userID: u && u.id, voteID: U.uid(32) } })
       .then(function (d) {

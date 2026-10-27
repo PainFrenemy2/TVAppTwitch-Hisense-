@@ -151,12 +151,12 @@
 
   // Клипы и новые записи каналов, за которыми вы следите (по 4 запроса за раз)
   function followedClips(period, limit) {
-    var logins = App.myChannels().slice(0, 12);
-    return U.pool(logins, 4, function (l) { return Twitch.clips(l, period || 'LAST_WEEK', 6).catch(function () { return []; }); })
+    var logins = App.myChannels().slice(0, 8);
+    return U.pool(logins, 3, function (l) { return Twitch.clips(l, period || 'LAST_WEEK', 6).catch(function () { return []; }); })
       .then(function (lists) { return byViews(lists, limit || 30); });
   }
   function followedVideos(limit) {
-    return U.pool(App.myChannels().slice(0, 24), 4, function (l) {
+    return U.pool(App.myChannels().slice(0, 12), 3, function (l) {
       return Twitch.videos(l, 'ARCHIVE', 4).then(function (p) { return p.items; }).catch(function () { return []; });
     }).then(function (lists) {
       return [].concat.apply([], lists.map(function (x) { return x || []; }))
@@ -268,32 +268,39 @@
 
     var lang = Settings.get('lang');
     var keysAtOpen = App.keyCount;
-    // баннер: с аккаунтом — рекомендованные Twitch эфиры (как на twitch.tv), иначе популярные на вашем языке
-    // как на ПК: сначала эфиры каналов, за которыми вы следите, потом рекомендации Twitch
-    var personalHero = Promise.all([
-      Auth.loggedIn() ? myLive().catch(function () { return []; }) : Promise.resolve([]),
-      Twitch.personalShelves()
-    ]).then(function (r) {
-      var st = r[0].slice(0, 8), seen = {};
-      st.forEach(function (x) { seen[x.broadcaster.login] = 1; });
-      r[1].forEach(function (row) { row.items.forEach(function (it) {
-        if (it.type === 'Stream' && st.length < 8 && !seen[it.data.broadcaster.login]) { seen[it.data.broadcaster.login] = 1; st.push(it.data); }
-      }); });
-      if (st.length < 1) throw new Error('few');
-      return { items: st };
-    });
-    personalHero.catch(function () {
-      return Twitch.topStreamsByLang(lang, 8).catch(function () { return Twitch.topStreams(8); });
-    }).then(function (p) {
-      heroItems = p.items.filter(function (s) { return s.broadcaster && !App.isBlocked(s.broadcaster.login); }).slice(0, 8);
-      if (!heroItems.length) return;
+    // Баннер как на ПК: сразу — эфиры каналов, за которыми вы следите (они приходят быстро), затем
+    // добавляются рекомендации Twitch. Ничего нет — популярные на вашем языке. Пока грузится, место
+    // под баннер занято, чтобы страница не прыгала вниз, когда он появится.
+    hero.classList.add('loading');
+    function heroDone() { hero.classList.remove('loading'); }
+    function addHero(list) {
+      var seen = {};
+      heroItems.forEach(function (x) { seen[x.broadcaster.login] = 1; });
+      list.forEach(function (x) {
+        var l = x && x.broadcaster && x.broadcaster.login;
+        if (l && !seen[l] && !App.isBlocked(l) && heroItems.length < 8) { seen[l] = 1; heroItems.push(x); }
+      });
+      if (!heroItems.length) return false;
+      if (heroEl.parentNode) {
+        U.$('.hero-dots', heroEl).innerHTML = heroItems.map(function (_, k) { return '<i' + (k === heroIdx ? ' class="on"' : '') + '></i>'; }).join('');
+        return true;
+      }
+      heroDone();
       hero.appendChild(heroEl);
       showHero(0);
       // главная открылась, а пользователь ещё ничего не нажимал — выбор на самом верхнем элементе (баннер)
       var cur = Nav.current;
       if (App.keyCount === keysAtOpen && App.topLayer() === App.base && el.isConnected && (!cur || el.contains(cur))) Nav.focus(heroEl);
       else App.refocus();
-    }).catch(function () {});
+      return true;
+    }
+    var followedHero = Auth.loggedIn() ? myLive().then(addHero, function () { return false; }) : Promise.resolve(false);
+    Promise.all([followedHero, Twitch.personalShelves()]).then(function (r) {
+      var st = [];
+      r[1].forEach(function (row) { row.items.forEach(function (it) { if (it.type === 'Stream') st.push(it.data); }); });
+      if (addHero(st)) return;
+      return Twitch.topStreamsByLang(lang, 8).catch(function () { return Twitch.topStreams(8); }).then(function (p) { addHero(p.items); });
+    }).catch(function () {}).then(heroDone);
 
     var activeChip = null;
     function chip(label, fn) {
@@ -354,10 +361,12 @@
       // С аккаунтом главная — как у Twitch: только ваше (подписки, рекомендации Twitch, ваши клипы и записи, история).
       // Общие «популярные» ряды — без входа или если Twitch не отдал персональные ряды.
       if (signedIn()) {
+        later(function () { autoShelf(body, tr('Ваши категории'), function () { return Auth.followedGames(); }, gameCard, { game: true, skeleton: 8 }); });
         later(function () { autoShelf(body, tr('Клипы ваших подписок'), function () { return followedClips('LAST_WEEK', 24); }, clipCard); });
         later(function () { autoShelf(body, tr('Новые записи ваших каналов'), function () { return followedVideos(24); }, videoCard); });
-        later(function () { autoShelf(body, tr('Ваши категории'), function () { return Auth.followedGames(); }, gameCard, { game: true, skeleton: 8 }); });
-        body._lazy(Math.max(0, 4 - body.children.length));
+        // остальные ряды — когда придут персональные (не забиваем сеть ТВ залпом запросов при открытии),
+        // но не позже чем через 4 секунды, если Twitch отвечает медленно
+        setTimeout(function () { if (body.isConnected) afterPersonal(); }, 4000);
         return;
       }
       genericRows(true);
@@ -393,18 +402,21 @@
     }
 
     var MAKE = { Stream: streamCard, Game: gameCard, Clip: clipCard, Video: videoCard };
+    // персональные ряды пришли (или вместо них — рекомендации): достраиваем экран до 4 рядов
+    function afterPersonal() { body._lazy(Math.max(0, 4 - body.children.length)); }
+
     function personalRows() {
       var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard);
       Twitch.personalShelves().then(function (rows) {
         if (!holder.parentNode) return;
         // Twitch не отдал персональные ряды — рекомендуем сами по вашим каналам и категориям
-        if (!rows.length && signedIn()) { holder.parentNode.removeChild(holder); recommendRows(); return; }
+        if (!rows.length && signedIn()) { var after = holder.nextSibling; holder.parentNode.removeChild(holder); recommendRows(after); afterPersonal(); return; }
         // ряды добавляем по одному с паузой — слабый ТВ не строит 8 полок по 16 карточек разом
         var i = 0;
         function nextRow() {
           if (!holder.parentNode) return;
           var r = rows[i++];
-          if (!r) { holder.parentNode.removeChild(holder); App.refocus(); return; }
+          if (!r) { holder.parentNode.removeChild(holder); App.refocus(); afterPersonal(); return; }
           var type = r.items[0].type;
           var shelf = UI.shelf(r.title, type === 'Game' ? { cls: 'shelf-games' } : null);
           shelf.add(r.items.filter(function (it) { return it.type === type; }).slice(0, 16).map(function (it) { return MAKE[type](it.data); }));
@@ -417,16 +429,19 @@
     }
 
     // Рекомендации без персональных рядов Twitch: эфиры в категориях, где сейчас ваши каналы и которые вы отслеживаете
-    function recommendRows() {
-      var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard);
+    // before — место, где стоял ряд-заглушка персональных рядов (рекомендации встают туда же, а не в конец)
+    function recommendRows(before) {
+      var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard, { before: before });
       var mineSet = {};
       App.myChannels().forEach(function (l) { mineSet[l] = 1; });
       Promise.all([myLive().catch(function () { return []; }), Auth.followedGames().catch(function () { return []; })]).then(function (r) {
+        if (!holder.parentNode) return; // пока грузили, переключили категорию
+        r[0].forEach(function (st) { if (st.broadcaster) mineSet[st.broadcaster.login] = 1; }); // отслеживаемые — не в рекомендации
         var games = [], seen = {};
         r[0].forEach(function (st) { var g = st.game; if (g && g.name && !seen[g.name]) { seen[g.name] = 1; games.push(g); } });
         r[1].forEach(function (g) { if (g && g.name && !seen[g.name]) { seen[g.name] = 1; games.push(g); } });
         games = games.slice(0, 4);
-        if (!games.length) { holder.parentNode.removeChild(holder); genericRows(false); body._lazy(Math.max(0, 4 - body.children.length)); App.refocus(); return; }
+        if (!games.length) { holder.parentNode.removeChild(holder); genericRows(false); afterPersonal(); App.refocus(); return; }
         // как на twitch.tv: «Активные каналы, которые могут вам понравиться» — эфиры из ваших категорий вперемешку
         autoShelf(body, tr('Активные каналы, которые могут вам понравиться'), function () {
           return Promise.all(games.map(function (g) { return Twitch.gameStreams(g.name, 12).then(function (p) { return p.items; }).catch(function () { return []; }); }))

@@ -156,6 +156,7 @@
     // быстрый путь — без сбора и замера всех элементов страницы
     if (inScope && !cur.hasAttribute('data-nav-' + dir)) {
       var fast = fastMove(cur, dir);
+      if (fast === cur) return true;
       if (fast) { Nav.focus(fast); return true; }
     }
     var list = Nav.focusables();
@@ -189,7 +190,10 @@
     if (dir === 'left' || dir === 'right') {
       var sib = dir === 'right' ? cur.nextElementSibling : cur.previousElementSibling;
       while (sib && !focusableIn(sib)) sib = dir === 'right' ? sib.nextElementSibling : sib.previousElementSibling;
-      return sib; // нет соседа — край полки: решает полный перебор (например, уход в боковое меню)
+      // правый край полки — остаёмся на месте (не прыгаем в соседний ряд); левый край решает полный перебор —
+      // так уходят в боковое меню
+      if (!sib && dir === 'right' && !track.closest('.osd-next')) return cur;
+      return sib;
     }
     // вверх/вниз: соседняя полка в том же контейнере
     var shelf = cur.closest('.shelf');
