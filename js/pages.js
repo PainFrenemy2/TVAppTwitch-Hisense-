@@ -364,7 +364,10 @@
       // С аккаунтом главная — как у Twitch: только ваше (подписки, рекомендации Twitch, ваши клипы и записи, история).
       // Общие «популярные» ряды — без входа или если Twitch не отдал персональные ряды.
       if (signedIn()) {
-        later(function () { autoShelf(body, tr('Ваши категории'), function () { return Auth.followedGames(); }, gameCard, { game: true, skeleton: 8 }); });
+        later(function () { autoShelf(body, tr('Ваши категории'), function () {
+          // нет отслеживаемых категорий — берём те, в которых обычно стримят ваши каналы
+          return Auth.followedGames().catch(function () { return []; }).then(function (g) { return g.length ? g : Twitch.tasteGames(Auth.cachedFollows()); });
+        }, gameCard, { game: true, skeleton: 8 }); });
         later(function () { autoShelf(body, tr('Клипы ваших подписок'), function () { return followedClips('LAST_WEEK', 24); }, clipCard); });
         later(function () { autoShelf(body, tr('Новые записи ваших каналов'), function () { return followedVideos(24); }, videoCard); });
         // остальные ряды — когда придут персональные (не забиваем сеть ТВ залпом запросов при открытии),
@@ -439,12 +442,18 @@
       var holder = autoShelf(body, tr('Рекомендуем для вас'), function () { return new Promise(function () {}); }, streamCard, { before: before });
       var mineSet = {};
       App.myChannels().forEach(function (l) { mineSet[l] = 1; });
-      Promise.all([myLive().catch(function () { return []; }), Auth.followedGames().catch(function () { return []; })]).then(function (r) {
+      Promise.all([myLive().catch(function () { return []; }), Auth.followedGames().catch(function () { return []; }),
+        Twitch.tasteGames(Auth.cachedFollows()).catch(function () { return []; })]).then(function (r) {
         if (!holder.parentNode) return; // пока грузили, переключили категорию
         r[0].forEach(function (st) { if (st.broadcaster) mineSet[st.broadcaster.login] = 1; }); // отслеживаемые — не в рекомендации
         var games = [], seen = {};
         r[0].forEach(function (st) { var g = st.game; if (g && g.name && !seen[g.name]) { seen[g.name] = 1; games.push(g); } });
         r[1].forEach(function (g) { if (g && g.name && !seen[g.name]) { seen[g.name] = 1; games.push(g); } });
+        // во что обычно играют ваши каналы — сначала то, что встречается чаще
+        var taste = r[2].filter(function (g) { return g && g.name && !seen[g.name]; });
+        // любимая категория подписок важнее случайной игры единственного эфира — ставим её второй
+        if (taste.length) { seen[taste[0].name] = 1; games.splice(Math.min(1, games.length), 0, taste.shift()); }
+        taste.forEach(function (g) { if (!seen[g.name]) { seen[g.name] = 1; games.push(g); } });
         games = games.slice(0, 4);
         if (!games.length) { holder.parentNode.removeChild(holder); genericRows(false); afterPersonal(); App.refocus(); return; }
         // как на twitch.tv: «Активные каналы, которые могут вам понравиться» — эфиры из ваших категорий вперемешку

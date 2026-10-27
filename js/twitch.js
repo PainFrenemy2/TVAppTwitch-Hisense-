@@ -219,8 +219,18 @@
     var steps = [];
     var asUser = function (q, v) { return Auth.gql(q, v); };
     var asAnon = function (q, v) { return gql(q, v, { retries: 0 }); };
+    // Для входа через ТВ-код Twitch рядов главной не отдаёт вовсе («0 shelves») — тогда сутки их не спрашиваем
+    // (главная строится по вашим подпискам и категориям), а остальные варианты запроса пропускаем
+    var none = signed && U.store.get('shelvesNone', {});
+    var skipShelves = signed && none.user === key && Date.now() - none.at < 24 * 3600e3;
     SHELVES_VARIANTS.forEach(function (sv) {
-      if (signed) steps.push({ name: sv[0] + ' (account)', run: function () { return asUser(sv[1], { first: 8, itemsPerRow: 16, requestID: U.uid(16) }).then(shelvesFrom); } });
+      if (signed) steps.push({ name: sv[0] + ' (account)', shelves: true, run: function () {
+        if (skipShelves) return Promise.resolve(Object.defineProperty([], 'raw', { value: 'skipped: Twitch gave 0 shelves to this sign-in' }));
+        return asUser(sv[1], { first: 8, itemsPerRow: 16, requestID: U.uid(16) }).then(shelvesFrom).then(function (rows) {
+          if (!rows.length && /^0 shelves/.test(rows.raw)) { skipShelves = true; U.store.set('shelvesNone', { user: key, at: Date.now() }); }
+          return rows;
+        });
+      } });
     });
     if (signed) steps.push({ name: 'personalSections (account)', run: function () { return asUser(RECS_Q, {}).then(recsFrom); } });
     SHELVES_VARIANTS.forEach(function (sv) {
@@ -286,6 +296,31 @@
   };
 
   // Несколько каналов за раз (для избранного). Twitch ограничивает ~100 логинов на запрос.
+  // Ваши категории по подпискам: во что последний раз играли отслеживаемые каналы (чаще — выше).
+  // Кэш на 6 часов — для рекомендаций на главной, когда Twitch не даёт своих рядов.
+  T.tasteGames = function (logins) {
+    var c = U.store.get('tasteGames', null);
+    if (c && c.n === logins.length && Date.now() - c.at < 6 * 3600e3) return Promise.resolve(c.games);
+    if (!logins.length) return Promise.resolve([]);
+    var chunks = [];
+    for (var i = 0; i < logins.length && i < 200; i += 90) chunks.push(logins.slice(i, i + 90));
+    return Promise.all(chunks.map(function (ch) {
+      return gql('query($logins:[String!]){users(logins:$logins){lastBroadcast{game{' + GAME + '}}}}', { logins: ch })
+        .then(function (d) { return (d.users || []).filter(Boolean); }).catch(function () { return []; });
+    })).then(function (parts) {
+      var cnt = {}, byName = {};
+      [].concat.apply([], parts).forEach(function (u) {
+        var g = u.lastBroadcast && u.lastBroadcast.game;
+        if (!g || !g.name) return;
+        cnt[g.name] = (cnt[g.name] || 0) + 1;
+        byName[g.name] = g;
+      });
+      var games = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; }).slice(0, 8).map(function (n) { return byName[n]; });
+      U.store.set('tasteGames', { n: logins.length, at: Date.now(), games: games });
+      return games;
+    });
+  };
+
   T.users = function (logins) {
     if (!logins.length) return Promise.resolve([]);
     var chunks = [];
